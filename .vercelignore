@@ -11,7 +11,7 @@ Dockerfile
 docker/
 docker-compose.postgres.yml
 scratch/
-tests/
+/tests/
 AGENTS.md
 CLAUDE.md
 
