@@ -467,7 +467,9 @@ async function main() {
       await client.query("DELETE FROM ogcode_questions");
     }
 
-    for (const row of rows) {
+    const batchSize = 250;
+    for (let start = 0; start < rows.length; start += batchSize) {
+      const batch = rows.slice(start, start + batchSize);
       await client.query(
         `
           INSERT INTO ogcode_questions (
@@ -496,8 +498,55 @@ async function main() {
             is_challenge_of_day,
             updated_at
           )
-          VALUES (
-            $1, $2, $3, $4::jsonb, $5, $6::jsonb, $7, $8::jsonb, $9, $10::jsonb, $11, $12, $13, $14, $15, $16, $17, $18::jsonb, $19, $20, $21, $22, $23, NOW()
+          SELECT
+            id,
+            source_index,
+            text,
+            options,
+            correct_option,
+            correct_options,
+            answer_text,
+            answer_spec,
+            tolerance,
+            matrix_data,
+            explanation,
+            hint,
+            subject,
+            chapter,
+            concept,
+            difficulty,
+            image,
+            tags,
+            question_type,
+            acceptance_rate,
+            total_correct,
+            frequency,
+            is_challenge_of_day,
+            NOW()
+          FROM jsonb_to_recordset($1::jsonb) AS row(
+            id TEXT,
+            source_index INTEGER,
+            text TEXT,
+            options JSONB,
+            correct_option INTEGER,
+            correct_options JSONB,
+            answer_text TEXT,
+            answer_spec JSONB,
+            tolerance DOUBLE PRECISION,
+            matrix_data JSONB,
+            explanation TEXT,
+            hint TEXT,
+            subject TEXT,
+            chapter TEXT,
+            concept TEXT,
+            difficulty TEXT,
+            image TEXT,
+            tags JSONB,
+            question_type TEXT,
+            acceptance_rate DOUBLE PRECISION,
+            total_correct INTEGER,
+            frequency INTEGER,
+            is_challenge_of_day BOOLEAN
           )
           ON CONFLICT (id) DO UPDATE SET
             source_index = EXCLUDED.source_index,
@@ -521,31 +570,7 @@ async function main() {
             is_challenge_of_day = EXCLUDED.is_challenge_of_day,
             updated_at = NOW()
         `,
-        [
-          row.id,
-          row.source_index,
-          row.text,
-          JSON.stringify(row.options),
-          row.correct_option,
-          JSON.stringify(row.correct_options),
-          row.answer_text,
-          JSON.stringify(row.answer_spec),
-          row.tolerance,
-          JSON.stringify(row.matrix_data),
-          row.explanation,
-          row.hint,
-          row.subject,
-          row.chapter,
-          row.concept,
-          row.difficulty,
-          row.image,
-          JSON.stringify(row.tags),
-          row.question_type,
-          row.acceptance_rate,
-          row.total_correct,
-          row.frequency,
-          row.is_challenge_of_day,
-        ],
+        [JSON.stringify(batch)],
       );
     }
 
