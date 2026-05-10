@@ -1,0 +1,237 @@
+@import "tailwindcss";
+@import "katex/dist/katex.min.css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --radius: 0.75rem;
+
+  --color-origin-blue: #2563eb;
+  --color-origin-dark: #020617;
+
+  --shadow-soft: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
+}
+
+:root {
+  --background: 345 60% 97.5%; /* More saturated lightish pink */
+  --foreground: 222.2 47.4% 11.2%;
+  --card: 345 50% 98.5%; /* Pinkish cards instead of pure white */
+  --card-foreground: 222.2 47.4% 11.2%;
+  --popover: 345 50% 98.5%;
+  --popover-foreground: 222.2 47.4% 11.2%;
+  --primary: 346.8 77.2% 49.8%;
+  --primary-foreground: 350 100% 98%;
+  --secondary: 350 40% 95%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 350 40% 95%;
+  --muted-foreground: 350 10% 45%;
+  --accent: 350 40% 95%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 350 30% 92%;
+  --input: 350 30% 92%;
+  --ring: 346.8 77.2% 49.8%;
+}
+
+.dark {
+  --background: 224 71% 4%; /* Deep dark with hint of navy/black */
+  --foreground: 350 40% 98%;
+  --card: 224 71% 4%;
+  --card-foreground: 350 40% 98%;
+  --popover: 224 71% 4%;
+  --popover-foreground: 350 40% 98%;
+  --primary: 221.2 83.2% 53.3%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 222.2 47.4% 11.2%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 222.2 47.4% 11.2%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 222.2 47.4% 11.2%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 224.3 76.3% 48.0%;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-primary/20 transition-colors duration-500;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-card/80 dark:bg-slate-950/80 backdrop-blur-[12px] border-b border-[#F1F5F9] dark:border-white/10;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  }
+
+  .premium-shadow {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.01);
+  }
+
+  .dark .premium-shadow {
+    box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.5);
+  }
+
+  .premium-card {
+    @apply bg-card dark:bg-card border border-[#E2E8F0] dark:border-border/50 rounded-2xl transition-all duration-300;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  }
+
+  .premium-card:hover {
+    @apply border-primary/20 shadow-lg shadow-primary/5 -translate-y-0.5;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/20 hover:bg-muted-foreground/40 rounded-full transition-colors;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-float {
+  animation: float 5s ease-in-out infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
+@layer utilities {
+  .animate-spin-slow {
+    animation: spin 3s linear infinite;
+  }
+
+  .math-highlight, .prose .katex {
+    position: relative;
+    display: inline-block;
+    padding: 0.1rem 0.3rem;
+    margin: 0 0.1rem;
+    border-radius: 6px;
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.08) 0%, hsl(var(--primary) / 0.03) 100%);
+    box-shadow: 0 2px 8px -2px hsl(var(--primary) / 0.15);
+    border: 1px solid hsl(var(--primary) / 0.4);
+    transition: all 0.2s ease;
+  }
+
+  .math-highlight:hover, .prose .katex:hover {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.12) 0%, hsl(var(--primary) / 0.05) 100%);
+    border-color: hsl(var(--primary) / 0.3);
+    box-shadow: 0 4px 12px -2px hsl(var(--primary) / 0.25);
+  }
+
+  .dark .math-highlight, .dark .prose .katex {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.15) 0%, hsl(var(--primary) / 0.05) 100%);
+    box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.4);
+    border-color: hsl(var(--primary) / 0.5);
+  }
+
+  .prose .katex-display {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    border-radius: 12px;
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.05) 0%, hsl(var(--primary) / 0.02) 100%);
+    box-shadow: inset 0 2px 10px -2px hsl(var(--primary) / 0.05), 0 2px 8px -2px hsl(var(--primary) / 0.1);
+    border: 1px solid hsl(var(--primary) / 0.15);
+    transition: all 0.3s ease;
+  }
+
+  .prose .katex-display:hover {
+    border-color: hsl(var(--primary) / 0.3);
+    box-shadow: inset 0 2px 10px -2px hsl(var(--primary) / 0.1), 0 4px 12px -2px hsl(var(--primary) / 0.2);
+  }
+
+  .dark .prose .katex-display {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.1) 0%, hsl(var(--primary) / 0.02) 100%);
+    box-shadow: inset 0 2px 15px -5px rgba(0,0,0,0.5), 0 4px 15px -3px rgba(0, 0, 0, 0.4);
+    border-color: hsl(var(--primary) / 0.2);
+  }
+
+  /* Reset inner inline highlighting to prevent double boxes in display blocks */
+  .prose .katex-display .katex {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: inline-block !important;
+  }
+}
