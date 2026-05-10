@@ -166,13 +166,14 @@ export async function appendRoomStreamEvent(roomId: string, event: RoomEvent): P
     return id;
   }
 
-  const client = redis as unknown as {
-    xadd: (...args: unknown[]) => Promise<string | null>;
-    xtrim?: (...args: unknown[]) => Promise<unknown>;
-  };
   const payload = JSON.stringify(event);
-  const id = await client.xadd(streamKey(roomId), "*", { type: event.type, payload });
-  await client.xtrim?.(streamKey(roomId), "MAXLEN", "~", 500);
+  const id = await redis.xadd(streamKey(roomId), "*", { type: event.type, payload }, {
+    trim: {
+      type: "MAXLEN",
+      comparison: "~",
+      threshold: 500,
+    },
+  });
   return id;
 }
 
@@ -259,9 +260,6 @@ export async function readRoomStreamEvents(
     return readLocalStream(roomId, cursor, count, blockMs, options.signal);
   }
 
-  const client = redis as unknown as {
-    xread: (...args: unknown[]) => Promise<unknown>;
-  };
-  const response = await client.xread("COUNT", count, "BLOCK", blockMs, "STREAMS", streamKey(roomId), cursor);
+  const response = await redis.xread(streamKey(roomId), cursor, { count, blockMS: blockMs });
   return parseRedisStreamResponse(response);
 }
