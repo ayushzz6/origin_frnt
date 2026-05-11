@@ -29,17 +29,17 @@ interface AuthPageProps {
   error?: string | null;
 }
 
-export default function AuthPage({
-  userRole,
-  onLogin,
+export default function AuthPage({ 
+  userRole, 
+  onLogin, 
   onLoginWithOtp,
-  onRegister,
-  onGoogleLogin,
-  onBack,
-  isLoading,
+  onRegister, 
+  onGoogleLogin, 
+  onBack, 
+  isLoading, 
   error,
   sendOtp,
-  verifyOtp
+  verifyOtp 
 }: AuthPageProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
@@ -64,13 +64,13 @@ export default function AuthPage({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
-
+  
   // OTP state
   const [step, setStep] = useState<'form' | 'otp'>('form');
   const [otp, setOtp] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
-
+  
   // Registration limit state
   const [regStatus, setRegStatus] = useState<{ count: number; limit: number; seatsLeft: number } | null>(null);
 
@@ -105,7 +105,7 @@ export default function AuthPage({
       toast.error('Please enter the full 6-digit code.');
       return;
     }
-
+    
     setIsVerifying(true);
     if (verifyOtp) {
       const res = await verifyOtp(email, otp);
@@ -210,11 +210,11 @@ export default function AuthPage({
                 </div>
               )}
 
-              {regStatus && (!isLogin || regStatus.seatsLeft <= 0) && (
+              {regStatus && !isLogin && (
                 <div className={cn(
-                  "mt-4 w-full p-3 rounded-xl border flex text-center items-center justify-center gap-2 animate-in fade-in zoom-in-95 duration-500",
-                  regStatus.seatsLeft > 0
-                    ? "bg-primary/10 border-primary/20 text-primary"
+                  "mt-4 w-full p-3 rounded-xl border flex items-center justify-center gap-2 animate-in fade-in zoom-in-95 duration-500",
+                  regStatus.seatsLeft > 0 
+                    ? "bg-primary/10 border-primary/20 text-primary" 
                     : "bg-amber-500/10 border-amber-500/20 text-amber-500"
                 )}>
                   {regStatus.seatsLeft > 0 ? (
@@ -226,9 +226,9 @@ export default function AuthPage({
                     </>
                   ) : (
                     <>
-                      <Lock className="w-4 h-4 flex-shrink-0" />
-                      <span className="text-xs font-bold uppercase leading-relaxed">
-                        the beta model registrations closed , we will reach you soon, stay tuned to experince the biggest edtech change !
+                      <Lock className="w-3 h-3" />
+                      <span className="text-xs font-black tracking-widest uppercase">
+                        Registration Closed (Capacity Reached)
                       </span>
                     </>
                   )}
@@ -275,7 +275,7 @@ export default function AuthPage({
                         />
                       </div>
                     </div>
-
+                    
                     {userRole !== 'admin' && (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
@@ -358,7 +358,7 @@ export default function AuthPage({
                           )}
                         </button>
                       </div>
-
+                      
                       <button
                         type="button"
                         onClick={() => {
@@ -405,7 +405,7 @@ export default function AuthPage({
                       {step === 'otp' ? 'Verifying...' : (isLogin ? (userRole === 'admin' ? 'Sending code...' : 'Logging in...') : 'Sending code...')}
                     </>
                   ) : (
-                    userRole === 'admin'
+                    userRole === 'admin' 
                       ? (step === 'form' ? 'Send OTP' : 'Verify & Login')
                       : (isLogin ? 'Login' : (step === 'form' ? 'Create Account' : 'Verify & Complete'))
                   )}
@@ -424,8 +424,8 @@ export default function AuthPage({
                   </div>
 
                   <div className="mt-6 flex flex-col gap-3">
-                    <Button
-                      variant="outline"
+                    <Button 
+                      variant="outline" 
                       className="h-11 border-border/60 hover:bg-muted text-foreground bg-muted/40"
                       onClick={() => handleGoogleAuth()}
                       disabled={isLoading}
