@@ -346,7 +346,7 @@ export async function handleLoginWithOtp(payload: UserPayload) {
   });
 }
 
-const REGISTRATION_LIMIT = 110;
+const REGISTRATION_LIMIT = 51;
 
 export async function getRegistrationStatus() {
   if (isUserPostgresConfigured()) {
