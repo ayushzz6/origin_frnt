@@ -586,6 +586,19 @@ export async function handleGoogleLogin(payload: UserPayload) {
 export async function handleRefresh(request: Request | null, payload: UserPayload) {
   const refreshToken = asString(payload.refresh) ?? (request ? extractRefreshTokenCookie(request) : null);
   if (!refreshToken) {
+    if (request) {
+      try {
+        const user = await resolveTokenToUser(request);
+        if (user) {
+          return ok({ refreshed: false });
+        }
+      } catch (error) {
+        if (isAuthServiceUnavailableError(error)) {
+          return serviceUnavailable("Session refresh is temporarily unavailable. Please retry in a moment.");
+        }
+        throw error;
+      }
+    }
     return badRequest("Refresh token is required.");
   }
 
