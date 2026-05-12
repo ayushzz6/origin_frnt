@@ -353,13 +353,40 @@ function getConnectionString() {
   );
 }
 
-function getSslConfig(connectionString) {
+const LOCAL_DATABASE_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
+
+function isLocalDatabaseHost(hostname) {
+  return LOCAL_DATABASE_HOSTS.has(hostname.replace(/^\[/u, "").replace(/\]$/u, "").toLowerCase());
+}
+
+function normalizeConnectionString(connectionString) {
   try {
     const url = new URL(connectionString);
-    return ["localhost", "127.0.0.1"].includes(url.hostname) ? false : { rejectUnauthorized: false };
+    const sslMode = url.searchParams.get("sslmode")?.toLowerCase();
+    if (!isLocalDatabaseHost(url.hostname) && sslMode !== "disable" && sslMode !== "verify-full") {
+      url.searchParams.set("sslmode", "verify-full");
+    }
+    return url.toString();
   } catch {
-    return connectionString.includes("localhost") ? false : { rejectUnauthorized: false };
+    return connectionString;
   }
+}
+
+function getClientConfig(connectionString) {
+  const normalizedConnectionString = normalizeConnectionString(connectionString);
+  const config = { connectionString: normalizedConnectionString };
+  try {
+    const url = new URL(normalizedConnectionString);
+    const sslMode = url.searchParams.get("sslmode")?.toLowerCase();
+    if (isLocalDatabaseHost(url.hostname) || sslMode === "disable") {
+      config.ssl = false;
+    } else if (!sslMode) {
+      config.ssl = true;
+    }
+  } catch {
+    config.ssl = connectionString.includes("localhost") ? false : true;
+  }
+  return config;
 }
 
 function loadQuestions(filePath) {
@@ -454,10 +481,7 @@ async function main() {
     throw new Error("Set OGCODE_DATABASE_URL, OGCODE_POSTGRES_URL, POSTGRES_URL, or DATABASE_URL before importing OGCode questions.");
   }
 
-  const client = new Client({
-    connectionString,
-    ssl: getSslConfig(connectionString),
-  });
+  const client = new Client(getClientConfig(connectionString));
 
   await client.connect();
   try {
