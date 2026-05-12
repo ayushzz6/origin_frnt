@@ -1,5 +1,7 @@
 const DEFAULT_PUBLIC_SITE_URL = "https://www.o3origin.com";
-const CANONICAL_HOSTS = new Set(["o3origin.com", "www.o3origin.com"]);
+const CANONICAL_HOST = "www.o3origin.com";
+const APEX_HOST = "o3origin.com";
+const CANONICAL_HOSTS = new Set([APEX_HOST, CANONICAL_HOST]);
 
 export function getCanonicalSiteUrl(rawUrl = process.env.NEXT_PUBLIC_SITE_URL): string {
   const candidate = rawUrl?.trim() || DEFAULT_PUBLIC_SITE_URL;
@@ -11,6 +13,7 @@ export function getCanonicalSiteUrl(rawUrl = process.env.NEXT_PUBLIC_SITE_URL): 
       return DEFAULT_PUBLIC_SITE_URL;
     }
     url.protocol = "https:";
+    url.hostname = CANONICAL_HOST;
     url.pathname = "";
     url.search = "";
     url.hash = "";

@@ -6,6 +6,8 @@ import { getApiRoutePolicy, getAppRoutePolicy, normalizePathname, type RoutePoli
 import { isBearerTokenAuthorized } from "@/server/service-auth";
 
 const REQUEST_ID_HEADER = "X-Request-Id";
+const CANONICAL_HOST = "www.o3origin.com";
+const APEX_HOST = "o3origin.com";
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 const CSRF_EXEMPT_API_PATHS = new Set([
   "/api/users/login",
@@ -21,6 +23,17 @@ function requestIdFor(request: NextRequest): string {
 function withRequestId(response: NextResponse, requestId: string): NextResponse {
   response.headers.set(REQUEST_ID_HEADER, requestId);
   return response;
+}
+
+export function canonicalHostRedirectUrl(requestUrl: URL): URL | null {
+  if (requestUrl.hostname !== APEX_HOST) {
+    return null;
+  }
+  const url = new URL(requestUrl.toString());
+  url.protocol = "https:";
+  url.hostname = CANONICAL_HOST;
+  url.port = "";
+  return url;
 }
 
 function withNoIndex(response: NextResponse, policy: RoutePolicy): NextResponse {
@@ -81,6 +94,11 @@ function isInternalAuthorized(request: NextRequest, policy: Extract<RoutePolicy,
 
 export async function middleware(request: NextRequest) {
   const requestId = requestIdFor(request);
+  const canonicalUrl = canonicalHostRedirectUrl(request.nextUrl);
+  if (canonicalUrl) {
+    return withRequestId(NextResponse.redirect(canonicalUrl, 308), requestId);
+  }
+
   const pathname = normalizePathname(request.nextUrl.pathname);
   const isApi = pathname.startsWith("/api/");
   const policy = isApi ? getApiRoutePolicy(pathname) : getAppRoutePolicy(pathname);

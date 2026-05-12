@@ -1,4 +1,38 @@
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || '/api').replace(/\/+$/, '');
+const APP_API_HOSTS = new Set(['o3origin.com', 'www.o3origin.com']);
+
+function isVercelHost(hostname: string): boolean {
+    return hostname === 'vercel.app' || hostname.endsWith('.vercel.app');
+}
+
+export function resolveApiBaseUrl(rawApiUrl = process.env.NEXT_PUBLIC_API_URL, locationOrigin?: string): string {
+    const raw = rawApiUrl?.trim() || '/api';
+    if (!/^https?:\/\//i.test(raw)) {
+        return raw.replace(/\/+$/, '') || '/api';
+    }
+
+    try {
+        const apiUrl = new URL(raw);
+        const locationUrl = locationOrigin ? new URL(locationOrigin) : null;
+        const pointsAtThisApp =
+            apiUrl.hostname === locationUrl?.hostname ||
+            APP_API_HOSTS.has(apiUrl.hostname) ||
+            isVercelHost(apiUrl.hostname);
+
+        if (pointsAtThisApp && apiUrl.pathname.startsWith('/api')) {
+            const path = `${apiUrl.pathname}${apiUrl.search}`.replace(/\/+$/, '');
+            return path || '/api';
+        }
+
+        return raw.replace(/\/+$/, '');
+    } catch {
+        return '/api';
+    }
+}
+
+const API_URL = resolveApiBaseUrl(
+    process.env.NEXT_PUBLIC_API_URL,
+    typeof window !== 'undefined' ? window.location.origin : undefined,
+);
 const CSRF_COOKIE_NAME = 'origin_csrf';
 const CSRF_HEADER_NAME = 'X-CSRF-Token';
 

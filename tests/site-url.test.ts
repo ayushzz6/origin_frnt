@@ -17,7 +17,7 @@ test("canonical site URL always resolves to the public o3origin domain", () => {
   }
 
   assert.equal(getCanonicalSiteUrl("https://www.o3origin.com"), "https://www.o3origin.com");
-  assert.equal(getCanonicalSiteUrl("o3origin.com"), "https://o3origin.com");
+  assert.equal(getCanonicalSiteUrl("o3origin.com"), "https://www.o3origin.com");
 });
 
 test("canonical site URL refuses Vercel and malformed deployment hosts", () => {

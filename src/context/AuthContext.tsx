@@ -159,6 +159,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
         return;
       }
 
+      const normalizedPath = pathname === '/' ? '/' : pathname.replace(/\/+$/, '');
+      if (normalizedPath === '/auth') {
+        setAuthRecoveryBlocked(false);
+        setIsHydrating(false);
+        return;
+      }
+
       try {
         const response = await fetch('/api/users/me', {
           credentials: 'include',
@@ -205,7 +212,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
     };
 
     hydrate();
-  }, [initialUser, applyUserData]);
+  }, [initialUser, applyUserData, pathname]);
 
   // Keep the short-lived access cookie warm while an authenticated user is
   // still active, so idle clicks do not have to go through a hard page refresh.
