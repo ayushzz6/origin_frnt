@@ -35,6 +35,15 @@ type AuthFailure = { ok: false; status: number; message: string };
 type AuthResult = AuthSuccess | AuthFailure;
 type InternalAuthResult = InternalAuthSuccess | AuthFailure;
 
+function authActionFailure(operation: string, error: unknown): AuthFailure {
+  console.error(`[auth-actions] ${operation} failed:`, error instanceof Error ? error.message : error);
+  return {
+    ok: false,
+    status: 503,
+    message: 'Authentication is temporarily unavailable. Please try again in a moment.',
+  };
+}
+
 function toPublicAuthResult(result: InternalAuthResult): AuthResult {
   if (!result.ok) return result;
   return { ok: true, user: result.user };
@@ -84,33 +93,41 @@ export async function loginAction(input: {
   password: string;
   role?: 'student' | 'teacher' | 'admin' | null;
 }): Promise<AuthResult> {
-  const response = await handleLogin({
-    email: input.email,
-    password: input.password,
-    role: input.role ?? undefined,
-  });
-  const parsed = await parseAuthResponse(response);
-  if (parsed.ok) {
-    await setSessionCookies(parsed.access, parsed.refresh, parsed.accessFingerprint);
-    revalidatePath('/', 'layout');
+  try {
+    const response = await handleLogin({
+      email: input.email,
+      password: input.password,
+      role: input.role ?? undefined,
+    });
+    const parsed = await parseAuthResponse(response);
+    if (parsed.ok) {
+      await setSessionCookies(parsed.access, parsed.refresh, parsed.accessFingerprint);
+      revalidatePath('/', 'layout');
+    }
+    return toPublicAuthResult(parsed);
+  } catch (error) {
+    return authActionFailure('loginAction', error);
   }
-  return toPublicAuthResult(parsed);
 }
 
 export async function loginWithOtpAction(input: {
   email: string;
   role?: 'student' | 'teacher' | 'admin' | null;
 }): Promise<AuthResult> {
-  const response = await handleLoginWithOtp({
-    email: input.email,
-    role: input.role ?? undefined,
-  });
-  const parsed = await parseAuthResponse(response);
-  if (parsed.ok) {
-    await setSessionCookies(parsed.access, parsed.refresh, parsed.accessFingerprint);
-    revalidatePath('/', 'layout');
+  try {
+    const response = await handleLoginWithOtp({
+      email: input.email,
+      role: input.role ?? undefined,
+    });
+    const parsed = await parseAuthResponse(response);
+    if (parsed.ok) {
+      await setSessionCookies(parsed.access, parsed.refresh, parsed.accessFingerprint);
+      revalidatePath('/', 'layout');
+    }
+    return toPublicAuthResult(parsed);
+  } catch (error) {
+    return authActionFailure('loginWithOtpAction', error);
   }
-  return toPublicAuthResult(parsed);
 }
 
 export async function registerAction(input: {
@@ -119,40 +136,55 @@ export async function registerAction(input: {
   password: string;
   role?: 'student' | 'teacher' | 'admin' | null;
 }): Promise<AuthResult> {
-  // Check if email was verified via OTP
-  const store = await readStoreAsync();
-  const isVerified = store.otps.some(o => o.email.toLowerCase() === input.email.toLowerCase() && o.verified === true);
-  
-  if (!isVerified) {
-    return { ok: false, status: 400, message: 'Email verification required. Please verify your email first.' };
-  }
+  try {
+    // Check if email was verified via OTP
+    const store = await readStoreAsync();
+    const isVerified = store.otps.some(o => o.email.toLowerCase() === input.email.toLowerCase() && o.verified === true);
+    
+    if (!isVerified) {
+      return { ok: false, status: 400, message: 'Email verification required. Please verify your email first.' };
+    }
 
-  const response = await handleRegister({
-    name: input.name,
-    email: input.email,
-    password: input.password,
-    role: input.role ?? undefined,
-  });
-  const parsed = await parseAuthResponse(response);
-  if (parsed.ok) {
-    await withStoreAsync(async (cleanupStore) => {
-      cleanupStore.otps = cleanupStore.otps.filter(o => o.email.toLowerCase() !== input.email.toLowerCase());
+    const response = await handleRegister({
+      name: input.name,
+      email: input.email,
+      password: input.password,
+      role: input.role ?? undefined,
     });
+    const parsed = await parseAuthResponse(response);
+    if (parsed.ok) {
+      try {
+        await withStoreAsync(async (cleanupStore) => {
+          cleanupStore.otps = cleanupStore.otps.filter(o => o.email.toLowerCase() !== input.email.toLowerCase());
+        });
+      } catch (cleanupError) {
+        console.error(
+          '[auth-actions] OTP cleanup failed after successful registration:',
+          cleanupError instanceof Error ? cleanupError.message : cleanupError,
+        );
+      }
 
-    await setSessionCookies(parsed.access, parsed.refresh, parsed.accessFingerprint);
-    revalidatePath('/', 'layout');
+      await setSessionCookies(parsed.access, parsed.refresh, parsed.accessFingerprint);
+      revalidatePath('/', 'layout');
+    }
+    return toPublicAuthResult(parsed);
+  } catch (error) {
+    return authActionFailure('registerAction', error);
   }
-  return toPublicAuthResult(parsed);
 }
 
 export async function googleLoginAction(input: { credential: string }): Promise<AuthResult> {
-  const response = await handleGoogleLogin({ credential: input.credential });
-  const parsed = await parseAuthResponse(response);
-  if (parsed.ok) {
-    await setSessionCookies(parsed.access, parsed.refresh, parsed.accessFingerprint);
-    revalidatePath('/', 'layout');
+  try {
+    const response = await handleGoogleLogin({ credential: input.credential });
+    const parsed = await parseAuthResponse(response);
+    if (parsed.ok) {
+      await setSessionCookies(parsed.access, parsed.refresh, parsed.accessFingerprint);
+      revalidatePath('/', 'layout');
+    }
+    return toPublicAuthResult(parsed);
+  } catch (error) {
+    return authActionFailure('googleLoginAction', error);
   }
-  return toPublicAuthResult(parsed);
 }
 
 /**

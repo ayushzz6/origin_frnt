@@ -16,7 +16,7 @@ import {
 } from "@/server/gamification";
 import { badRequest, created, noContent, notFound, ok, unauthorized } from "@/server/http";
 import type { AppStore, StoredTask, StoredUser } from "@/server/store";
-import { createId, withStoreAsync, withStoredUserDefaults } from "@/server/store";
+import { createId, readStoreAsync, withStoreAsync, withStoredUserDefaults } from "@/server/store";
 
 type UserPayload = Record<string, unknown>;
 
@@ -116,6 +116,17 @@ export function serializeUser(store: AppStore, userId: string) {
   };
 
   return payload;
+}
+
+async function serializeDbUser(user: StoredUser) {
+  const store = await readStoreAsync();
+  const existing = store.users.find((entry) => entry.id === user.id);
+  if (existing) {
+    Object.assign(existing, user);
+  } else {
+    store.users.push({ ...user, password: user.password });
+  }
+  return serializeUser(store, user.id);
 }
 
 export type UserStatsSnapshot = {
@@ -279,11 +290,13 @@ export async function handleLogin(payload: UserPayload) {
         }
       }
       if (dbResult) {
-        return withStoreAsync(async (store) => {
-          store.authSessions = store.authSessions.filter((s) => s.userId !== dbResult!.user.id);
-          store.authSessions.push(dbResult!.session);
-          const userData = serializeUser(store, dbResult!.user.id);
-          return ok({ user: userData, refresh: dbResult!.session.refreshToken, access: dbResult!.session.accessToken, accessFingerprint: dbResult!.session.accessFingerprint });
+        const userData = await serializeDbUser(dbResult.user);
+        if (!userData) return notFound("User not found.");
+        return ok({
+          user: userData,
+          refresh: dbResult.session.refreshToken,
+          access: dbResult.session.accessToken,
+          accessFingerprint: dbResult.session.accessFingerprint,
         });
       }
       // No matching DB user — fall through to seeded users.
@@ -384,17 +397,13 @@ export async function handleRegister(payload: UserPayload) {
   if (isUserPostgresConfigured()) {
     try {
       const { user: dbUser, session } = await dbRegisterUser({ name, email, password, role });
-      return withStoreAsync(async (store) => {
-        const existing = store.users.find((entry) => entry.id === dbUser.id);
-        if (existing) {
-          Object.assign(existing, dbUser);
-        } else {
-          store.users.push({ ...dbUser, password: dbUser.password });
-        }
-        store.authSessions = store.authSessions.filter((s) => s.userId !== dbUser.id);
-        store.authSessions.push(session);
-        const userData = serializeUser(store, dbUser.id);
-        return created({ user: userData, refresh: session.refreshToken, access: session.accessToken, accessFingerprint: session.accessFingerprint });
+      const userData = await serializeDbUser(dbUser);
+      if (!userData) return notFound("User not found.");
+      return created({
+        user: userData,
+        refresh: session.refreshToken,
+        access: session.accessToken,
+        accessFingerprint: session.accessFingerprint,
       });
     } catch (err) {
       if (err instanceof Error && err.message.includes("already exists")) {
@@ -523,18 +532,13 @@ export async function handleGoogleLogin(payload: UserPayload) {
         }
 
         const session = await dbCreateAuthSession(dbUser.id);
-
-        return withStoreAsync(async (store) => {
-          const existing = store.users.find((entry) => entry.id === dbUser!.id);
-          if (existing) {
-            Object.assign(existing, dbUser!);
-          } else {
-            store.users.push({ ...dbUser!, password: dbUser!.password });
-          }
-          store.authSessions = store.authSessions.filter((s) => s.userId !== dbUser!.id);
-          store.authSessions.push(session);
-          const userData = serializeUser(store, dbUser!.id);
-          return ok({ user: userData, refresh: session.refreshToken, access: session.accessToken, accessFingerprint: session.accessFingerprint });
+        const userData = await serializeDbUser(dbUser);
+        if (!userData) return notFound("User not found.");
+        return ok({
+          user: userData,
+          refresh: session.refreshToken,
+          access: session.accessToken,
+          accessFingerprint: session.accessFingerprint,
         });
       } catch (err) {
         console.error('[users] DB google login failed, falling back to in-memory seed', err instanceof Error ? err.message : err);
@@ -586,17 +590,16 @@ export async function handleRefresh(request: Request | null, payload: UserPayloa
 }
 
 async function handleMeGet(request: Request) {
-  return withStoreAsync(async (store) => {
-    const user = await requireUserFromRequest(store, request);
-    if (!user) {
-      return unauthorized();
-    }
-    const serialized = serializeUser(store, user.id);
-    if (!serialized) {
-      return notFound("User not found.");
-    }
-    return ok(serialized);
-  });
+  const store = await readStoreAsync();
+  const user = await requireUserFromRequest(store, request);
+  if (!user) {
+    return unauthorized();
+  }
+  const serialized = serializeUser(store, user.id);
+  if (!serialized) {
+    return notFound("User not found.");
+  }
+  return ok(serialized);
 }
 
 async function handleMePatch(request: Request, payload: UserPayload) {
