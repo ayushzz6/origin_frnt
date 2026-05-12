@@ -604,6 +604,7 @@ export async function handleRefresh(request: Request | null, payload: UserPayloa
         }
         throw error;
       }
+      return ok({ refreshed: false });
     }
     return badRequest("Refresh token is required.");
   }

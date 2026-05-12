@@ -38,3 +38,13 @@ test("refresh endpoint still rejects anonymous requests without a refresh cookie
   const response = await handleRefresh(null, {});
   assert.equal(response.status, 400);
 });
+
+test("browser refresh probes without auth cookies are harmless no-ops", async () => {
+  const request = new Request("https://www.o3origin.com/api/users/token/refresh", {
+    method: "POST",
+  });
+
+  const response = await handleRefresh(request, {});
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { refreshed: false });
+});
