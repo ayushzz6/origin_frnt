@@ -23,7 +23,10 @@ test("refresh endpoint treats a valid access cookie without refresh cookie as st
 
     const response = await handleRefresh(request, {});
     assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), { refreshed: false });
+    const body = await response.json();
+    assert.equal(body.refreshed, false);
+    assert.equal(body.access, access.accessToken);
+    assert.equal(body.accessFingerprint, access.accessFingerprint);
   } finally {
     if (previousDatabaseUrl) {
       process.env.USER_DATABASE_URL = previousDatabaseUrl;

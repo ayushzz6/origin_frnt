@@ -1,7 +1,8 @@
 // Legacy user implementation kept behind the public server/users barrel.
 import bcrypt from "bcryptjs";
-import { requireUserFromRequest, resolveTokenToUser, refreshAccessToken, createAuthSessionAsync, extractRefreshTokenCookie } from "@/server/auth";
+import { requireUserFromRequest, resolveTokenToUser, refreshAccessToken, createAuthSessionAsync, extractAccessToken, extractRefreshTokenCookie } from "@/server/auth";
 import { isAuthServiceUnavailableError } from "@/server/auth-errors";
+import { extractAccessFingerprint } from "@/server/auth-jwt";
 import { isUserPostgresConfigured } from "@/server/user-postgres";
 import { dbLoginUser, dbRegisterUser, dbGetTasks, dbCreateTask, dbUpdateTask, dbDeleteTask, dbFindUserByEmail, dbCreateUser, dbUpdateUser, dbCreateAuthSession, dbGetUserCount } from "@/server/db-users";
 import { OAuth2Client } from "google-auth-library";
@@ -590,7 +591,12 @@ export async function handleRefresh(request: Request | null, payload: UserPayloa
       try {
         const user = await resolveTokenToUser(request);
         if (user) {
-          return ok({ refreshed: false });
+          const access = extractAccessToken(request);
+          const accessFingerprint = extractAccessFingerprint(request);
+          return ok({
+            refreshed: false,
+            ...(access && accessFingerprint ? { access, accessFingerprint } : {}),
+          });
         }
       } catch (error) {
         if (isAuthServiceUnavailableError(error)) {
