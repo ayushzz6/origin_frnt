@@ -200,12 +200,6 @@ export async function refreshTokenAction(): Promise<{ ok: boolean; status: numbe
 
   const response = await handleRefresh(null, { refresh });
   if (!response.ok) {
-    if (response.status === 400 || response.status === 401 || response.status === 403) {
-      cookieStore.set(ACCESS_COOKIE_NAME, '', { ...COOKIE_OPTS_ACCESS, maxAge: 0 });
-      cookieStore.set(ACCESS_FINGERPRINT_COOKIE_NAME, '', { ...COOKIE_OPTS_ACCESS_FINGERPRINT, maxAge: 0 });
-      cookieStore.set(REFRESH_COOKIE_NAME, '', { ...COOKIE_OPTS_REFRESH, maxAge: 0 });
-      cookieStore.set(CSRF_COOKIE_NAME, '', { ...COOKIE_OPTS_CSRF, maxAge: 0 });
-    }
     return { ok: false, status: response.status };
   }
 

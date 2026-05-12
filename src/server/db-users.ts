@@ -21,14 +21,19 @@ import {
 } from "@/server/auth-jwt";
 import type { UserImagePurpose } from "@/server/media-storage";
 
-const REFRESH_REPLAY_GRACE_MS = 30_000;
 export const REFRESH_TOKEN_ROTATION_INTERVAL_MS = 24 * 60 * 60 * 1000;
+// Keep the immediately previous refresh hash valid for the session lifetime.
+// Browser tabs can complete refresh responses out of order; accepting the last
+// hash prevents a stale Set-Cookie from logging the user out minutes later.
+const REFRESH_REPLAY_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function shouldRotateRefreshToken(
   lastRotatedAt: Date | string | null | undefined,
   createdAt: Date | string | null | undefined,
   nowMs = Date.now(),
+  isGraceReplay = false,
 ): boolean {
+  if (isGraceReplay) return false;
   const reference = lastRotatedAt ?? createdAt;
   const referenceMs = reference ? new Date(reference).getTime() : 0;
   return !Number.isFinite(referenceMs) || nowMs - referenceMs >= REFRESH_TOKEN_ROTATION_INTERVAL_MS;
@@ -523,9 +528,10 @@ export async function dbRotateAccessToken(refreshToken: string): Promise<StoredA
       return null;
     }
 
+    let isGraceReplay = false;
     if (row.refresh_token_hash !== expectedHash) {
       const rotatedAtMs = row.refresh_rotated_at ? new Date(row.refresh_rotated_at).getTime() : 0;
-      const isGraceReplay =
+      isGraceReplay =
         row.previous_refresh_token_hash === expectedHash &&
         Boolean(row.access_token) &&
         Boolean(row.access_fingerprint) &&
@@ -546,9 +552,7 @@ export async function dbRotateAccessToken(refreshToken: string): Promise<StoredA
     }
     const user = rowToUser(userResult.rows[0]);
     const access = await issueAccessTokenForUser(user, parsed.sessionId);
-    const rotateRefresh =
-      row.refresh_token_hash !== expectedHash ||
-      shouldRotateRefreshToken(row.refresh_rotated_at, row.created_at);
+    const rotateRefresh = shouldRotateRefreshToken(row.refresh_rotated_at, row.created_at, Date.now(), isGraceReplay);
 
     if (!rotateRefresh) {
       const result = await client.query(

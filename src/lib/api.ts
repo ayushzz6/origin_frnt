@@ -81,7 +81,7 @@ async function performTokenRefresh(): Promise<TokenRefreshResult> {
             cache: 'no-store',
         });
         const classified = classifyTokenRefreshStatus(response.status);
-        if (classified === 'expired' && await recoverSessionViaRefreshRoute()) {
+        if (classified === 'expired' && await recoverSessionViaMe()) {
             return 'ok';
         }
         return classified;
@@ -90,14 +90,9 @@ async function performTokenRefresh(): Promise<TokenRefreshResult> {
     }
 }
 
-async function recoverSessionViaRefreshRoute(): Promise<boolean> {
+async function recoverSessionViaMe(): Promise<boolean> {
     if (typeof window === 'undefined') return false;
     try {
-        const next = `${window.location.pathname}${window.location.search}`;
-        await fetch(`/auth/refresh?next=${encodeURIComponent(next || '/dashboard')}`, {
-            credentials: 'include',
-            cache: 'no-store',
-        });
         const response = await fetch(`${API_URL}/users/me`, {
             credentials: 'include',
             cache: 'no-store',

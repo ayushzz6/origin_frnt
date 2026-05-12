@@ -90,6 +90,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
   const [isNavigationLocked, setIsNavigationLocked] = useState(false);
   const tasksFetched = useRef(false);
   const lastSessionRefreshAt = useRef(Date.now());
+  const authExpiredRecovery = useRef<Promise<void> | null>(null);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -253,21 +254,51 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
   // Auth-expired listener only.
   useEffect(() => {
     const handleAuthExpired = () => {
-      setUser(null);
-      setUserRole(null);
-      setTasks([]);
-      tasksFetched.current = false;
-      clearOriginAiBrowserSession();
-      window.location.href = '/';
-      toast.error('Your session expired. Please log in again.');
+      if (authExpiredRecovery.current) return;
+
+      authExpiredRecovery.current = (async () => {
+        setAuthRecoveryBlocked(true);
+
+        try {
+          const refreshResult = await refreshTokenAction();
+          const refreshedUser = await refreshUserAction();
+
+          if (refreshResult.ok && refreshedUser) {
+            applyUserData(refreshedUser);
+            setAuthRecoveryBlocked(false);
+            return;
+          }
+
+          if (refreshedUser) {
+            applyUserData(refreshedUser);
+            setAuthRecoveryBlocked(false);
+            return;
+          }
+
+          if (refreshResult.status === 429 || refreshResult.status >= 500) {
+            return;
+          }
+        } catch {
+          return;
+        }
+
+        setUser(null);
+        setUserRole(null);
+        setTasks([]);
+        tasksFetched.current = false;
+        clearOriginAiBrowserSession();
+        window.location.href = '/';
+        toast.error('Your session expired. Please log in again.');
+      })().finally(() => {
+        authExpiredRecovery.current = null;
+      });
     };
 
     window.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
     return () => {
       window.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [applyUserData]);
 
   // Runs on every route change and keeps protected and guest-only pages aligned
   // with the current auth state.
