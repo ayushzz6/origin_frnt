@@ -765,3 +765,12 @@ export async function dbGetUserCount(): Promise<number> {
   const result = await pool().query("SELECT COUNT(*) FROM origin_users");
   return parseInt(result.rows[0].count, 10);
 }
+
+export async function dbGetUserCountByRole(role: string): Promise<number> {
+  await ensureUserSchema();
+  const result = await pool().query(
+    "SELECT COUNT(*) FROM origin_users WHERE role = $1",
+    [role],
+  );
+  return parseInt(result.rows[0].count, 10);
+}
