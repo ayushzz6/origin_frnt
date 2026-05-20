@@ -76,11 +76,11 @@ export default function AuthPage({
 
   useEffect(() => {
     const fetchStatus = async () => {
-      const status = await getRegistrationStatusAction();
+      const status = await getRegistrationStatusAction(userRole ?? null);
       setRegStatus(status);
     };
     fetchStatus();
-  }, []);
+  }, [userRole]);
 
   useEffect(() => {
     if (resendCooldown > 0) {
