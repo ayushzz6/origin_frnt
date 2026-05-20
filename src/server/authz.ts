@@ -20,9 +20,9 @@ export type AuthContext = {
 };
 
 export class AuthzError extends Error {
-  status: 401 | 403;
+  status: number;
 
-  constructor(status: 401 | 403, message: string) {
+  constructor(status: number, message: string) {
     super(message);
     this.status = status;
   }

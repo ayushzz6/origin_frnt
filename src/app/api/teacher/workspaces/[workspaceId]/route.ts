@@ -15,7 +15,7 @@ import {
   requestIdOf,
   teacherJson,
   type WorkspaceIdRouteContext,
-} from "../../_utils";
+} from "@/app/api/teacher/_utils";
 
 const patchSchema = z.object({
   displayName: z.string().min(1).max(120).optional(),
