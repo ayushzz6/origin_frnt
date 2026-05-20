@@ -364,7 +364,8 @@ export async function handleLoginWithOtp(payload: UserPayload) {
 }
 
 const REGISTRATION_LIMIT = 62;
-const TEACHER_REGISTRATION_LIMIT = 5;
+// 5 real signups on top of 4 seed/demo teacher accounts already in origin_users.
+const TEACHER_REGISTRATION_LIMIT = 9;
 
 function limitForRole(role?: string | null): number {
   return role === "teacher" ? TEACHER_REGISTRATION_LIMIT : REGISTRATION_LIMIT;
