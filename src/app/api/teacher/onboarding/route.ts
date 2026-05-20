@@ -13,7 +13,7 @@ import {
   handleTeacherError,
   requestIdOf,
   teacherJson,
-} from "../_utils";
+} from "@/app/api/teacher/_utils";
 
 const personalSchema = z.object({
   workspaceType: z.literal("personal"),

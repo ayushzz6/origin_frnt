@@ -14,7 +14,7 @@ import {
   handleTeacherError,
   requestIdOf,
   teacherJson,
-} from "../../../../../_utils";
+} from "@/app/api/teacher/_utils";
 
 type Context = {
   params: Promise<{ workspaceId: string; studentId: string }>;

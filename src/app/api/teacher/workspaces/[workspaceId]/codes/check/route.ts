@@ -11,7 +11,7 @@ import {
   handleTeacherError,
   teacherJson,
   type WorkspaceIdRouteContext,
-} from "../../../../_utils";
+} from "@/app/api/teacher/_utils";
 
 const schema = z.object({ rawDisplay: z.string().min(1).max(64) });
 

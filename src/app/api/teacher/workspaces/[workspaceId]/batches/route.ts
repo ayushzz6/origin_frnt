@@ -13,7 +13,7 @@ import {
   requestIdOf,
   teacherJson,
   type WorkspaceIdRouteContext,
-} from "../../../_utils";
+} from "@/app/api/teacher/_utils";
 
 const createSchema = z.object({
   name: z.string().min(1).max(120),

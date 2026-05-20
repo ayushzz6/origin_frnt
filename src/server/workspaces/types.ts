@@ -139,3 +139,243 @@ export type AuditEventInput = {
   requestId?: string | null;
   ipHash?: string | null;
 };
+
+// ─── Question Bag (Phase 4) ─────────────────────────────────────────────────────
+
+export type AssetOwnerType = "workspace" | "platform" | "user";
+export type AssetKind = "image" | "pdf" | "doc" | "docx" | "video" | "audio" | "other";
+
+export type QuestionOwnerScope = "platform" | "workspace";
+export type QuestionVisibility = "private" | "workspace" | "public_ogcode";
+export type QuestionStatus =
+  | "draft"
+  | "needs_review"
+  | "ready"
+  | "published_private"
+  | "submitted_to_ogcode"
+  | "published_ogcode"
+  | "rejected"
+  | "archived";
+export type QuestionType =
+  | "mcq"
+  | "msq"
+  | "numerical"
+  | "numerical_with_units"
+  | "symbolic_expression"
+  | "equation"
+  | "matrix_match"
+  | "subjective";
+export type QuestionAssetPurpose =
+  | "reference_image"
+  | "reference_diagram"
+  | "reference_table"
+  | "solution_image"
+  | "source_page_snapshot";
+
+export type Asset = {
+  id: string;
+  ownerType: AssetOwnerType;
+  ownerWorkspaceId: string | null;
+  ownerUserId: string | null;
+  kind: AssetKind;
+  mimeType: string;
+  fileName: string;
+  byteSize: number;
+  sha256: string;
+  r2Bucket: string;
+  r2ObjectKey: string;
+  publicUrl: string | null;
+  metadata: Record<string, unknown>;
+  createdBy: string | null;
+  createdAt: string;
+};
+
+export type Question = {
+  id: string;
+  ownerScope: QuestionOwnerScope;
+  workspaceId: string | null;
+  createdBy: string;
+  currentVersionId: string | null;
+  visibility: QuestionVisibility;
+  status: QuestionStatus;
+  sourceKind: string;
+  importedJobId: string | null;
+  externalSourceId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type QuestionVersion = {
+  id: string;
+  questionId: string;
+  versionNumber: number;
+  questionType: QuestionType;
+  stem: string;
+  options: QuestionOption[] | null;
+  correctOption: number | null;
+  correctOptions: number[] | null;
+  answerText: string | null;
+  answerSpec: Record<string, unknown> | null;
+  matrixData: Record<string, unknown> | null;
+  hint: string | null;
+  explanation: string | null;
+  fullSolution: string | null;
+  subject: string;
+  chapter: string;
+  concept: string;
+  difficulty: "easy" | "medium" | "hard" | "insane";
+  tags: string[];
+  importEvidence: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+  createdBy: string;
+  createdAt: string;
+};
+
+export type QuestionOption = {
+  id: string;
+  text: string;
+};
+
+export type QuestionAssetLink = {
+  questionVersionId: string;
+  assetId: string;
+  purpose: QuestionAssetPurpose;
+  displayOrder: number;
+  metadata: Record<string, unknown>;
+};
+
+export type QuestionWithVersion = Question & {
+  currentVersion: QuestionVersion | null;
+  assetLinks: (QuestionAssetLink & { asset: Asset })[];
+};
+
+export type QuestionFilter = {
+  status?: QuestionStatus | "all";
+  subject?: string;
+  chapter?: string;
+  difficulty?: "easy" | "medium" | "hard" | "insane";
+  questionType?: QuestionType;
+  search?: string;
+};
+
+// ─── Assessment (Phase 5) ─────────────────────────────────────────────────────
+
+export type TestOwnerScope = "student" | "workspace" | "platform";
+export type TestStatus = "draft" | "scheduled" | "published" | "live" | "closed" | "archived";
+export type TestSource = "manual" | "random" | "imported" | "room" | "analytics_generated";
+export type QuestionSourceBank = "ogcode" | "workspace_bag" | "platform_content";
+export type AssignmentStatus = "assigned" | "open" | "closed" | "cancelled";
+export type AttemptStatus = "in_progress" | "submitted" | "timed_out" | "force_submitted" | "needs_review";
+export type GradingStatus = "pending" | "grading" | "completed" | "failed";
+export type AnalyticsStatus = "pending" | "processing" | "completed" | "failed";
+
+export type AssessmentTest = {
+  id: string;
+  ownerScope: TestOwnerScope;
+  workspaceId: string | null;
+  createdBy: string;
+  title: string;
+  description: string | null;
+  subject: string;
+  chapter: string | null;
+  difficulty: string;
+  durationMinutes: number;
+  totalQuestions: number;
+  status: TestStatus;
+  source: TestSource;
+  selectionPolicy: Record<string, unknown>;
+  scoringPolicy: Record<string, unknown>;
+  settings: Record<string, unknown>;
+  sourceImportJobId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TestQuestion = {
+  testId: string;
+  position: number;
+  sourceBank: QuestionSourceBank;
+  ogcodeQuestionId: string | null;
+  contentQuestionId: string | null;
+  contentQuestionVersionId: string | null;
+  marks: number;
+  negativeMarks: number;
+  metadata: Record<string, unknown>;
+};
+
+export type TestAssignment = {
+  id: string;
+  testId: string;
+  workspaceId: string | null;
+  batchId: string | null;
+  studentId: string | null;
+  scheduledStartAt: string | null;
+  scheduledEndAt: string | null;
+  status: AssignmentStatus;
+  assignedBy: string | null;
+  assignedAt: string;
+  settings: Record<string, unknown>;
+};
+
+export type TestAttempt = {
+  id: string;
+  testId: string;
+  assignmentId: string | null;
+  workspaceId: string | null;
+  batchId: string | null;
+  roomId: string | null;
+  studentId: string;
+  attemptNumber: number;
+  status: AttemptStatus;
+  startedAt: string;
+  serverDeadline: string | null;
+  submittedAt: string | null;
+  score: number | null;
+  totalMarks: number;
+  percentage: number | null;
+  timeTakenSeconds: number | null;
+  gradingStatus: GradingStatus;
+  analyticsStatus: AnalyticsStatus;
+  metadata: Record<string, unknown>;
+};
+
+export type TestAnswer = {
+  attemptId: string;
+  position: number;
+  questionSnapshot: Record<string, unknown>;
+  submittedAnswer: Record<string, unknown>;
+  gradingResult: Record<string, unknown>;
+  timeSpentSeconds: number;
+  isMarkedForReview: boolean;
+};
+
+export type TestWithQuestions = AssessmentTest & {
+  questions: TestQuestion[];
+};
+
+export type TestAssignmentWithCounts = TestAssignment & {
+  batchName?: string | null;
+  studentCount?: number;
+};
+
+// ─── Teacher Rooms (Phase 6) ─────────────────────────────────────────────────
+
+export type RoomKind = "student_room" | "teacher_room";
+
+export type TeacherRoomSummary = {
+  id: string;
+  name: string;
+  adminUserId: string;
+  createdBy: string;
+  status: "lobby" | "in_test" | "finished" | "closed";
+  teacherTestId: string | null;
+  durationSeconds: number | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  maxParticipants: number;
+  createdAt: string;
+  updatedAt: string;
+  workspaceId: string | null;
+  batchId: string | null;
+  roomKind: RoomKind;
+};

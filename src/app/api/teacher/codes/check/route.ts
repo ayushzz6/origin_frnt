@@ -7,7 +7,7 @@ import { generalLimiter, checkRateLimit } from "@/lib/rate-limit";
 import { requireFeatureEnabled } from "@/lib/feature-flags";
 import { checkCodeAvailability } from "@/server/workspaces/codes";
 
-import { handleTeacherError, teacherJson } from "../../_utils";
+import { handleTeacherError, teacherJson } from "@/app/api/teacher/_utils";
 
 const schema = z.object({ rawDisplay: z.string().min(1).max(64) });
 

@@ -10,7 +10,7 @@ import {
   handleTeacherError,
   teacherJson,
   type WorkspaceIdRouteContext,
-} from "../../../_utils";
+} from "@/app/api/teacher/_utils";
 
 const ALLOWED_STATUSES: EnrollmentStatus[] = ["unassigned", "active", "suspended", "left"];
 

@@ -13,7 +13,7 @@ import {
   requestIdOf,
   teacherJson,
   type WorkspaceIdRouteContext,
-} from "../../../_utils";
+} from "@/app/api/teacher/_utils";
 
 const createSchema = z.object({
   codeType: z.enum(["student_join", "staff_invite", "batch_join"]),

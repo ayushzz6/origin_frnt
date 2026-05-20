@@ -6,7 +6,7 @@ import { requireAuth } from "@/server/authz";
 import { requireFeatureEnabled } from "@/lib/feature-flags";
 import { createTeacherWorkspace, listAccessibleWorkspaces } from "@/server/workspaces/service";
 
-import { handleTeacherError, requestIdOf, teacherJson } from "../_utils";
+import { handleTeacherError, requestIdOf, teacherJson } from "@/app/api/teacher/_utils";
 
 const createSchema = z.object({
   workspaceType: z.enum(["personal", "institute"]),
