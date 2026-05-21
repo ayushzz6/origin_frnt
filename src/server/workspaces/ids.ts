@@ -24,6 +24,26 @@ export function createEnrollmentId(): string {
   return createPrefixedId("enr");
 }
 
+export function createStudyMaterialId(): string {
+  return createPrefixedId("smat");
+}
+
+export function createStudyMaterialAssetId(): string {
+  return createPrefixedId("sasm");
+}
+
+export function createStudyMaterialAssignmentId(): string {
+  return createPrefixedId("sasn");
+}
+
+export function createAnalyticsSnapshotId(): string {
+  return createPrefixedId("asnap");
+}
+
+export function createOgcodePublicationId(): string {
+  return createPrefixedId("ogpub");
+}
+
 export function createAssetId(): string {
   return createPrefixedId("asset");
 }
