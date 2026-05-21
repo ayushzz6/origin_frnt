@@ -67,3 +67,31 @@ export function createAssignmentId(): string {
 export function createAttemptId(): string {
   return createPrefixedId("att");
 }
+
+export function createDocumentImportJobId(): string {
+  return createPrefixedId("dijob");
+}
+
+export function createImportJobPageId(): string {
+  return createPrefixedId("ipage");
+}
+
+export function createImportJobQuestionId(): string {
+  return createPrefixedId("iq");
+}
+
+export function createWorkspaceOfferingId(): string {
+  return createPrefixedId("woff");
+}
+
+export function createEnrollmentOrderId(): string {
+  return createPrefixedId("eord");
+}
+
+export function createPaymentIntentId(): string {
+  return createPrefixedId("pint");
+}
+
+export function createPublicInstituteId(): string {
+  return createPrefixedId("pinst");
+}

@@ -528,7 +528,7 @@ export type TeacherRoomSummary = {
 // ─── Document Import (Phase 10) ──────────────────────────────────────────────
 
 export type ImportSourceType = "pdf" | "docx" | "txt" | "image" | "url";
-export type ImportJobStatus = "queued" | "processing" | "review_required" | "completed" | "failed" | "cancelled";
+export type ImportJobStatus = "queued" | "processing" | "needs_review" | "succeeded" | "failed" | "cancelled";
 export type ImportPageStatus = "pending" | "parsed" | "review_required" | "accepted" | "rejected";
 export type ImportQuestionStatus = "draft" | "review_required" | "accepted" | "rejected" | "published";
 
@@ -589,33 +589,68 @@ export type AdminAuditEvent = {
 };
 
 // ─── Paid Enrollment & Marketplace (Phase 12) ────────────────────────────────
+// Aligned with V1/teacher-admin-launch-plan/02-database-schema-design.md
+// (Future Commerce section). Schema lives in commerce.* not app.*.
 
 export type OfferingStatus = "draft" | "active" | "paused" | "archived";
-export type EnrollmentOrderStatus = "pending" | "processing" | "completed" | "failed" | "refunded";
-export type PaymentProvider = "stripe" | "razorpay";
+
+/** commerce.order_status — the order lifecycle from the plan. */
+export type EnrollmentOrderStatus =
+  | "created"
+  | "payment_pending"
+  | "paid"
+  | "failed"
+  | "refunded"
+  | "cancelled";
 
 export type WorkspaceOffering = {
-  id: string; workspaceId: string; title: string; description: string | null;
-  status: OfferingStatus; priceAmount: number; priceCurrency: string;
-  durationMonths: number | null; batchIds: string[]; subject: string | null;
-  classLevel: string | null; maxEnrollments: number | null; currentEnrollments: number;
-  metadata: Record<string, unknown>; createdAt: string; updatedAt: string;
+  id: string;
+  workspaceId: string;
+  title: string;
+  description: string | null;
+  /** Price in the smallest currency unit (paise / cents). */
+  priceMinor: number;
+  currency: string;
+  /** Single target batch the buyer is enrolled into on payment success. */
+  targetBatchId: string | null;
+  status: OfferingStatus;
+  metadata: Record<string, unknown>;
+  createdAt: string;
 };
 
 export type EnrollmentOrder = {
-  id: string; workspaceId: string; offeringId: string; studentId: string;
-  status: EnrollmentOrderStatus; paymentProvider: PaymentProvider;
-  paymentIntentId: string | null; paymentProviderOrderId: string | null;
-  amount: number; currency: string; enrolledBatchId: string | null;
-  enrolledAt: string | null; paymentCompletedAt: string | null;
-  refundedAt: string | null; refundReason: string | null;
-  metadata: Record<string, unknown>; createdAt: string; updatedAt: string;
+  id: string;
+  offeringId: string;
+  workspaceId: string;
+  studentId: string;
+  status: EnrollmentOrderStatus;
+  /** Payment provider name — free-form so we can adopt Razorpay, Stripe,
+   * Cashfree, etc. without enum migrations. */
+  provider: string | null;
+  /** External payment ID returned by the provider (idempotency key). */
+  providerPaymentId: string | null;
+  amountMinor: number;
+  currency: string;
+  /** Filled in after status='paid' transitions the student into
+   * app.workspace_student_enrollments. */
+  enrollmentId: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type InstitutePublicProfile = {
-  workspaceId: string; displayName: string; legalName: string | null;
-  city: string | null; state: string | null; country: string;
-  subjects: string[]; courses: string[]; logoUrl: string | null;
-  description: string | null; activeOfferings: WorkspaceOffering[];
-  studentCount: number; batchCount: number; verified: boolean;
+  workspaceId: string;
+  displayName: string;
+  legalName: string | null;
+  city: string | null;
+  state: string | null;
+  country: string;
+  subjects: string[];
+  courses: string[];
+  logoUrl: string | null;
+  description: string | null;
+  activeOfferings: WorkspaceOffering[];
+  studentCount: number;
+  batchCount: number;
+  verified: boolean;
 };
