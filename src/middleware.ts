@@ -48,6 +48,14 @@ function jsonAuthFailure(status: 401 | 403, detail: string, requestId: string): 
   return withRequestId(NextResponse.json({ detail, requestId }, { status }), requestId);
 }
 
+/** Where an authenticated user belongs by role. /dashboard is the student
+ * home; teachers go to /teacher, admins to /admin. */
+function homePathForRole(role: string | undefined | null): string {
+  if (role === "teacher") return "/teacher";
+  if (role === "admin") return "/admin";
+  return "/dashboard";
+}
+
 function redirectToAuth(request: NextRequest, requestId: string): NextResponse {
   const url = request.nextUrl.clone();
   url.pathname = "/auth";
@@ -133,15 +141,15 @@ export async function middleware(request: NextRequest) {
   if (policy.kind === "public") {
     if (pathname === "/auth") {
       try {
-        await verifyRequestAccessJwt(request);
+        const claims = await verifyRequestAccessJwt(request);
         const next = request.nextUrl.searchParams.get("next");
         const url = request.nextUrl.clone();
-        url.pathname = next && next.startsWith("/") ? next : "/dashboard";
+        url.pathname = next && next.startsWith("/") ? next : homePathForRole(claims.role);
         url.search = "";
         return withRequestId(NextResponse.redirect(url), requestId);
       } catch {
         if (hasRefreshCookie(request)) {
-          return redirectToRefresh(request, requestId, request.nextUrl.searchParams.get("next") ?? "/dashboard");
+          return redirectToRefresh(request, requestId, request.nextUrl.searchParams.get("next"));
         }
       }
     }
@@ -166,7 +174,7 @@ export async function middleware(request: NextRequest) {
       return jsonAuthFailure(403, "You do not have permission to perform this action.", requestId);
     }
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.pathname = homePathForRole(claims.role);
     url.search = "";
     return withNoIndex(withRequestId(NextResponse.redirect(url), requestId), policy);
   }

@@ -25,11 +25,20 @@ export default function HomeClient() {
   };
 
   const handleGetStarted = () => {
-    if (user) {
-      router.push(user.isOnboarded ? '/dashboard' : '/onboarding');
-    } else {
+    if (!user) {
       router.push('/role-selection');
+      return;
     }
+    // Route by role first; /dashboard is the student-only home.
+    if (user.role === 'teacher') {
+      router.push('/teacher');
+      return;
+    }
+    if (user.role === 'admin') {
+      router.push('/admin');
+      return;
+    }
+    router.push(user.isOnboarded ? '/dashboard' : '/onboarding');
   };
 
   return (
