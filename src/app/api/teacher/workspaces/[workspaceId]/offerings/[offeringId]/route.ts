@@ -1,3 +1,8 @@
+/**
+ * GET   /api/teacher/workspaces/[workspaceId]/offerings/[offeringId]
+ * PATCH /api/teacher/workspaces/[workspaceId]/offerings/[offeringId]
+ */
+
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 
@@ -10,7 +15,6 @@ import {
 } from "@/server/workspaces/marketplace-service";
 
 import {
-  getWorkspaceId,
   handleTeacherError,
   requestIdOf,
   teacherJson,
@@ -18,15 +22,13 @@ import {
 } from "../../../../_utils";
 
 const updateSchema = z.object({
-  title: z.string().min(1).max(200).optional(),
-  description: z.string().max(1000).nullable().optional(),
+  title: z.string().min(1).max(255).optional(),
+  description: z.string().nullable().optional(),
+  priceMinor: z.number().int().min(0).optional(),
+  currency: z.string().min(3).max(8).optional(),
+  targetBatchId: z.string().nullable().optional(),
   status: z.enum(["draft", "active", "paused", "archived"]).optional(),
-  priceAmount: z.number().int().positive().optional(),
-  durationMonths: z.number().int().positive().nullable().optional(),
-  batchIds: z.array(z.string()).optional(),
-  subject: z.string().max(80).nullable().optional(),
-  classLevel: z.string().max(40).nullable().optional(),
-  maxEnrollments: z.number().int().positive().nullable().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export async function GET(
@@ -54,16 +56,23 @@ export async function PATCH(
   try {
     requireFeatureEnabled("paidEnrollment");
     const { workspaceId, offeringId } = await context.params;
-    const ctx = await requireWorkspaceMember(request, workspaceId, ["owner", "admin"]);
+    const ctx = await requireWorkspaceMember(request, workspaceId, ["owner", "admin", "teacher"]);
     const body = await parseJsonBody(request);
-    const parsed = updateSchema.parse(body);
-    const updated = await updateOfferingService({
+    const parsed = updateSchema.safeParse(body);
+    if (!parsed.success) {
+      return teacherJson({ detail: parsed.error.message }, { status: 400 });
+    }
+    const offering = await updateOfferingService({
       workspaceId,
       offeringId,
-      patch: parsed,
-      userId: ctx.auth.userId,
+      actorUserId: ctx.auth.userId,
+      patch: parsed.data,
+      requestId: requestIdOf(request),
     });
-    return teacherJson({ offering: updated });
+    if (!offering) {
+      return teacherJson({ detail: "Offering not found." }, { status: 404 });
+    }
+    return teacherJson({ offering });
   } catch (error) {
     return handleTeacherError(error);
   }

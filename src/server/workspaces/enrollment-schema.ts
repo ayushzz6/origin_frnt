@@ -130,56 +130,6 @@ export async function ensureEnrollmentSchema(): Promise<void> {
 
           CREATE INDEX IF NOT EXISTS idx_batch_staff_user
             ON app.batch_staff(user_id, workspace_id);
-
-          CREATE TABLE IF NOT EXISTS app.workspace_offerings (
-            id TEXT PRIMARY KEY,
-            workspace_id TEXT NOT NULL REFERENCES app.teacher_workspaces(id) ON DELETE CASCADE,
-            title TEXT NOT NULL,
-            description TEXT,
-            status TEXT NOT NULL DEFAULT 'draft',
-            price_amount NUMERIC(10,2) NOT NULL,
-            price_currency TEXT NOT NULL DEFAULT 'INR',
-            duration_months INTEGER,
-            batch_ids TEXT[] NOT NULL DEFAULT '{}',
-            subject TEXT,
-            class_level TEXT,
-            max_enrollments INTEGER,
-            current_enrollments INTEGER NOT NULL DEFAULT 0,
-            metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-          );
-
-          CREATE INDEX IF NOT EXISTS idx_workspace_offerings_workspace_status
-            ON app.workspace_offerings(workspace_id, status, created_at DESC);
-
-          CREATE TABLE IF NOT EXISTS app.enrollment_orders (
-            id TEXT PRIMARY KEY,
-            workspace_id TEXT NOT NULL REFERENCES app.teacher_workspaces(id) ON DELETE CASCADE,
-            offering_id TEXT NOT NULL REFERENCES app.workspace_offerings(id) ON DELETE CASCADE,
-            student_id TEXT NOT NULL REFERENCES origin_users(id) ON DELETE CASCADE,
-            status TEXT NOT NULL DEFAULT 'pending',
-            payment_provider TEXT NOT NULL,
-            payment_intent_id TEXT,
-            payment_provider_order_id TEXT,
-            amount NUMERIC(10,2) NOT NULL,
-            currency TEXT NOT NULL DEFAULT 'INR',
-            enrolled_batch_id TEXT REFERENCES app.batches(id),
-            enrolled_at TIMESTAMPTZ,
-            payment_completed_at TIMESTAMPTZ,
-            refunded_at TIMESTAMPTZ,
-            refund_reason TEXT,
-            metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-          );
-
-          CREATE INDEX IF NOT EXISTS idx_enrollment_orders_workspace
-            ON app.enrollment_orders(workspace_id, status, created_at DESC);
-          CREATE INDEX IF NOT EXISTS idx_enrollment_orders_student
-            ON app.enrollment_orders(student_id, status, created_at DESC);
-          CREATE INDEX IF NOT EXISTS idx_enrollment_orders_offering
-            ON app.enrollment_orders(offering_id, status);
         `);
 
         await recordMigration(client);

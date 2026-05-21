@@ -43,7 +43,7 @@ export async function ensureDocumentImportSchema(): Promise<void> {
           EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
           DO $$ BEGIN
-            CREATE TYPE import.import_job_status AS ENUM ('queued', 'processing', 'review_required', 'completed', 'failed', 'cancelled');
+            CREATE TYPE import.import_job_status AS ENUM ('queued', 'processing', 'needs_review', 'succeeded', 'failed', 'cancelled');
           EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
           DO $$ BEGIN
