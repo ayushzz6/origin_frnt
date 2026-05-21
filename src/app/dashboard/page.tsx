@@ -21,6 +21,12 @@ export default function DashboardPage() {
 async function DashboardGate() {
   const user = await getServerUser();
   if (!user) redirect('/');
+  // /dashboard is the student home. Teachers and admins must never see it —
+  // the teacher app lives entirely under /teacher. This is a hard server-side
+  // guard so even if a stale redirect or hand-typed URL lands a teacher
+  // here, we bounce them to the correct app before any data loads.
+  if (user.role === 'teacher') redirect('/teacher');
+  if (user.role === 'admin') redirect('/admin');
 
   let initialTasks: Task[] = [];
   let initialPointsData: Awaited<ReturnType<typeof getPointsSummaryForRender>> | null = null;
