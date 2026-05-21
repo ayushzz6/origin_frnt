@@ -28,6 +28,8 @@ export const AUTHENTICATED_API_PREFIXES = [
   "/api/teacher",
   "/api/enrollments",
   "/api/study-materials",
+  "/api/admin",
+  "/api/marketplace",
 ] as const;
 
 export const MEMBERSHIP_API_PREFIXES = ["/api/study-rooms/[id]"] as const;
