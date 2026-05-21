@@ -99,7 +99,7 @@ export async function upsertBatchTopicSnapshot(input: {
   await ensureAnalyticsSchema();
   const id = createAnalyticsSnapshotId();
   const result = await pool().query(
-    `INSERT INTO content.batch_topic_snapshots (
+    `INSERT INTO analytics.batch_topic_snapshots (
        id, workspace_id, batch_id, test_id, room_id, snapshot_type,
        topic, subject, chapter, concept, accuracy, attempts,
        average_time_seconds, severity, metadata
@@ -140,7 +140,7 @@ export async function getBatchTopicSnapshots(
   }
   const limit = filter?.limit ?? 50;
   const result = await pool().query(
-    `SELECT * FROM content.batch_topic_snapshots
+    `SELECT * FROM analytics.batch_topic_snapshots
      WHERE ${where}
      ORDER BY snapshot_at DESC
      LIMIT ${limit}`,
@@ -167,7 +167,7 @@ export async function getBatchWeakTopics(
   }
   const result = await pool().query(
     `SELECT DISTINCT ON (topic, subject) *
-     FROM content.batch_topic_snapshots
+     FROM analytics.batch_topic_snapshots
      WHERE ${where}
      ORDER BY topic, subject, snapshot_at DESC`,
     params,
@@ -195,7 +195,7 @@ export async function upsertStudentTopicProfile(input: {
   await ensureAnalyticsSchema();
   const id = createAnalyticsSnapshotId();
   const result = await pool().query(
-    `INSERT INTO content.student_topic_profiles (
+    `INSERT INTO analytics.student_topic_profiles (
        id, workspace_id, student_id, batch_id, topic, subject, chapter, concept,
        total_attempts, correct_attempts, accuracy, average_time_seconds,
        last_attempt_at, mastery_score
@@ -243,7 +243,7 @@ export async function getStudentTopicProfile(
     where += ` AND subject = $${params.length}`;
   }
   const result = await pool().query(
-    `SELECT * FROM content.student_topic_profiles
+    `SELECT * FROM analytics.student_topic_profiles
      WHERE ${where}
      ORDER BY accuracy ASC, total_attempts DESC`,
     params,
@@ -265,7 +265,7 @@ export async function getBatchStudentProfiles(
   }
   const minAttempts = filter?.minAttempts ?? 0;
   const result = await pool().query(
-    `SELECT * FROM content.student_topic_profiles
+    `SELECT * FROM analytics.student_topic_profiles
      WHERE ${where} AND total_attempts >= $${params.length + 1}
      ORDER BY accuracy ASC`,
     [...params, minAttempts],
@@ -287,7 +287,7 @@ export async function createLeaderboardSnapshot(input: {
   await ensureAnalyticsSchema();
   const id = createAnalyticsSnapshotId();
   const result = await pool().query(
-    `INSERT INTO content.leaderboard_snapshots (
+    `INSERT INTO analytics.leaderboard_snapshots (
        id, workspace_id, batch_id, test_id, room_id, snapshot_type, entries, metadata
      ) VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb)
      RETURNING *`,
@@ -326,7 +326,7 @@ export async function getLeaderboardHistory(
   }
   const limit = filter?.limit ?? 20;
   const result = await pool().query(
-    `SELECT * FROM content.leaderboard_snapshots
+    `SELECT * FROM analytics.leaderboard_snapshots
      WHERE ${where}
      ORDER BY snapshot_at DESC
      LIMIT ${limit}`,
@@ -341,7 +341,7 @@ export async function getLeaderboardSnapshot(
 ): Promise<LeaderboardSnapshot | null> {
   await ensureAnalyticsSchema();
   const result = await pool().query(
-    `SELECT * FROM content.leaderboard_snapshots WHERE id = $1 AND workspace_id = $2`,
+    `SELECT * FROM analytics.leaderboard_snapshots WHERE id = $1 AND workspace_id = $2`,
     [snapshotId, workspaceId],
   );
   return result.rows[0] ? rowToLeaderboardSnapshot(result.rows[0]) : null;

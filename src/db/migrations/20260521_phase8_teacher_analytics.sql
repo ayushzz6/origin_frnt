@@ -2,10 +2,17 @@
 -- leaderboard snapshots. Mirrors src/server/workspaces/analytics-schema.ts.
 -- See V1/teacher-admin-launch-plan/02-database-schema-design.md and
 -- 05-implementation-roadmap.md.
+--
+-- Per plan these live in analytics.* alongside the existing
+-- analytics.test_results / analytics.custom_tests tables, not in content.*
+-- with the question-bank tables. The runtime ensureRoomsSchema() in
+-- src/server/rooms-postgres.ts already creates the analytics schema, but
+-- this migration is self-contained for environments where the schema
+-- runner applies it cold.
 
-CREATE SCHEMA IF NOT EXISTS content;
+CREATE SCHEMA IF NOT EXISTS analytics;
 
-CREATE TABLE IF NOT EXISTS content.batch_topic_snapshots (
+CREATE TABLE IF NOT EXISTS analytics.batch_topic_snapshots (
   id TEXT PRIMARY KEY,
   workspace_id TEXT NOT NULL REFERENCES app.teacher_workspaces(id) ON DELETE CASCADE,
   batch_id TEXT NOT NULL REFERENCES app.batches(id) ON DELETE CASCADE,
@@ -26,11 +33,11 @@ CREATE TABLE IF NOT EXISTS content.batch_topic_snapshots (
 );
 
 CREATE INDEX IF NOT EXISTS idx_batch_topic_snapshots_batch
-  ON content.batch_topic_snapshots(batch_id, snapshot_at DESC);
+  ON analytics.batch_topic_snapshots(batch_id, snapshot_at DESC);
 CREATE INDEX IF NOT EXISTS idx_batch_topic_snapshots_workspace_subject
-  ON content.batch_topic_snapshots(workspace_id, subject, severity, snapshot_at DESC);
+  ON analytics.batch_topic_snapshots(workspace_id, subject, severity, snapshot_at DESC);
 
-CREATE TABLE IF NOT EXISTS content.student_topic_profiles (
+CREATE TABLE IF NOT EXISTS analytics.student_topic_profiles (
   id TEXT PRIMARY KEY,
   workspace_id TEXT NOT NULL REFERENCES app.teacher_workspaces(id) ON DELETE CASCADE,
   student_id TEXT NOT NULL REFERENCES origin_users(id) ON DELETE CASCADE,
@@ -51,11 +58,11 @@ CREATE TABLE IF NOT EXISTS content.student_topic_profiles (
 );
 
 CREATE INDEX IF NOT EXISTS idx_student_topic_profiles_student
-  ON content.student_topic_profiles(student_id, subject, accuracy);
+  ON analytics.student_topic_profiles(student_id, subject, accuracy);
 CREATE INDEX IF NOT EXISTS idx_student_topic_profiles_batch
-  ON content.student_topic_profiles(batch_id, subject, accuracy);
+  ON analytics.student_topic_profiles(batch_id, subject, accuracy);
 
-CREATE TABLE IF NOT EXISTS content.leaderboard_snapshots (
+CREATE TABLE IF NOT EXISTS analytics.leaderboard_snapshots (
   id TEXT PRIMARY KEY,
   workspace_id TEXT NOT NULL REFERENCES app.teacher_workspaces(id) ON DELETE CASCADE,
   batch_id TEXT REFERENCES app.batches(id) ON DELETE SET NULL,
@@ -69,9 +76,9 @@ CREATE TABLE IF NOT EXISTS content.leaderboard_snapshots (
 );
 
 CREATE INDEX IF NOT EXISTS idx_leaderboard_snapshots_workspace
-  ON content.leaderboard_snapshots(workspace_id, snapshot_at DESC);
+  ON analytics.leaderboard_snapshots(workspace_id, snapshot_at DESC);
 CREATE INDEX IF NOT EXISTS idx_leaderboard_snapshots_batch
-  ON content.leaderboard_snapshots(batch_id, snapshot_at DESC);
+  ON analytics.leaderboard_snapshots(batch_id, snapshot_at DESC);
 
 INSERT INTO app.migrations (id, name)
 VALUES ('20260521_phase8_teacher_analytics', 'phase 8 teacher analytics')

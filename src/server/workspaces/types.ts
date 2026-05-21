@@ -248,23 +248,31 @@ export type LeaderboardSnapshot = {
   createdAt: string;
 };
 
-export type OgcodePublicationStatus = "pending_review" | "approved" | "rejected" | "published" | "superseded";
+export type OgcodePublicationStatus =
+  | "draft"
+  | "submitted"
+  | "approved"
+  | "published"
+  | "changes_requested"
+  | "rejected"
+  | "archived";
 
 export type OgcodePublication = {
   id: string;
-  workspaceId: string;
-  ogcodeQuestionId: string;
-  questionBagQuestionId: string | null;
-  submittedBy: string;
+  questionId: string;
+  questionVersionId: string;
+  contributorWorkspaceId: string | null;
+  contributorUserId: string | null;
+  attributionName: string;
+  attributionLogoAssetId: string | null;
   status: OgcodePublicationStatus;
   version: number;
-  hintProvided: boolean;
-  fullSolutionProvided: boolean;
-  adminReviewedBy: string | null;
-  adminReviewedAt: string | null;
-  adminNotes: string | null;
+  moderationNotes: string | null;
+  submittedAt: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
   publishedAt: string | null;
-  rejectedAt: string | null;
+  archivedAt: string | null;
   supersededBy: string | null;
   metadata: Record<string, unknown>;
   createdAt: string;
@@ -272,7 +280,7 @@ export type OgcodePublication = {
 };
 
 export type OgcodePublicationWithQuestion = OgcodePublication & {
-  questionTitle?: string | null;
+  questionStem?: string | null;
   questionSubject?: string | null;
   questionChapter?: string | null;
 };
@@ -515,4 +523,99 @@ export type TeacherRoomSummary = {
   workspaceId: string | null;
   batchId: string | null;
   roomKind: RoomKind;
+};
+
+// ─── Document Import (Phase 10) ──────────────────────────────────────────────
+
+export type ImportSourceType = "pdf" | "docx" | "txt" | "image" | "url";
+export type ImportJobStatus = "queued" | "processing" | "review_required" | "completed" | "failed" | "cancelled";
+export type ImportPageStatus = "pending" | "parsed" | "review_required" | "accepted" | "rejected";
+export type ImportQuestionStatus = "draft" | "review_required" | "accepted" | "rejected" | "published";
+
+export type DocumentImportJob = {
+  id: string; workspaceId: string; sourceType: ImportSourceType; sourceFileName: string;
+  sourceR2ObjectKey: string; sourceR2Bucket: string; sourceMimeType: string;
+  sourceSizeBytes: number; sourceSha256: string; subject: string | null; chapter: string | null;
+  status: ImportJobStatus; totalPages: number | null; processedPages: number;
+  totalQuestions: number | null; acceptedQuestions: number; reviewRequiredQuestions: number;
+  errorMessage: string | null; startedAt: string | null; completedAt: string | null;
+  createdBy: string; metadata: Record<string, unknown>; createdAt: string; updatedAt: string;
+};
+
+export type ImportJobPage = {
+  id: string; jobId: string; pageNumber: number; status: ImportPageStatus;
+  extractedText: string | null; extractedImages: Record<string, unknown>[];
+  reviewNotes: string | null; metadata: Record<string, unknown>; createdAt: string; updatedAt: string;
+};
+
+export type ImportJobQuestion = {
+  id: string; jobId: string; pageId: string | null; questionNumber: number | null;
+  questionType: string | null; subject: string | null; chapter: string | null;
+  concept: string | null; questionText: string | null; options: Record<string, unknown> | null;
+  correctOption: number | null; correctOptions: Record<string, unknown> | null;
+  answerText: string | null; explanation: string | null; hint: string | null;
+  hasDiagram: boolean; diagramDescription: string | null; status: ImportQuestionStatus;
+  confidenceScore: number | null; reviewNotes: string | null; rejectionReason: string | null;
+  questionBagQuestionId: string | null; metadata: Record<string, unknown>;
+  createdAt: string; updatedAt: string;
+};
+
+export type ImportJobWithProgress = DocumentImportJob & { progressPercent: number; questionsPreview: ImportJobQuestion[] };
+
+// ─── Admin Control Center (Phase 11) ─────────────────────────────────────────
+
+export type WorkspaceSuspensionReason = "policy_violation" | "fraud" | "inactivity" | "admin_request" | "other";
+
+export type WorkspaceAdminSummary = {
+  id: string; workspaceType: "personal" | "institute"; displayName: string;
+  ownerUserId: string; ownerName: string | null; ownerEmail: string | null;
+  status: "active" | "trial" | "suspended" | "closed";
+  studentCount: number; batchCount: number; questionCount: number;
+  createdAt: string; suspendedAt: string | null; suspensionReason: WorkspaceSuspensionReason | null;
+};
+
+export type AdminUserSearchResult = {
+  id: string; name: string; email: string; role: "student" | "teacher" | "admin";
+  workspaceMemberships: { workspaceId: string; workspaceName: string; role: string }[];
+  createdAt: string;
+};
+
+export type AdminAuditEvent = {
+  id: string; actorUserId: string | null; actorName: string | null;
+  workspaceId: string | null; workspaceName: string | null;
+  entityType: string; entityId: string; action: string;
+  before: Record<string, unknown> | null; after: Record<string, unknown> | null;
+  requestId: string | null; ipHash: string | null; createdAt: string;
+};
+
+// ─── Paid Enrollment & Marketplace (Phase 12) ────────────────────────────────
+
+export type OfferingStatus = "draft" | "active" | "paused" | "archived";
+export type EnrollmentOrderStatus = "pending" | "processing" | "completed" | "failed" | "refunded";
+export type PaymentProvider = "stripe" | "razorpay";
+
+export type WorkspaceOffering = {
+  id: string; workspaceId: string; title: string; description: string | null;
+  status: OfferingStatus; priceAmount: number; priceCurrency: string;
+  durationMonths: number | null; batchIds: string[]; subject: string | null;
+  classLevel: string | null; maxEnrollments: number | null; currentEnrollments: number;
+  metadata: Record<string, unknown>; createdAt: string; updatedAt: string;
+};
+
+export type EnrollmentOrder = {
+  id: string; workspaceId: string; offeringId: string; studentId: string;
+  status: EnrollmentOrderStatus; paymentProvider: PaymentProvider;
+  paymentIntentId: string | null; paymentProviderOrderId: string | null;
+  amount: number; currency: string; enrolledBatchId: string | null;
+  enrolledAt: string | null; paymentCompletedAt: string | null;
+  refundedAt: string | null; refundReason: string | null;
+  metadata: Record<string, unknown>; createdAt: string; updatedAt: string;
+};
+
+export type InstitutePublicProfile = {
+  workspaceId: string; displayName: string; legalName: string | null;
+  city: string | null; state: string | null; country: string;
+  subjects: string[]; courses: string[]; logoUrl: string | null;
+  description: string | null; activeOfferings: WorkspaceOffering[];
+  studentCount: number; batchCount: number; verified: boolean;
 };

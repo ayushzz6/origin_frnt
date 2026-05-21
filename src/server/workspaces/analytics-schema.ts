@@ -39,10 +39,10 @@ export async function ensureAnalyticsSchema(): Promise<void> {
       try {
         await client.query("BEGIN");
 
-        await client.query(`CREATE SCHEMA IF NOT EXISTS content;`);
+        await client.query(`CREATE SCHEMA IF NOT EXISTS analytics;`);
 
         await client.query(`
-          CREATE TABLE IF NOT EXISTS content.batch_topic_snapshots (
+          CREATE TABLE IF NOT EXISTS analytics.batch_topic_snapshots (
             id TEXT PRIMARY KEY,
             workspace_id TEXT NOT NULL REFERENCES app.teacher_workspaces(id) ON DELETE CASCADE,
             batch_id TEXT NOT NULL REFERENCES app.batches(id) ON DELETE CASCADE,
@@ -63,13 +63,13 @@ export async function ensureAnalyticsSchema(): Promise<void> {
           );
 
           CREATE INDEX IF NOT EXISTS idx_batch_topic_snapshots_batch
-            ON content.batch_topic_snapshots(batch_id, snapshot_at DESC);
+            ON analytics.batch_topic_snapshots(batch_id, snapshot_at DESC);
           CREATE INDEX IF NOT EXISTS idx_batch_topic_snapshots_workspace_subject
-            ON content.batch_topic_snapshots(workspace_id, subject, severity, snapshot_at DESC);
+            ON analytics.batch_topic_snapshots(workspace_id, subject, severity, snapshot_at DESC);
         `);
 
         await client.query(`
-          CREATE TABLE IF NOT EXISTS content.student_topic_profiles (
+          CREATE TABLE IF NOT EXISTS analytics.student_topic_profiles (
             id TEXT PRIMARY KEY,
             workspace_id TEXT NOT NULL REFERENCES app.teacher_workspaces(id) ON DELETE CASCADE,
             student_id TEXT NOT NULL REFERENCES origin_users(id) ON DELETE CASCADE,
@@ -90,13 +90,13 @@ export async function ensureAnalyticsSchema(): Promise<void> {
           );
 
           CREATE INDEX IF NOT EXISTS idx_student_topic_profiles_student
-            ON content.student_topic_profiles(student_id, subject, accuracy);
+            ON analytics.student_topic_profiles(student_id, subject, accuracy);
           CREATE INDEX IF NOT EXISTS idx_student_topic_profiles_batch
-            ON content.student_topic_profiles(batch_id, subject, accuracy);
+            ON analytics.student_topic_profiles(batch_id, subject, accuracy);
         `);
 
         await client.query(`
-          CREATE TABLE IF NOT EXISTS content.leaderboard_snapshots (
+          CREATE TABLE IF NOT EXISTS analytics.leaderboard_snapshots (
             id TEXT PRIMARY KEY,
             workspace_id TEXT NOT NULL REFERENCES app.teacher_workspaces(id) ON DELETE CASCADE,
             batch_id TEXT REFERENCES app.batches(id) ON DELETE SET NULL,
@@ -110,9 +110,9 @@ export async function ensureAnalyticsSchema(): Promise<void> {
           );
 
           CREATE INDEX IF NOT EXISTS idx_leaderboard_snapshots_workspace
-            ON content.leaderboard_snapshots(workspace_id, snapshot_at DESC);
+            ON analytics.leaderboard_snapshots(workspace_id, snapshot_at DESC);
           CREATE INDEX IF NOT EXISTS idx_leaderboard_snapshots_batch
-            ON content.leaderboard_snapshots(batch_id, snapshot_at DESC);
+            ON analytics.leaderboard_snapshots(batch_id, snapshot_at DESC);
         `);
 
         await recordMigration(client);
