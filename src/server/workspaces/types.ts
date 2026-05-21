@@ -140,6 +140,143 @@ export type AuditEventInput = {
   ipHash?: string | null;
 };
 
+export type StudyMaterialType = "pdf" | "docx" | "image" | "video" | "link" | "other";
+export type StudyMaterialStatus = "draft" | "published" | "archived";
+export type StudyMaterialAssignmentTarget = "batch" | "student" | "workspace";
+
+export type StudyMaterial = {
+  id: string;
+  workspaceId: string;
+  title: string;
+  description: string | null;
+  materialType: StudyMaterialType;
+  subject: string | null;
+  topic: string | null;
+  classLevel: string | null;
+  status: StudyMaterialStatus;
+  createdBy: string;
+  publishedAt: string | null;
+  archivedAt: string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type StudyMaterialAsset = {
+  id: string;
+  materialId: string;
+  r2ObjectKey: string;
+  r2Bucket: string;
+  publicUrl: string;
+  mimeType: string;
+  sizeBytes: number;
+  sha256: string;
+  displayName: string | null;
+  sortOrder: number;
+  createdAt: string;
+};
+
+export type StudyMaterialAssignment = {
+  id: string;
+  materialId: string;
+  workspaceId: string;
+  targetType: StudyMaterialAssignmentTarget;
+  targetId: string;
+  assignedBy: string | null;
+  assignedAt: string;
+  revokedAt: string | null;
+};
+
+export type StudyMaterialWithAssets = StudyMaterial & {
+  assets: StudyMaterialAsset[];
+  assetCount: number;
+};
+
+export type StudyMaterialWithAssignments = StudyMaterial & {
+  assignments: StudyMaterialAssignment[];
+};
+
+export type BatchTopicSnapshot = {
+  id: string;
+  workspaceId: string;
+  batchId: string;
+  testId: string | null;
+  roomId: string | null;
+  snapshotType: "test_result" | "room_result" | "manual";
+  topic: string;
+  subject: string;
+  chapter: string | null;
+  concept: string | null;
+  accuracy: number;
+  attempts: number;
+  averageTimeSeconds: number;
+  severity: "high" | "medium" | "low";
+  snapshotAt: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+};
+
+export type StudentTopicProfile = {
+  id: string;
+  workspaceId: string;
+  studentId: string;
+  batchId: string | null;
+  topic: string;
+  subject: string;
+  chapter: string | null;
+  concept: string | null;
+  totalAttempts: number;
+  correctAttempts: number;
+  accuracy: number;
+  averageTimeSeconds: number;
+  lastAttemptAt: string | null;
+  masteryScore: number;
+  updatedAt: string;
+  createdAt: string;
+};
+
+export type LeaderboardSnapshot = {
+  id: string;
+  workspaceId: string;
+  batchId: string | null;
+  testId: string | null;
+  roomId: string | null;
+  snapshotType: "test" | "room";
+  snapshotAt: string;
+  entries: Record<string, unknown>[];
+  metadata: Record<string, unknown>;
+  createdAt: string;
+};
+
+export type OgcodePublicationStatus = "pending_review" | "approved" | "rejected" | "published" | "superseded";
+
+export type OgcodePublication = {
+  id: string;
+  workspaceId: string;
+  ogcodeQuestionId: string;
+  questionBagQuestionId: string | null;
+  submittedBy: string;
+  status: OgcodePublicationStatus;
+  version: number;
+  hintProvided: boolean;
+  fullSolutionProvided: boolean;
+  adminReviewedBy: string | null;
+  adminReviewedAt: string | null;
+  adminNotes: string | null;
+  publishedAt: string | null;
+  rejectedAt: string | null;
+  supersededBy: string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type OgcodePublicationWithQuestion = OgcodePublication & {
+  questionTitle?: string | null;
+  questionSubject?: string | null;
+  questionChapter?: string | null;
+};
+
 // ─── Question Bag (Phase 4) ─────────────────────────────────────────────────────
 
 export type AssetOwnerType = "workspace" | "platform" | "user";
