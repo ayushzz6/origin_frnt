@@ -2,6 +2,8 @@
 -- See V1/teacher-admin-launch-plan/05-implementation-roadmap.md
 -- Tables: content.study_materials, content.study_material_assets, content.study_material_assignments
 
+CREATE SCHEMA IF NOT EXISTS content;
+
 DO $$ BEGIN
   CREATE TYPE content.material_status AS ENUM ('draft', 'published', 'archived');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
@@ -13,8 +15,6 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
   CREATE TYPE content.assignment_target AS ENUM ('batch', 'student', 'workspace');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-CREATE SCHEMA IF NOT EXISTS content;
 
 CREATE TABLE IF NOT EXISTS content.study_materials (
   id TEXT PRIMARY KEY,
