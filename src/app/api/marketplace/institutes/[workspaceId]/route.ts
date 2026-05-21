@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { requireFeatureEnabled } from "@/lib/feature-flags";
 import { getInstituteProfileService } from "@/server/workspaces/marketplace-service";
 
-import { handleTeacherError, teacherJson } from "../../../teacher/_utils";
+import { handleTeacherError, teacherJson } from "@/app/api/teacher/_utils";
 
 export async function GET(
   request: NextRequest,

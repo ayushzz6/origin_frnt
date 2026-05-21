@@ -24,6 +24,8 @@ function AuthPageContent() {
         router.push('/onboarding');
       } else if (user.role === 'admin') {
         router.push('/admin');
+      } else if (user.role === 'teacher') {
+        router.push('/teacher');
       } else {
         router.push('/dashboard');
       }

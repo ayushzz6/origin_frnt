@@ -28,7 +28,6 @@ interface AuthPageProps {
   isLoading: boolean;
   error?: string | null;
 }
-
 export default function AuthPage({
   userRole,
   onLogin,
@@ -210,10 +209,7 @@ export default function AuthPage({
                 </div>
               )}
 
-              {/* Seat-count banner only on the Sign Up tab. Existing users
-                  logging in must not see "registration closed" — the cap only
-                  applies to new accounts. */}
-              {regStatus && !isLogin && (
+              {regStatus && (!isLogin || regStatus.seatsLeft <= 0) && (
                 <div className={cn(
                   "mt-4 w-full p-3 rounded-xl border flex text-center items-center justify-center gap-2 animate-in fade-in zoom-in-95 duration-500",
                   regStatus.seatsLeft > 0
@@ -473,4 +469,3 @@ export default function AuthPage({
     </div>
   );
 }
-

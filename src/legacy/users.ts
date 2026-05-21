@@ -363,12 +363,9 @@ export async function handleLoginWithOtp(payload: UserPayload) {
   });
 }
 
-// Override either of these without a deploy by setting the env var in Vercel.
-// Default teacher cap is intentionally high — we keep the cap *mechanism* but
-// don't want it to gate signups in normal use. Set TEACHER_REGISTRATION_LIMIT=0
-// to disable the cap entirely.
-const REGISTRATION_LIMIT = Number(process.env.STUDENT_REGISTRATION_LIMIT ?? "62");
-const TEACHER_REGISTRATION_LIMIT = Number(process.env.TEACHER_REGISTRATION_LIMIT ?? "1000");
+const REGISTRATION_LIMIT = 62;
+// 5 real signups on top of 4 seed/demo teacher accounts already in origin_users.
+const TEACHER_REGISTRATION_LIMIT = 9;
 
 function limitForRole(role?: string | null): number {
   return role === "teacher" ? TEACHER_REGISTRATION_LIMIT : REGISTRATION_LIMIT;
@@ -376,17 +373,13 @@ function limitForRole(role?: string | null): number {
 
 export async function getRegistrationStatus(role?: string | null) {
   const limit = limitForRole(role);
-  // limit <= 0 means "no cap" — report a very large seatsLeft so the UI never
-  // gates on it. The handleRegister path also short-circuits on limit <= 0.
-  const seatsLeftFor = (count: number) =>
-    limit <= 0 ? Number.MAX_SAFE_INTEGER : Math.max(0, limit - count);
 
   if (isUserPostgresConfigured()) {
     try {
       const count = role === "teacher"
         ? await dbGetUserCountByRole("teacher")
         : await dbGetUserCount();
-      return { count, limit, seatsLeft: seatsLeftFor(count) };
+      return { count, limit, seatsLeft: Math.max(0, limit - count) };
     } catch (err) {
       console.error('[users] Failed to get user count', err);
     }
@@ -396,7 +389,7 @@ export async function getRegistrationStatus(role?: string | null) {
     const count = role === "teacher"
       ? store.users.filter((u) => u.role === "teacher").length
       : store.users.length;
-    return { count, limit, seatsLeft: seatsLeftFor(count) };
+    return { count, limit, seatsLeft: Math.max(0, limit - count) };
   });
 }
 
@@ -596,7 +589,7 @@ export async function handleGoogleLogin(payload: UserPayload) {
     return withStoreAsync(async (store) => {
       let user = store.users.find((entry) => entry.email.toLowerCase() === email!.toLowerCase() && entry.role === role);
       if (!user) {
-        // Enforce registration limit for new users (role-aware)
+        // Enforce registration limit for new users (role-aware: teachers capped separately)
         const status = await getRegistrationStatus(role);
         if (status.seatsLeft <= 0) {
           const scope = role === "teacher" ? "teacher" : "user";
