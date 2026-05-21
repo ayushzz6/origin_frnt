@@ -321,6 +321,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
         router.push('/onboarding');
       } else if (user.role === 'admin') {
         router.push('/admin');
+      } else if (user.role === 'teacher') {
+        router.push('/teacher');
       } else {
         router.push('/dashboard');
       }
@@ -352,6 +354,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
         router.push('/onboarding');
       } else if (result.user.role === 'admin') {
         router.push('/admin');
+      } else if (result.user.role === 'teacher') {
+        router.push('/teacher');
       } else {
         router.push('/dashboard');
       }
@@ -388,6 +392,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
 
       if (result.user.role === 'admin') {
         router.push('/admin');
+      } else if (result.user.role === 'teacher') {
+        router.push('/teacher');
       } else {
         router.push('/dashboard');
       }
@@ -424,6 +430,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
         router.push('/onboarding');
       } else if (result.user.role === 'admin') {
         router.push('/admin');
+      } else if (result.user.role === 'teacher') {
+        router.push('/teacher');
       } else {
         router.push('/dashboard');
       }
@@ -500,6 +508,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
         router.push('/onboarding');
       } else if (result.user.role === 'admin') {
         router.push('/admin');
+      } else if (result.user.role === 'teacher') {
+        router.push('/teacher');
       } else {
         router.push('/dashboard');
       }

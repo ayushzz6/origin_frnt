@@ -140,7 +140,7 @@ export async function registerAction(input: {
     // Check if email was verified via OTP
     const store = await readStoreAsync();
     const isVerified = store.otps.some(o => o.email.toLowerCase() === input.email.toLowerCase() && o.verified === true);
-    
+
     if (!isVerified) {
       return { ok: false, status: 400, message: 'Email verification required. Please verify your email first.' };
     }

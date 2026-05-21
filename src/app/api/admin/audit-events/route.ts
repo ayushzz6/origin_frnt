@@ -4,7 +4,7 @@ import { requireFeatureEnabled } from "@/lib/feature-flags";
 import { requireRole } from "@/server/authz";
 import { listAuditEventsService } from "@/server/workspaces/admin-service";
 
-import { handleTeacherError, teacherJson } from "../../teacher/_utils";
+import { handleTeacherError, teacherJson } from "@/app/api/teacher/_utils";
 
 export async function GET(request: NextRequest) {
   try {
