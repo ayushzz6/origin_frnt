@@ -93,6 +93,80 @@ npm run test:unit
 If any of those fail, fix the issue **in the monorepo first**, regenerate the patch, and reapply.
 <!-- END:origin-repo-targets -->
 
+<!-- BEGIN:sync-discipline -->
+# Lockstep sync discipline — never let the two repos drift
+
+The two-repo setup will drift silently if PRs are merged at different times on each side. We've burned multiple PRs on catch-up syncs already. The following is **not optional**.
+
+## Pre-flight check (every session, before starting work)
+
+Run these three commands at the top of every coding session. If anything is out of sync, fix it first before opening new branches.
+
+```bash
+# 1. Local monorepo main matches remote
+cd /Users/xyx/Projects/Origin/V1
+git fetch origin main && git diff --quiet main origin/main && echo "✓ monorepo main is in sync" || echo "⚠ monorepo main is behind — pull first"
+
+# 2. Local Vercel-deploy clone main matches remote
+cd /tmp/origin-frnt-work/origin_frnt
+git fetch origin main && git diff --quiet main origin/main && echo "✓ vercel main is in sync" || echo "⚠ vercel main is behind — pull first"
+
+# 3. Cross-repo content match (monorepo new-frontend/ ↔ vercel-deploy root)
+diff -rq /Users/xyx/Projects/Origin/V1/new-frontend /tmp/origin-frnt-work/origin_frnt \
+  --exclude=.git --exclude=node_modules --exclude=.next --exclude=.vercel \
+  --exclude=.claude --exclude='.DS_Store' --exclude='.env*' \
+  --exclude='*.tsbuildinfo' --exclude=next-env.d.ts \
+  --exclude=.code-review-graph --exclude=.origin-dev \
+  --exclude=Dockerfile --exclude=docker --exclude='docker-compose*' \
+  --exclude=scratch --exclude=README.md \
+  --exclude=data \
+  --exclude='scripts/origin-ai-vectors.mjs' \
+  2>&1 | grep -v "^Only in" | head
+```
+
+Expected output: empty (no file differences). Files that exist `Only in` one side are usually monorepo-only infra (`docker/`, `Dockerfile`, `data/`, microservices) or local-only state (`.env.local`, build caches) — those are fine to ignore. Any **modified file** (`Files X and Y differ`) is real drift and must be resolved.
+
+## When a teammate merges a monorepo PR
+
+The moment you notice a new commit on `diprajorigin/ORIGIN-V1.0:main` that you don't have:
+
+1. **Pull into local monorepo first**: `git checkout main && git pull --ff-only origin main` from `/Users/xyx/Projects/Origin/V1`.
+2. **If the PR touched `new-frontend/`**, the same change needs to land on the Vercel-deploy repo. Either:
+   - The teammate already opened the twin PR — just wait for them to merge it, then pull on the Vercel-deploy clone.
+   - The teammate didn't open the twin — open it yourself using the path-stripped-patch recipe further up in this file.
+3. **If the PR touched only microservices** (`analytics-service/`, `grader-service/`, `origin-ai/`, top-level docs), no Vercel-deploy work needed.
+4. **Re-run the pre-flight check** afterward to confirm parity.
+
+## Twin PR merge protocol
+
+Every PR pair must follow:
+
+1. Open the monorepo PR and the Vercel-deploy PR with the **same branch name**.
+2. Both PRs must show green Vercel build / CI before either is merged.
+3. **Merge them within the same browser session**, monorepo first then Vercel-deploy (or the reverse — just don't walk away with only one merged).
+4. If you push a follow-up fix commit to one PR (e.g. addressing a build failure), **immediately push the twin commit to the other PR** before merging anything.
+5. After both merge, `git pull --ff-only origin main` on both local clones.
+
+Violating step 4 is what caused the last two drifts (PR #11 ↔ #109 follow-ups never crossed over).
+
+## Tracked-asset directories
+
+Two logo directories are intentionally tracked. They're not auto-generated, not local-only:
+
+- **`/logo/`** at the monorepo workspace root — master assets (high-res favicon source, brand SVGs, etc.). Lives in the monorepo only; the Vercel-deploy repo doesn't need them. Never `gitignore` this, never treat it as untracked when seen in `git status`.
+- **`new-frontend/public/logo/`** — runtime copies that ship with the Next.js bundle. Served at `/logo/...` in the browser. Lives in both repos (monorepo's `new-frontend/public/logo/` ↔ Vercel-deploy's `public/logo/`).
+
+When new logo files are added, drop them in **both** places: `/logo/` for the master and `new-frontend/public/logo/` for the runtime copy.
+
+## "Why" — incidents this rule prevents
+
+- **Drift incident 1 (PRs #105/#107)**: Phase 7-9 alignment landed on Vercel-deploy first, monorepo lagged → test count diverged.
+- **Drift incident 2 (PR #109/#11)**: Build-fix follow-up commit landed only on monorepo, never crossed over → Vercel-deploy main shipped with two empty route files and broke the production build.
+- **Phantom conflict (PR #109)**: Monorepo PR was branched before #107/#108 merged, then conflicted with newer types.ts after they did.
+
+All three would have been caught by the pre-flight diff above.
+<!-- END:sync-discipline -->
+
 <!-- BEGIN:plan-vs-code-policy -->
 # Single source of truth — plan vs code
 
