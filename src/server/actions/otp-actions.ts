@@ -13,7 +13,10 @@ function generateOTP(): string {
 /**
  * Action to send an OTP to a specific email.
  */
-export async function sendOtpAction(email: string) {
+export async function sendOtpAction(
+  email: string,
+  role?: 'student' | 'teacher' | 'admin' | null,
+) {
   if (!email) {
     return { ok: false, message: 'Email is required' };
   }
@@ -23,8 +26,17 @@ export async function sendOtpAction(email: string) {
 
   try {
     const preflight = await withStoreAsync(async (store) => {
-      const userExists = store.users.find(u => u.email.toLowerCase() === email.toLowerCase());
-      if (userExists && userExists.role !== 'admin') {
+      // "Already exists" check must be role-scoped: the same email can legally
+      // be both a student and a teacher row (UNIQUE constraint is on
+      // (email, role)). Without this scoping the preflight silently blocks
+      // OTP delivery for a teacher signup whenever a student row with the
+      // same email happens to be cached in the in-memory store.
+      const userExists = store.users.find((u) => {
+        if (u.email.toLowerCase() !== email.toLowerCase()) return false;
+        if (u.role === 'admin') return false; // admins always allowed to re-OTP
+        return role ? u.role === role : true;
+      });
+      if (userExists) {
         return { ok: false as const, message: 'An account with this email already exists. Please login instead.' };
       }
 

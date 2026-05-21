@@ -173,9 +173,9 @@ export async function registerAction(input: {
   }
 }
 
-export async function googleLoginAction(input: { credential: string }): Promise<AuthResult> {
+export async function googleLoginAction(input: { credential: string; role?: 'student' | 'teacher' | 'admin' | null }): Promise<AuthResult> {
   try {
-    const response = await handleGoogleLogin({ credential: input.credential });
+    const response = await handleGoogleLogin({ credential: input.credential, role: input.role ?? null });
     const parsed = await parseAuthResponse(response);
     if (parsed.ok) {
       await setSessionCookies(parsed.access, parsed.refresh, parsed.accessFingerprint);

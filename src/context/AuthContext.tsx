@@ -34,7 +34,7 @@ interface AuthContextType {
   login: (email: string, password: string, role?: 'student' | 'teacher' | 'admin' | null) => Promise<void>;
   loginWithOtp: (email: string, role?: 'student' | 'teacher' | 'admin' | null) => Promise<void>;
   register: (name: string, email: string, password: string, role?: 'student' | 'teacher' | 'admin' | null) => Promise<void>;
-  googleLogin: (credential: string) => Promise<void>;
+  googleLogin: (credential: string, role?: 'student' | 'teacher' | 'admin' | null) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
   addTask: (text: string, due: string) => Promise<void>;
@@ -43,7 +43,7 @@ interface AuthContextType {
   primeTasks: (seededTasks: Task[]) => void;
   isNavigationLocked: boolean;
   setIsNavigationLocked: (locked: boolean) => void;
-  sendOtp: (email: string) => Promise<{ ok: boolean; message: string }>;
+  sendOtp: (email: string, role?: 'student' | 'teacher' | 'admin' | null) => Promise<{ ok: boolean; message: string }>;
   verifyOtp: (email: string, otp: string) => Promise<{ ok: boolean; message: string }>;
 }
 
@@ -437,10 +437,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
     }
   };
 
-  const sendOtp = async (email: string) => {
+  const sendOtp = async (email: string, role?: 'student' | 'teacher' | 'admin' | null) => {
     setIsLoading(true);
     try {
-      const result = await sendOtpAction(email);
+      const result = await sendOtpAction(email, role ?? null);
       if (result.ok) {
         toast.success(result.message);
       } else {
@@ -475,11 +475,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
     }
   };
 
-  const googleLogin = async (credential: string) => {
+  const googleLogin = async (credential: string, role?: 'student' | 'teacher' | 'admin' | null) => {
     setIsLoading(true);
     setAuthError(null);
     try {
-      const result = await googleLoginAction({ credential });
+      const result = await googleLoginAction({ credential, role: role ?? null });
       if (!result.ok) {
         setAuthError(result.message);
         toast.error(result.message);

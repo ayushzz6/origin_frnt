@@ -21,8 +21,8 @@ interface AuthPageProps {
   onLogin: (email: string, password: string, role?: 'student' | 'teacher' | 'admin' | null) => void;
   onLoginWithOtp?: (email: string, role?: 'student' | 'teacher' | 'admin' | null) => void;
   onRegister: (name: string, email: string, password: string, role?: 'student' | 'teacher' | 'admin' | null) => void;
-  onGoogleLogin?: (credential: string) => void;
-  sendOtp?: (email: string) => Promise<{ ok: boolean; message: string }>;
+  onGoogleLogin?: (credential: string, role?: 'student' | 'teacher' | 'admin' | null) => void;
+  sendOtp?: (email: string, role?: 'student' | 'teacher' | 'admin' | null) => Promise<{ ok: boolean; message: string }>;
   verifyOtp?: (email: string, otp: string) => Promise<{ ok: boolean; message: string }>;
   onBack: () => void;
   isLoading: boolean;
@@ -53,7 +53,7 @@ export default function AuthPage({
   const handleGoogleAuth = useGoogleLogin({
     onSuccess: (codeResponse) => {
       if (onGoogleLogin && codeResponse.access_token) {
-        onGoogleLogin(codeResponse.access_token);
+        onGoogleLogin(codeResponse.access_token, userRole);
       }
     },
     onError: (error) => console.error('Google Login Failed:', error)
@@ -92,7 +92,7 @@ export default function AuthPage({
   const handleSendOtp = async () => {
     if (!email) return;
     if (sendOtp) {
-      const res = await sendOtp(email);
+      const res = await sendOtp(email, userRole);
       if (res.ok) {
         setStep('otp');
         setResendCooldown(60); // 1 minute cooldown
@@ -210,7 +210,10 @@ export default function AuthPage({
                 </div>
               )}
 
-              {regStatus && (!isLogin || regStatus.seatsLeft <= 0) && (
+              {/* Seat-count banner only on the Sign Up tab. Existing users
+                  logging in must not see "registration closed" — the cap only
+                  applies to new accounts. */}
+              {regStatus && !isLogin && (
                 <div className={cn(
                   "mt-4 w-full p-3 rounded-xl border flex text-center items-center justify-center gap-2 animate-in fade-in zoom-in-95 duration-500",
                   regStatus.seatsLeft > 0

@@ -363,9 +363,12 @@ export async function handleLoginWithOtp(payload: UserPayload) {
   });
 }
 
-const REGISTRATION_LIMIT = 62;
-// 5 real signups on top of 4 seed/demo teacher accounts already in origin_users.
-const TEACHER_REGISTRATION_LIMIT = 9;
+// Override either of these without a deploy by setting the env var in Vercel.
+// Default teacher cap is intentionally high — we keep the cap *mechanism* but
+// don't want it to gate signups in normal use. Set TEACHER_REGISTRATION_LIMIT=0
+// to disable the cap entirely.
+const REGISTRATION_LIMIT = Number(process.env.STUDENT_REGISTRATION_LIMIT ?? "62");
+const TEACHER_REGISTRATION_LIMIT = Number(process.env.TEACHER_REGISTRATION_LIMIT ?? "1000");
 
 function limitForRole(role?: string | null): number {
   return role === "teacher" ? TEACHER_REGISTRATION_LIMIT : REGISTRATION_LIMIT;
@@ -373,13 +376,17 @@ function limitForRole(role?: string | null): number {
 
 export async function getRegistrationStatus(role?: string | null) {
   const limit = limitForRole(role);
+  // limit <= 0 means "no cap" — report a very large seatsLeft so the UI never
+  // gates on it. The handleRegister path also short-circuits on limit <= 0.
+  const seatsLeftFor = (count: number) =>
+    limit <= 0 ? Number.MAX_SAFE_INTEGER : Math.max(0, limit - count);
 
   if (isUserPostgresConfigured()) {
     try {
       const count = role === "teacher"
         ? await dbGetUserCountByRole("teacher")
         : await dbGetUserCount();
-      return { count, limit, seatsLeft: Math.max(0, limit - count) };
+      return { count, limit, seatsLeft: seatsLeftFor(count) };
     } catch (err) {
       console.error('[users] Failed to get user count', err);
     }
@@ -389,7 +396,7 @@ export async function getRegistrationStatus(role?: string | null) {
     const count = role === "teacher"
       ? store.users.filter((u) => u.role === "teacher").length
       : store.users.length;
-    return { count, limit, seatsLeft: Math.max(0, limit - count) };
+    return { count, limit, seatsLeft: seatsLeftFor(count) };
   });
 }
 
@@ -479,6 +486,10 @@ export async function handleGoogleLogin(payload: UserPayload) {
   const credential = asString(payload.credential);
   if (!credential) return badRequest("Missing Google credential token.");
 
+  const rawRole = asString(payload.role)?.toLowerCase();
+  const role: "student" | "teacher" | "admin" =
+    rawRole === "teacher" || rawRole === "admin" ? rawRole : "student";
+
   try {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID";
     let email: string | undefined;
@@ -527,17 +538,35 @@ export async function handleGoogleLogin(payload: UserPayload) {
 
     if (isUserPostgresConfigured()) {
       try {
-        let dbUser = await dbFindUserByEmail(email, "student");
+        let dbUser = await dbFindUserByEmail(email, role);
         if (!dbUser) {
-          // Enforce registration limit for new users
-          const status = await getRegistrationStatus();
+          // Same email may already exist under a different role (e.g. user
+          // signed up as a student earlier and is now trying to Google in
+          // on the teacher page). Surface a clear hint instead of silently
+          // creating a second row and consuming a teacher seat.
+          const otherRoles: Array<"student" | "teacher" | "admin"> = role === "teacher"
+            ? ["student", "admin"]
+            : role === "student" ? ["teacher", "admin"]
+            : ["student", "teacher"];
+          for (const otherRole of otherRoles) {
+            const existingOther = await dbFindUserByEmail(email, otherRole);
+            if (existingOther) {
+              return badRequest(
+                `This Google account is already registered as a ${otherRole}. Please use the ${otherRole} login page instead.`,
+              );
+            }
+          }
+
+          // Enforce registration limit for new users (role-aware: teachers capped separately)
+          const status = await getRegistrationStatus(role);
           if (status.seatsLeft <= 0) {
-            return badRequest("Registration is currently closed. We've reached our maximum capacity for this phase.");
+            const scope = role === "teacher" ? "teacher" : "user";
+            return badRequest(`Registration is currently closed. We've reached our maximum ${scope} capacity for this phase.`);
           }
 
           const hashed = bcrypt.hashSync(createId("rand"), 10);
           dbUser = await dbCreateUser({
-            name, email, password: hashed, role: "student",
+            name, email, password: hashed, role,
             studentClass: null, fieldOfInterest: null, referralSource: null,
             avatar, streak: 0, totalStudyTime: 0, joinedAt: new Date().toISOString(),
             isPremium: false, premiumExpiry: null, isOnboarded: false,
@@ -565,18 +594,19 @@ export async function handleGoogleLogin(payload: UserPayload) {
     }
 
     return withStoreAsync(async (store) => {
-      let user = store.users.find((entry) => entry.email.toLowerCase() === email!.toLowerCase() && entry.role === 'student');
+      let user = store.users.find((entry) => entry.email.toLowerCase() === email!.toLowerCase() && entry.role === role);
       if (!user) {
-        // Enforce registration limit for new users
-        const status = await getRegistrationStatus();
+        // Enforce registration limit for new users (role-aware)
+        const status = await getRegistrationStatus(role);
         if (status.seatsLeft <= 0) {
-          return badRequest("Registration is currently closed. We've reached our maximum capacity for this phase.");
+          const scope = role === "teacher" ? "teacher" : "user";
+          return badRequest(`Registration is currently closed. We've reached our maximum ${scope} capacity for this phase.`);
         }
 
         const userId = createId("user");
         user = withStoredUserDefaults({
           id: userId, name, email: email!, password: bcrypt.hashSync(createId("rand"), 10),
-          role: "student", studentClass: null, fieldOfInterest: null,
+          role, studentClass: null, fieldOfInterest: null,
           referralSource: null, avatar, streak: 0, totalStudyTime: 0,
           joinedAt: new Date().toISOString(), isPremium: false, premiumExpiry: null,
           isOnboarded: false, selectedCourse: null, isDropper: false,
