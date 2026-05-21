@@ -3,16 +3,16 @@ import { z } from "zod";
 
 import { parseJsonBody } from "@/server/http";
 import { requireFeatureEnabled } from "@/lib/feature-flags";
-import { requireAuth, requireRole } from "@/server/authz";
+import { requireRole } from "@/server/authz";
 import { requireWorkspaceMember } from "@/server/workspaces/authz";
 import {
   getPublicationDetail,
   republishQuestion,
   reviewPublication,
+  submitForReview,
 } from "@/server/workspaces/ogcode-publishing-service";
 
 import {
-  getWorkspaceId,
   handleTeacherError,
   requestIdOf,
   teacherJson,
@@ -20,14 +20,14 @@ import {
 } from "../../../../_utils";
 
 const republishSchema = z.object({
-  ogcodeQuestionId: z.string(),
-  questionBagQuestionId: z.string().nullable().optional(),
-  hintProvided: z.boolean(),
-  fullSolutionProvided: z.boolean(),
+  questionId: z.string(),
+  questionVersionId: z.string(),
+  attributionName: z.string().min(1).max(120),
+  attributionLogoAssetId: z.string().nullable().optional(),
 });
 
 const reviewSchema = z.object({
-  action: z.enum(["approve", "reject", "publish"]),
+  action: z.enum(["approve", "request_changes", "reject", "publish"]),
   notes: z.string().max(500).nullable().optional(),
 });
 
@@ -64,10 +64,9 @@ export async function POST(
       const auth = await requireRole(request, ["admin"]);
       const parsed = reviewSchema.parse(body);
       const result = await reviewPublication({
-        workspaceId,
         publicationId,
         action: parsed.action,
-        adminUserId: auth.userId,
+        reviewerUserId: auth.userId,
         notes: parsed.notes,
         requestId: requestIdOf(request),
       });
@@ -85,20 +84,40 @@ export async function POST(
       const result = await republishQuestion({
         workspaceId,
         originalPublicationId: publicationId,
-        ogcodeQuestionId: parsed.ogcodeQuestionId,
-        questionBagQuestionId: parsed.questionBagQuestionId,
-        submittedBy: ctx.auth.userId,
-        hintProvided: parsed.hintProvided,
-        fullSolutionProvided: parsed.fullSolutionProvided,
+        questionId: parsed.questionId,
+        questionVersionId: parsed.questionVersionId,
+        contributorUserId: ctx.auth.userId,
+        attributionName: parsed.attributionName,
+        attributionLogoAssetId: parsed.attributionLogoAssetId,
         requestId: requestIdOf(request),
       });
       return teacherJson({
         newPublication: result.newPublication,
-        superseded: result.superseded,
+        archived: result.archived,
       });
     }
 
-    return teacherJson({ detail: "Invalid action. Use: review, republish." }, { status: 400 });
+    if (action === "submit") {
+      await requireWorkspaceMember(request, workspaceId, [
+        "owner",
+        "admin",
+        "teacher",
+        "content_manager",
+      ]);
+      const result = await submitForReview({ workspaceId, publicationId });
+      if (!result) {
+        return teacherJson(
+          { detail: "Publication is not in draft/changes_requested state." },
+          { status: 409 },
+        );
+      }
+      return teacherJson({ publication: result });
+    }
+
+    return teacherJson(
+      { detail: "Invalid action. Use: review, republish, submit." },
+      { status: 400 },
+    );
   } catch (error) {
     return handleTeacherError(error);
   }

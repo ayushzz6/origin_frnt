@@ -1,5 +1,12 @@
 /**
  * Idempotent runtime ensure for Phase 9 OGCode publishing schema.
+ * Mirrors the canonical SQL at
+ * src/db/migrations/20260521_phase9_ogcode_publishing.sql.
+ *
+ * Aligned to V1/teacher-admin-launch-plan/02-database-schema-design.md:
+ * 7-state status enum, explicit FKs to content.questions and
+ * content.question_versions, denormalized attribution fields for the
+ * student-facing contributor badge.
  */
 
 import type { PoolClient } from "pg";
@@ -7,6 +14,7 @@ import type { PoolClient } from "pg";
 import { getUserPostgresPool, isUserPostgresConfigured } from "@/server/user-postgres";
 
 import { ensureAnalyticsSchema } from "./analytics-schema";
+import { ensureContentSchema } from "./content-schema";
 
 declare global {
   var __originOgcodePublishingSchemaEnsured: boolean | undefined;
@@ -33,6 +41,10 @@ export async function ensureOgcodePublishingSchema(): Promise<void> {
   if (globalThis.__originOgcodePublishingSchemaEnsured) return;
   if (!globalThis.__originOgcodePublishingSchemaPromise) {
     globalThis.__originOgcodePublishingSchemaPromise = (async () => {
+      // content.questions / content.question_versions must exist before the
+      // FKs below can be validated. ensureContentSchema covers that, and
+      // ensureAnalyticsSchema is unrelated but still wanted on the dev path.
+      await ensureContentSchema();
       await ensureAnalyticsSchema();
       const client = await pool().connect();
       try {
@@ -43,7 +55,13 @@ export async function ensureOgcodePublishingSchema(): Promise<void> {
         await client.query(`
           DO $$ BEGIN
             CREATE TYPE content.ogcode_publication_status AS ENUM (
-              'pending_review', 'approved', 'rejected', 'published', 'superseded'
+              'draft',
+              'submitted',
+              'approved',
+              'published',
+              'changes_requested',
+              'rejected',
+              'archived'
             );
           EXCEPTION WHEN duplicate_object THEN NULL; END $$;
         `);
@@ -51,19 +69,20 @@ export async function ensureOgcodePublishingSchema(): Promise<void> {
         await client.query(`
           CREATE TABLE IF NOT EXISTS content.ogcode_publications (
             id TEXT PRIMARY KEY,
-            workspace_id TEXT NOT NULL REFERENCES app.teacher_workspaces(id) ON DELETE CASCADE,
-            ogcode_question_id TEXT NOT NULL,
-            question_bag_question_id TEXT,
-            submitted_by TEXT NOT NULL REFERENCES origin_users(id),
-            status content.ogcode_publication_status NOT NULL DEFAULT 'pending_review',
+            question_id TEXT NOT NULL REFERENCES content.questions(id) ON DELETE CASCADE,
+            question_version_id TEXT NOT NULL REFERENCES content.question_versions(id),
+            contributor_workspace_id TEXT REFERENCES app.teacher_workspaces(id) ON DELETE SET NULL,
+            contributor_user_id TEXT REFERENCES origin_users(id) ON DELETE SET NULL,
+            attribution_name TEXT NOT NULL,
+            attribution_logo_asset_id TEXT REFERENCES content.assets(id),
+            status content.ogcode_publication_status NOT NULL DEFAULT 'draft',
             version INTEGER NOT NULL DEFAULT 1,
-            hint_provided BOOLEAN NOT NULL DEFAULT FALSE,
-            full_solution_provided BOOLEAN NOT NULL DEFAULT FALSE,
-            admin_reviewed_by TEXT REFERENCES origin_users(id),
-            admin_reviewed_at TIMESTAMPTZ,
-            admin_notes TEXT,
+            moderation_notes TEXT,
+            submitted_at TIMESTAMPTZ,
+            reviewed_by TEXT REFERENCES origin_users(id),
+            reviewed_at TIMESTAMPTZ,
             published_at TIMESTAMPTZ,
-            rejected_at TIMESTAMPTZ,
+            archived_at TIMESTAMPTZ,
             superseded_by TEXT REFERENCES content.ogcode_publications(id),
             metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -71,12 +90,12 @@ export async function ensureOgcodePublishingSchema(): Promise<void> {
           );
 
           CREATE INDEX IF NOT EXISTS idx_ogcode_publications_workspace_status
-            ON content.ogcode_publications(workspace_id, status, created_at DESC);
-          CREATE INDEX IF NOT EXISTS idx_ogcode_publications_pending_review
-            ON content.ogcode_publications(status, created_at ASC)
-            WHERE status = 'pending_review';
-          CREATE INDEX IF NOT EXISTS idx_ogcode_publications_ogcode_question
-            ON content.ogcode_publications(ogcode_question_id, status);
+            ON content.ogcode_publications(contributor_workspace_id, status, created_at DESC);
+          CREATE INDEX IF NOT EXISTS idx_ogcode_publications_submitted
+            ON content.ogcode_publications(status, submitted_at ASC)
+            WHERE status = 'submitted';
+          CREATE INDEX IF NOT EXISTS idx_ogcode_publications_question
+            ON content.ogcode_publications(question_id, status);
         `);
 
         await recordMigration(client);
