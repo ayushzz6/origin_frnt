@@ -92,3 +92,23 @@ npm run test:unit
 
 If any of those fail, fix the issue **in the monorepo first**, regenerate the patch, and reapply.
 <!-- END:origin-repo-targets -->
+
+<!-- BEGIN:plan-vs-code-policy -->
+# Single source of truth — plan vs code
+
+The teacher-admin launch is sometimes built by other agents (Qwen, Minimax, Codex) against `V1/teacher-admin-launch-plan/*.md`. Their implementations occasionally deviate from the plan — sometimes deliberately, sometimes by oversight. Default convention:
+
+1. **Identify the deviation.** When reviewing other-agent work, compare the actual schema, types, and contracts against `02-database-schema-design.md`, `05-implementation-roadmap.md`, and `06-rbac-and-api-contracts.md`.
+2. **Reason which approach is better.** Consider:
+   - correctness (security boundaries, FK enforcement, server-side enforcement)
+   - data-model coherence (schema location, naming, lifecycle states)
+   - future flexibility (does either side block a planned next phase?)
+   - cost of change (any of the deviating code already in production?)
+3. **Plan wins by default.** The plan is the deliberate design doc and the single source of truth. If the plan wins, refactor the code to match.
+4. **Code wins only when the deviation is genuinely better.** If you choose Qwen's (or any other agent's) design over the plan, **update the plan markdown** to reflect that choice. Never leave the plan and the code disagreeing.
+5. **Document the decision.** PR description should list each deviation, the chosen winner, and one-sentence reasoning. If the plan was edited to match code, mention which file + section.
+
+Why this matters: the plan is what the next agent reads to build the next phase. A plan/code drift means every subsequent phase inherits ambiguity. Reconciling at review time prevents compounding entropy.
+
+A worked example lives in PR diprajorigin/ORIGIN-V1.0#107 (phases 7-9 alignment), which reasons through 5 deviations Qwen introduced and reconciles all of them to the plan.
+<!-- END:plan-vs-code-policy -->
