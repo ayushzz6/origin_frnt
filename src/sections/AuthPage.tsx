@@ -1,4 +1,27 @@
 'use client';
+/**
+ * Auth flow contract — pinned by audit fix R-2 (A-01).
+ *
+ * The teacher-admin-launch-plan markdown lives outside git, so the
+ * canonical source of truth for the auth-flow shape is this header
+ * plus the regression test in `tests/auth-role-redirect.test.ts`.
+ *
+ *   | Role    | Sign-up                         | Login                            |
+ *   |---------|---------------------------------|----------------------------------|
+ *   | student | password + email OTP verify     | password (Google sign-in opt.)   |
+ *   | teacher | password + email OTP verify     | password (Google sign-in opt.)   |
+ *   | admin   | seed-only (no public sign-up)   | email OTP — no password path     |
+ *
+ * Key invariants this file must uphold:
+ *   - Email OTP is only a verification proof during student/teacher
+ *     sign-up; their day-to-day login is password.
+ *   - Admin login is OTP-only; admins are seeded by ops, never
+ *     given a self-service password reset.
+ *   - Google sign-in (id_token or access_token — see legacy/users.ts
+ *     `handleGoogleLogin`) is accepted for student/teacher, never
+ *     for admin.
+ */
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
