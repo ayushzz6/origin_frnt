@@ -10,6 +10,10 @@ function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 /**
  * Action to send an OTP to a specific email.
  */
@@ -21,6 +25,7 @@ export async function sendOtpAction(
     return { ok: false, message: 'Email is required' };
   }
 
+  const normalizedEmail = normalizeEmail(email);
   const otp = generateOTP();
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes from now
 
@@ -32,7 +37,7 @@ export async function sendOtpAction(
       // OTP delivery for a teacher signup whenever a student row with the
       // same email happens to be cached in the in-memory store.
       const userExists = store.users.find((u) => {
-        if (u.email.toLowerCase() !== email.toLowerCase()) return false;
+        if (u.email.toLowerCase() !== normalizedEmail) return false;
         if (u.role === 'admin') return false; // admins always allowed to re-OTP
         return role ? u.role === role : true;
       });
@@ -40,8 +45,12 @@ export async function sendOtpAction(
         return { ok: false as const, message: 'An account with this email already exists. Please login instead.' };
       }
 
-      store.otps = store.otps.filter(o => o.email !== email);
-      store.otps.push({ email, otp, expiresAt });
+      // Audit fix R-1.2 (A-05): the prior `o.email !== email` filter was
+      // case-sensitive, so a previous send to "Foo@Bar.com" plus a new send
+      // to "foo@bar.com" left two rows. Normalise both sides to keep the
+      // dedup contract honest.
+      store.otps = store.otps.filter((o) => o.email.toLowerCase() !== normalizedEmail);
+      store.otps.push({ email: normalizedEmail, otp, expiresAt });
       return { ok: true as const };
     });
 
@@ -51,7 +60,7 @@ export async function sendOtpAction(
 
     // Send email
     const emailResult = await sendEmail({
-      to: email,
+      to: normalizedEmail,
       subject: 'Verify your ORIGIN account',
       text: `Your verification code is: ${otp}. This code will expire in 5 minutes.`,
       html: `
@@ -87,9 +96,13 @@ export async function verifyOtpAction(email: string, otp: string) {
     return { ok: false, message: 'Email and verification code are required.' };
   }
 
+  const normalizedEmail = normalizeEmail(email);
+
   try {
     return await withStoreAsync(async (store) => {
-      const storedOtp = store.otps.find(o => o.email === email && o.otp === otp);
+      const storedOtp = store.otps.find(
+        (o) => o.email.toLowerCase() === normalizedEmail && o.otp === otp,
+      );
 
       if (!storedOtp) {
         return { ok: false, message: 'Invalid verification code.' };
@@ -99,7 +112,7 @@ export async function verifyOtpAction(email: string, otp: string) {
       const expiry = new Date(storedOtp.expiresAt);
 
       if (now > expiry) {
-        store.otps = store.otps.filter(o => o.email !== email);
+        store.otps = store.otps.filter((o) => o.email.toLowerCase() !== normalizedEmail);
         return { ok: false, message: 'Verification code has expired. Please request a new one.' };
       }
 

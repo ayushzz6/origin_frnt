@@ -706,7 +706,21 @@ function buildSeedUsers(joinedAt: string): StoredUser[] {
   ];
 }
 
+// Audit fix R-1.3 (A-06): the demo accounts (`user_student_demo`,
+// `user_teacher_demo`, `user_admin_legacy`, etc.) ship with publicly
+// known passwords. They are useful in development and CI for manual
+// QA but must never be persisted to a production database. The
+// companion migration `20260525_remove_demo_seeds.sql` deletes any
+// rows that landed there before this guard existed.
+function isDemoSeedingEnabled(): boolean {
+  if (process.env.ORIGIN_ALLOW_DEMO_SEEDS === "1") return true;
+  if (process.env.NODE_ENV === "production") return false;
+  return true;
+}
+
 function ensureSeedUsers(store: AppStore): boolean {
+  if (!isDemoSeedingEnabled()) return false;
+
   let changed = false;
   const joinedAt = nowIso();
   // Previously this called buildSeedUsers(joinedAt) inside the loop, which

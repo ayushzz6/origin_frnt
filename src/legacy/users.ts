@@ -489,6 +489,20 @@ export async function handleGoogleLogin(payload: UserPayload) {
     let name: string = "Google User";
     let avatar: string | null = null;
 
+    // Audit fix R-1.4 (A-07) — `useGoogleLogin` and `<GoogleLogin>` from
+    // @react-oauth/google return *different* shapes:
+    //
+    //   - `<GoogleLogin>` (implicit "id_token" flow) → a JWT idToken
+    //     that is a dot-separated `header.payload.signature`. This
+    //     branch verifies its signature against Google's keys and
+    //     pulls `email`/`name`/`picture` from the verified claims.
+    //
+    //   - `useGoogleLogin({ flow: 'implicit' })` (default) → an OAuth
+    //     access_token that is *not* a JWT. We fall through to the
+    //     userinfo endpoint exchange below.
+    //
+    // The presence of a "." is a cheap, conservative discriminator: a
+    // bearer access_token never contains a dot, an idToken always does.
     // Try verifying as ID Token first (JWTs usually have 3 parts separated by dots)
     if (credential.includes('.')) {
       try {
