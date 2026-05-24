@@ -11,6 +11,7 @@ import { requireFeatureEnabled } from "@/lib/feature-flags";
 import { requireWorkspaceMember } from "@/server/workspaces/authz";
 import {
   createImportJob,
+  ImportJobBackpressureError,
   listWorkspaceImportJobs,
 } from "@/server/workspaces/document-import-service";
 
@@ -102,6 +103,20 @@ export async function POST(request: NextRequest, context: WorkspaceIdRouteContex
     });
     return teacherJson({ job }, { status: 201 });
   } catch (error) {
+    if (error instanceof ImportJobBackpressureError) {
+      return teacherJson(
+        {
+          detail: error.message,
+          errorCode: error.errorCode,
+          activeJobs: error.active,
+          concurrencyCap: error.cap,
+        },
+        {
+          status: error.status,
+          headers: { "Retry-After": "30" },
+        },
+      );
+    }
     return handleTeacherError(error);
   }
 }

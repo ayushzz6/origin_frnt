@@ -166,6 +166,21 @@ export async function listWorkspaceImportJobs(workspaceId: string, filter?: { st
   return result.rows.map(rowToJob);
 }
 
+/** Count import jobs that occupy worker capacity for a workspace. Used
+ * by Phase 13 backpressure: 'queued' and 'processing' both hold a slot;
+ * 'needs_review', 'succeeded', 'failed', 'cancelled' do not. */
+export async function countActiveImportJobs(workspaceId: string): Promise<number> {
+  await ensureDocumentImportSchema();
+  const result = await pool().query(
+    `SELECT COUNT(*)::int AS n
+       FROM import.document_import_jobs
+      WHERE workspace_id = $1
+        AND status IN ('queued','processing')`,
+    [workspaceId],
+  );
+  return Number(result.rows[0]?.n ?? 0);
+}
+
 export async function getJobPages(jobId: string, filter?: { status?: ImportPageStatus }): Promise<ImportJobPage[]> {
   await ensureDocumentImportSchema();
   const params: unknown[] = [jobId];
