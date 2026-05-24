@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 
 import { CSRF_COOKIE_NAME, REFRESH_COOKIE_NAME, verifyRequestAccessJwt } from "@/server/auth-jwt";
 import { checkRateLimit, mutationLimiter } from "@/lib/rate-limit";
+import { findKillSwitchForPath } from "@/server/incidents";
 import { getApiRoutePolicy, getAppRoutePolicy, normalizePathname, type RoutePolicy } from "@/server/route-policy";
 import { isBearerTokenAuthorized } from "@/server/service-auth";
 
@@ -199,6 +200,19 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isApi && isRateLimitedMutationPath(pathname, request.method)) {
+    const killed = await findKillSwitchForPath(pathname);
+    if (killed) {
+      return withRequestId(
+        NextResponse.json(
+          { detail: `This surface is temporarily disabled by an active incident.`, killedFlag: killed },
+          {
+            status: 503,
+            headers: { "Retry-After": "60" },
+          },
+        ),
+        requestId,
+      );
+    }
     const limited = await checkRateLimit(mutationLimiter, clientIdentifierFor(request, claims));
     if (limited) {
       return withRequestId(limited as unknown as NextResponse, requestId);
