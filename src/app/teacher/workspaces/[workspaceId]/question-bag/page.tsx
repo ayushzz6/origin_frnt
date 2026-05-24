@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { QuestionEditorDialog } from "@/components/teacher/QuestionEditorDialog";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 import { listTeacherQuestions } from "@/server/workspaces/questions-service";
 import { loadWorkspaceForRender } from "@/server/workspaces/server-loader";
 
@@ -46,6 +47,8 @@ export default async function QuestionBagPage({ params }: Props) {
 
   const questions = await listTeacherQuestions(workspaceId, { status: "all" });
 
+  const importEnabled = isFeatureEnabled("documentImport");
+
   const statusCounts = questions.reduce<Record<string, number>>((acc, q) => {
     acc[q.status] = (acc[q.status] ?? 0) + 1;
     return acc;
@@ -60,7 +63,25 @@ export default async function QuestionBagPage({ params }: Props) {
             {questions.length} questions total.
           </p>
         </div>
-        {canEdit && <QuestionEditorDialog workspaceId={workspaceId} />}
+        {/*
+          Audit fix R-4 (A-12): the page copy says "create manually or
+          import from a document" but only the manual path had a CTA.
+          Expose the AI-import flow side-by-side with the editor dialog.
+          Gated on the documentImport feature flag — when off, only the
+          manual editor renders.
+        */}
+        {canEdit && (
+          <div className="flex items-center gap-2">
+            {importEnabled && (
+              <Button asChild variant="outline">
+                <Link href={`/teacher/workspaces/${workspaceId}/question-bag/import`}>
+                  Import from PDF
+                </Link>
+              </Button>
+            )}
+            <QuestionEditorDialog workspaceId={workspaceId} />
+          </div>
+        )}
       </div>
 
       {Object.keys(statusCounts).length > 0 && (

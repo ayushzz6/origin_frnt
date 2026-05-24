@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import {
   Card,
   CardContent,
@@ -62,31 +64,37 @@ export default async function TeacherRoomsPage({ params }: Props) {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {rooms.map((room) => (
-            <Card key={room.id}>
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center justify-between text-base">
-                  <span>{room.name}</span>
-                  <span className={`text-xs font-mono uppercase tracking-wide ${STATUS_COLORS[room.status] ?? ""}`}>
-                    {STATUS_LABELS[room.status] ?? room.status}
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-1">
-                <p className="text-sm text-muted-foreground">
-                  {room.roomKind === "teacher_room" ? "Teacher Room" : "Student Room"}
-                </p>
-                {room.teacherTestId && (
-                  <p className="text-xs text-muted-foreground">
-                    Test configured
+            <Link
+              key={room.id}
+              href={`/teacher/workspaces/${workspaceId}/rooms/${room.id}`}
+              className="block"
+            >
+              <Card className="transition-all hover:border-primary/40 hover:shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center justify-between text-base">
+                    <span>{room.name}</span>
+                    <span className={`text-xs font-mono uppercase tracking-wide ${STATUS_COLORS[room.status] ?? ""}`}>
+                      {STATUS_LABELS[room.status] ?? room.status}
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1">
+                  <p className="text-sm text-muted-foreground">
+                    {room.roomKind === "teacher_room" ? "Teacher Room" : "Student Room"}
                   </p>
-                )}
-                {room.batchId && (
-                  <p className="text-xs text-muted-foreground">
-                    Batch: {room.batchId}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+                  {room.teacherTestId && (
+                    <p className="text-xs text-muted-foreground">
+                      Test configured
+                    </p>
+                  )}
+                  {room.batchId && (
+                    <p className="text-xs text-muted-foreground">
+                      Batch: {room.batchId}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       )}
