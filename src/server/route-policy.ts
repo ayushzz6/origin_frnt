@@ -14,6 +14,10 @@ export const PUBLIC_API_PATHS = [
   "/api/users/register",
   "/api/users/google-login",
   "/api/users/token/refresh",
+  // Phase 13 drain receiver — auth is HMAC body signature (verified in
+  // handler), not a bearer token, so this path is excluded from the
+  // INTERNAL_CRON_TOKEN policy applied to /api/internal/*.
+  "/api/internal/observability/drain",
 ] as const;
 
 export const INTERNAL_API_PREFIXES = ["/api/internal"] as const;

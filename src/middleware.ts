@@ -23,6 +23,9 @@ const CSRF_EXEMPT_API_PATHS = new Set([
   "/api/users/register",
   "/api/users/google-login",
   "/api/users/token/refresh",
+  // Phase 13 drain receiver: signed by Vercel's drain HMAC, not a
+  // session cookie, so the CSRF check would always fail.
+  "/api/internal/observability/drain",
 ]);
 
 function requestIdFor(request: NextRequest): string {
