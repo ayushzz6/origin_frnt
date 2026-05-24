@@ -34,6 +34,11 @@ type SendResult = { success: true; messageId: string } | { success: false; error
 
 const TRANSIENT_ERROR_CODES = new Set(['ETIMEDOUT', 'ECONNRESET', 'EAI_AGAIN', 'ESOCKET']);
 const TIMEOUT_MS = 10_000;
+// Audit fix R-7 (A-23): jittered backoff before the single retry. The
+// fixed retry without delay sometimes fired into the same dead TCP
+// state and burned a second timeout for no reason.
+const RETRY_BACKOFF_MIN_MS = 250;
+const RETRY_BACKOFF_JITTER_MS = 250;
 
 let cachedTransporter: Transporter | null = null;
 let cachedVerify: Promise<void> | null = null;
@@ -124,14 +129,24 @@ async function ensureVerified(transporter: Transporter): Promise<void> {
     .verify()
     .then(() => undefined)
     .catch((err) => {
-      // Reset the verify promise so a future send can re-try; but throw now
-      // so the caller surfaces the failure to the user instead of silently
-      // queueing onto a broken transport.
+      // Audit fix R-7 (A-23): surface verify failures loudly. The
+      // [email][ALERT] prefix is grep-friendly for log-based alerts so
+      // the on-call rotation can wire a Sentry/Datadog rule against it.
+      // Reset the verify promise so a future send can retry; throw now
+      // so the caller surfaces the failure to the user instead of
+      // silently queueing onto a broken transport — and the dev mock
+      // is never reached in production because getTransporter() throws
+      // before this code runs when SMTP env is missing.
       cachedVerify = null;
-      console.error('[email] SMTP verify() failed:', err);
+      console.error('[email][ALERT] SMTP verify() failed:', err);
       throw err instanceof Error ? err : new Error(String(err));
     });
   return cachedVerify;
+}
+
+async function sleepWithJitter(): Promise<void> {
+  const delay = RETRY_BACKOFF_MIN_MS + Math.floor(Math.random() * RETRY_BACKOFF_JITTER_MS);
+  await new Promise((resolve) => setTimeout(resolve, delay));
 }
 
 async function sendOnce(transporter: Transporter, options: SendMailOptions) {
@@ -166,11 +181,12 @@ export const sendEmail = async ({
     return { success: true, messageId: info.messageId };
   } catch (error) {
     if (isTransientTransportError(error)) {
+      await sleepWithJitter();
       try {
         const info = await sendOnce(transporter, options);
         return { success: true, messageId: info.messageId };
       } catch (retryError) {
-        console.error('[email] send failed after retry:', retryError);
+        console.error('[email][ALERT] send failed after retry:', retryError);
         return { success: false, error: retryError };
       }
     }

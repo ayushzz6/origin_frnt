@@ -527,6 +527,16 @@ export type TeacherRoomSummary = {
 
 // ─── Document Import (Phase 10) ──────────────────────────────────────────────
 
+/**
+ * Database-level enum (`import.import_source_type`). All five values
+ * are accepted by the API zod parser at
+ * `app/api/teacher/workspaces/[workspaceId]/import-jobs/route.ts`, but
+ * audit fix R-7 (A-19): the teacher Question Bag UI only surfaces
+ * **pdf, docx, image** today (see `ImportUploadForm.tsx`). `txt` and
+ * `url` exist for the worker pipeline (URL-fetch + plain-text drop)
+ * but have no upload control yet — adding one is a UI change, no
+ * schema change required.
+ */
 export type ImportSourceType = "pdf" | "docx" | "txt" | "image" | "url";
 export type ImportJobStatus = "queued" | "processing" | "needs_review" | "succeeded" | "failed" | "cancelled";
 export type ImportJobStage =
