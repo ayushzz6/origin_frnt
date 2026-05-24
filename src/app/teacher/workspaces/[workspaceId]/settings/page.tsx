@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { WorkspaceCodeManager } from "@/components/teacher/WorkspaceCodeManager";
 import { WorkspaceSettingsForm } from "@/components/teacher/WorkspaceSettingsForm";
 import { loadWorkspaceForRender } from "@/server/workspaces/server-loader";

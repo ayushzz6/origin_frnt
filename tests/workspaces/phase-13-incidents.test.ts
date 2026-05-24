@@ -65,6 +65,49 @@ test("Phase 13: findKillSwitchForPath ignores 'forced on' overrides", async () =
   await setFlagOverride("documentImport", "clear");
 });
 
+// Audit fix R-6 (A-18): documentImport used to list
+// `/api/teacher/workspaces` as a kill prefix, which over-matched —
+// killing it took down questions/tests/rooms too. The matcher is now
+// a function scoped to the `/import-jobs` segment.
+test("R-6 A-18: documentImport kill-switch is scoped to import-jobs", async () => {
+  await setFlagOverride("documentImport", "off");
+  // Should match
+  assert.equal(
+    await findKillSwitchForPath("/api/teacher/workspaces/ws_x/import-jobs"),
+    "documentImport",
+  );
+  assert.equal(
+    await findKillSwitchForPath("/api/teacher/workspaces/ws_x/import-jobs/job_y"),
+    "documentImport",
+  );
+  assert.equal(
+    await findKillSwitchForPath("/api/admin/import-jobs"),
+    "documentImport",
+  );
+  assert.equal(
+    await findKillSwitchForPath("/api/admin/import-jobs/job_y"),
+    "documentImport",
+  );
+  // Should NOT match — sibling teacher surfaces stay up
+  assert.equal(
+    await findKillSwitchForPath("/api/teacher/workspaces/ws_x/questions"),
+    null,
+  );
+  assert.equal(
+    await findKillSwitchForPath("/api/teacher/workspaces/ws_x/tests"),
+    null,
+  );
+  assert.equal(
+    await findKillSwitchForPath("/api/teacher/workspaces/ws_x/rooms"),
+    null,
+  );
+  assert.equal(
+    await findKillSwitchForPath("/api/teacher/workspaces"),
+    null,
+  );
+  await setFlagOverride("documentImport", "clear");
+});
+
 test("Phase 13: rate-limit mode round-trips", async () => {
   for (const mode of ["relaxed", "normal", "strict", "lockdown"] as RateLimitMode[]) {
     await setRateLimitMode(mode);
@@ -99,10 +142,15 @@ test("Phase 13: getIncidentSnapshot reflects mutations", async () => {
 
 test("Phase 13: every kill-switch entry references a real flag", () => {
   for (const flag of Object.keys(FLAG_KILL_PREFIXES)) {
-    const prefixes = FLAG_KILL_PREFIXES[flag as keyof typeof FLAG_KILL_PREFIXES];
-    assert.ok(Array.isArray(prefixes) && prefixes.length > 0, `flag ${flag} has at least one prefix`);
-    for (const p of prefixes!) {
-      assert.match(p, /^\/api\//, `prefix ${p} should be an /api/ path`);
+    const matcher = FLAG_KILL_PREFIXES[flag as keyof typeof FLAG_KILL_PREFIXES];
+    assert.ok(matcher !== undefined, `flag ${flag} has a matcher`);
+    if (Array.isArray(matcher)) {
+      assert.ok(matcher.length > 0, `flag ${flag} has at least one prefix`);
+      for (const p of matcher) {
+        assert.match(p, /^\/api\//, `prefix ${p} should be an /api/ path`);
+      }
+    } else {
+      assert.equal(typeof matcher, "function", `flag ${flag} matcher is callable`);
     }
   }
 });
