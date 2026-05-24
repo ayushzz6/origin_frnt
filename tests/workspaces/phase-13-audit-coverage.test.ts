@@ -134,3 +134,73 @@ test("every mutation route under /api/{teacher,admin,enrollments} writes an audi
       violations.join("\n"),
   );
 });
+
+// Audit fix R-6 (A-21). The transitive walker above proves the route
+// *can* reach recordAuditEvent, but it does not verify that *every*
+// branch of a dynamic-dispatch handler does. /api/admin/incidents/[action]
+// switches on `action` and routes each case to a different apply*
+// function in incidents-service. This test pins the contract: the
+// handler enumerates exactly the actions we know about, and each
+// apply* function records its own audit event.
+test("R-6 A-21: every /api/admin/incidents/[action] branch records audit", () => {
+  const routePath = join(
+    apiRoot,
+    "admin/incidents/[action]/route.ts",
+  );
+  const servicePath = join(srcRoot, "server/incidents-service.ts");
+
+  const route = readFileSync(routePath, "utf8");
+  const service = readFileSync(servicePath, "utf8");
+
+  // Every branch in the route's switch dispatches to one of these
+  // applyX functions. Keep this list in lockstep with the route.
+  const expected: Array<{ action: string; fn: string }> = [
+    { action: "kill_switch", fn: "applyKillSwitch" },
+    { action: "force_logout", fn: "applyForceLogout" },
+    { action: "rate_limit", fn: "applyRateLimitMode" },
+    { action: "close_workspace", fn: "applyCloseWorkspace" },
+  ];
+
+  // Slice the service file by `export async function` declarations and
+  // verify that the slice for each apply* function contains an
+  // explicit recordAuditEvent call. Slicing avoids the trap where a
+  // function's `): Promise<{ found: boolean }>` return type would look
+  // like a body to a naive brace counter.
+  const FN_HEADER = /export\s+async\s+function\s+(\w+)/g;
+  const fnRanges: Array<{ name: string; start: number; end: number }> = [];
+  let prev: { name: string; start: number } | null = null;
+  for (const m of service.matchAll(FN_HEADER)) {
+    if (prev) fnRanges.push({ ...prev, end: m.index ?? service.length });
+    prev = { name: m[1], start: m.index ?? 0 };
+  }
+  if (prev) fnRanges.push({ ...prev, end: service.length });
+  const fnBody = (name: string): string => {
+    const range = fnRanges.find((r) => r.name === name);
+    assert.ok(range, `${name} not found in incidents-service.ts`);
+    return service.slice(range!.start, range!.end);
+  };
+
+  for (const { action, fn } of expected) {
+    assert.ok(
+      new RegExp(`case\\s+["']${action}["']\\s*:`).test(route),
+      `route is missing case "${action}"`,
+    );
+    assert.ok(
+      new RegExp(`\\b${fn}\\s*\\(`).test(route),
+      `route case "${action}" does not call ${fn}()`,
+    );
+    assert.match(
+      fnBody(fn),
+      AUDIT_CALL_RE,
+      `${fn} body does not call recordAuditEvent`,
+    );
+  }
+
+  // Bonus: route should reject unknown actions with a 400 so a typo'd
+  // action cannot silently no-op without an audit row.
+  assert.match(
+    route,
+    /default\s*:\s*[\s\S]*?status:\s*400/,
+    "route should reject unknown actions with status 400",
+  );
+});

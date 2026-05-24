@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { loadWorkspaceForRender } from "@/server/workspaces/server-loader";
 

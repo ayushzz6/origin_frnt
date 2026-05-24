@@ -195,11 +195,24 @@ export function isLockdown(mode: RateLimitMode): boolean {
   return mode === "lockdown";
 }
 
-/** Map of FlagKey → API path prefixes that should be 404'd when the
+/** A path matcher used by the kill-switch table.
+ *
+ * `string[]` — list of literal path prefixes; a path matches when it
+ * `startsWith` any prefix.
+ *
+ * `(path: string) => boolean` — caller-supplied predicate. Used when a
+ * prefix list would over-match. Audit fix R-6 (A-18): documentImport
+ * used to list `/api/teacher/workspaces` as a prefix, which meant
+ * killing the flag also took down questions/tests/rooms — surfaces
+ * that have no relationship to document import. The function matcher
+ * lets us scope it to just the `/import-jobs` segment. */
+export type FlagKillMatcher = string[] | ((path: string) => boolean);
+
+/** Map of FlagKey → matcher describing API surfaces 404'd when the
  * flag is killed via /admin/incidents. Only flags that gate user-facing
  * mutation surfaces are enumerated; killing a flag without an entry
  * here only affects callers that consult getFlagOverride() directly. */
-export const FLAG_KILL_PREFIXES: Partial<Record<FlagKey, string[]>> = {
+export const FLAG_KILL_PREFIXES: Partial<Record<FlagKey, FlagKillMatcher>> = {
   workspaces: ["/api/teacher/workspaces"],
   orgCodes: ["/api/teacher/codes", "/api/teacher/workspaces"],
   enrollment: ["/api/enrollments"],
@@ -210,10 +223,20 @@ export const FLAG_KILL_PREFIXES: Partial<Record<FlagKey, string[]>> = {
   studyMaterials: ["/api/teacher/workspaces"],
   teacherAnalytics: ["/api/teacher/workspaces"],
   ogcodePublishing: ["/api/teacher/workspaces", "/api/admin/ogcode"],
-  documentImport: ["/api/teacher/workspaces", "/api/admin/import-jobs"],
+  // Audit fix R-6 (A-18): scope to the import-jobs segment only.
+  // Matches `/api/teacher/workspaces/<id>/import-jobs[/...]` and
+  // `/api/admin/import-jobs[/...]` and nothing else.
+  documentImport: (path) =>
+    /^\/api\/teacher\/workspaces\/[^/]+\/import-jobs(?:\/|$)/.test(path) ||
+    /^\/api\/admin\/import-jobs(?:\/|$)/.test(path),
   adminControlCenter: ["/api/admin"],
   paidEnrollment: ["/api/enrollments"],
 };
+
+function matchKillSwitch(matcher: FlagKillMatcher, pathname: string): boolean {
+  if (typeof matcher === "function") return matcher(pathname);
+  return matcher.some((p) => pathname.startsWith(p));
+}
 
 /** Returns the first FlagKey killed by an incident override that
  * applies to the given API path, or null when none. Used by middleware
@@ -222,9 +245,9 @@ export async function findKillSwitchForPath(pathname: string): Promise<FlagKey |
   const s = await loadSnapshot();
   for (const [flag, killed] of s.flagOverrides) {
     if (killed !== false) continue;
-    const prefixes = FLAG_KILL_PREFIXES[flag as FlagKey];
-    if (!prefixes) continue;
-    if (prefixes.some((p) => pathname.startsWith(p))) {
+    const matcher = FLAG_KILL_PREFIXES[flag as FlagKey];
+    if (!matcher) continue;
+    if (matchKillSwitch(matcher, pathname)) {
       return flag as FlagKey;
     }
   }

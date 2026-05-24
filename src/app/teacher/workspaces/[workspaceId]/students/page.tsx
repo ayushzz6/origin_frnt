@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StudentsManager } from "@/components/teacher/StudentsManager";
 import { listBatches } from "@/server/workspaces/batches";
