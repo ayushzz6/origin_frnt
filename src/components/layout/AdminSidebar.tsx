@@ -1,19 +1,21 @@
 'use client';
 
 import React from 'react';
-import { 
-    Users, 
-    BookOpen, 
-    CreditCard, 
-    Activity, 
-    BarChart3, 
-    MessageSquare, 
+import {
+    Users,
+    BookOpen,
+    CreditCard,
+    Activity,
+    BarChart3,
+    MessageSquare,
     Settings,
     ChevronLeft,
     LogOut,
     LayoutDashboard,
     Zap,
-    ShieldCheck
+    ShieldCheck,
+    Siren,
+    FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
@@ -32,6 +34,11 @@ const navItems = [
     { id: 'monitoring', label: 'Classroom Audit', icon: Activity, path: '/admin/monitoring' },
     { id: 'analytics', label: 'Global Analytics', icon: BarChart3, path: '/admin/analytics' },
     { id: 'marketing', label: 'Broadcast Center', icon: Zap, path: '/admin/marketing' },
+    // Audit fix R-5 (A-15): /admin/incidents and /admin/audit-events
+    // shipped in Phase 13 but had no sidebar entry. Operators were
+    // typing the URL.
+    { id: 'incidents', label: 'Incidents', icon: Siren, path: '/admin/incidents' },
+    { id: 'audit-events', label: 'Audit Log', icon: FileText, path: '/admin/audit-events' },
     { id: 'settings', label: 'System Config', icon: Settings, path: '/admin/settings' },
 ];
 
