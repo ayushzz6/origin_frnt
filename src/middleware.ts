@@ -2,8 +2,15 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { CSRF_COOKIE_NAME, REFRESH_COOKIE_NAME, verifyRequestAccessJwt } from "@/server/auth-jwt";
+import { checkRateLimit, mutationLimiter } from "@/lib/rate-limit";
 import { getApiRoutePolicy, getAppRoutePolicy, normalizePathname, type RoutePolicy } from "@/server/route-policy";
 import { isBearerTokenAuthorized } from "@/server/service-auth";
+
+const RATE_LIMITED_MUTATION_PREFIXES = [
+  "/api/teacher/",
+  "/api/admin/",
+  "/api/enrollments/",
+];
 
 const REQUEST_ID_HEADER = "X-Request-Id";
 const CANONICAL_HOST = "www.o3origin.com";
@@ -101,6 +108,18 @@ function isInternalAuthorized(request: NextRequest, policy: Extract<RoutePolicy,
   return isBearerTokenAuthorized(request, policy.tokenName);
 }
 
+function isRateLimitedMutationPath(pathname: string, method: string): boolean {
+  if (SAFE_METHODS.has(method.toUpperCase())) return false;
+  return RATE_LIMITED_MUTATION_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
+function clientIdentifierFor(request: NextRequest, claims?: { sub?: string }): string {
+  if (claims?.sub) return `u:${claims.sub}`;
+  const xff = request.headers.get("x-forwarded-for");
+  const ip = xff?.split(",")[0]?.trim() || request.headers.get("x-real-ip")?.trim();
+  return `ip:${ip || "anonymous"}`;
+}
+
 export async function middleware(request: NextRequest) {
   const requestId = requestIdFor(request);
   const canonicalUrl = canonicalHostRedirectUrl(request.nextUrl);
@@ -177,6 +196,13 @@ export async function middleware(request: NextRequest) {
     url.pathname = homePathForRole(claims.role);
     url.search = "";
     return withNoIndex(withRequestId(NextResponse.redirect(url), requestId), policy);
+  }
+
+  if (isApi && isRateLimitedMutationPath(pathname, request.method)) {
+    const limited = await checkRateLimit(mutationLimiter, clientIdentifierFor(request, claims));
+    if (limited) {
+      return withRequestId(limited as unknown as NextResponse, requestId);
+    }
   }
 
   return nextWithRequestId(request, requestId, policy, {

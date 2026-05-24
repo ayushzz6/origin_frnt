@@ -84,6 +84,17 @@ export const submitLimiter = createLimiter(20, "rl:submit");
 
 export const generalLimiter = createLimiter(60, "rl:general");
 
+/** Catch-all limiter for teacher/admin/enrollment mutation endpoints
+ * applied in middleware. Per-route limiters (auth, ai, voice, submit,
+ * room*) take precedence — this is the floor that catches everything
+ * else. Tunable via ORIGIN_MUTATION_RATE_LIMIT (default 60/min). */
+const mutationCap = (() => {
+  const raw = process.env.ORIGIN_MUTATION_RATE_LIMIT?.trim();
+  const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 60;
+})();
+export const mutationLimiter = createLimiter(mutationCap, "rl:mut");
+
 export const roomCreateLimiter = createLimiter(10, "rl:room-create", "1 h");
 
 export const roomCodeLimiter = createLimiter(6, "rl:room-code", "1 h");

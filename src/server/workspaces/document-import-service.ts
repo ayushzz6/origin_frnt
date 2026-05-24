@@ -8,6 +8,7 @@ import { recordAuditEvent } from "./audit";
 import {
   addJobPage,
   addJobQuestion,
+  countActiveImportJobs,
   createImportJob as storeCreateImportJob,
   getImportJob,
   getJobPages as storeGetJobPages,
@@ -19,6 +20,26 @@ import {
 } from "./document-import-store";
 import { getActiveMembership } from "./store";
 import type { DocumentImportJob, ImportJobQuestion, ImportJobStatus, ImportJobWithProgress, ImportPageStatus, ImportQuestionStatus, ImportSourceType, ImportTargetSurface } from "./types";
+
+/** Cap on simultaneously queued+processing jobs per workspace. Phase 13
+ * backpressure — protects the document-import worker from being swamped
+ * by a single workspace bulk-uploading. Tunable via env. */
+function importJobConcurrencyCap(): number {
+  const raw = process.env.DOCUMENT_IMPORT_WORKSPACE_CONCURRENCY?.trim();
+  const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
+}
+
+export class ImportJobBackpressureError extends Error {
+  status = 429 as const;
+  errorCode = "IMPORT_JOB_BACKPRESSURE" as const;
+  constructor(public readonly active: number, public readonly cap: number) {
+    super(
+      `Import queue is at capacity (${active}/${cap} active jobs). Wait for in-flight jobs to finish before submitting more.`,
+    );
+    this.name = "ImportJobBackpressureError";
+  }
+}
 
 export async function createImportJob(input: {
   workspaceId: string; userId: string; sourceType: ImportSourceType; fileName: string;
@@ -35,6 +56,11 @@ export async function createImportJob(input: {
   const membership = await getActiveMembership(input.workspaceId, input.userId);
   if (!membership || !["owner", "admin", "teacher", "content_manager"].includes(membership.role)) {
     throw new AuthzError(403, "Insufficient permissions to create import jobs.");
+  }
+  const cap = importJobConcurrencyCap();
+  const active = await countActiveImportJobs(input.workspaceId);
+  if (active >= cap) {
+    throw new ImportJobBackpressureError(active, cap);
   }
   const job = await storeCreateImportJob({
     workspaceId: input.workspaceId,
