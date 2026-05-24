@@ -4,8 +4,12 @@
  *
  * Source: V1/teacher-admin-launch-plan/05-implementation-roadmap.md
  *
- * Defaults are conservative (off in production unless explicitly enabled);
- * dev/test default to on so local development gets the new surfaces.
+ * After all 13 phases shipped to production, defaults are flipped on
+ * for both dev and prod so the launch surfaces are visible by default.
+ * Individual flags can still be flipped off per-environment via the
+ * `TEACHER_LAUNCH_<SUFFIX>` env var or via the runtime kill-switch in
+ * /admin/incidents (which calls setFlagOverride and overrides the
+ * default at request time).
  */
 
 const FLAG_ENV_PREFIX = "TEACHER_LAUNCH_";
@@ -32,19 +36,19 @@ type FlagSpec = {
 };
 
 const FLAG_SPECS: Record<FlagKey, FlagSpec> = {
-  workspaces:        { envSuffix: "WORKSPACES",          defaultDev: true,  defaultProd: false },
-  orgCodes:          { envSuffix: "ORG_CODES",           defaultDev: true,  defaultProd: false },
-  enrollment:        { envSuffix: "ENROLLMENT",          defaultDev: true,  defaultProd: false },
-  batches:           { envSuffix: "BATCHES",             defaultDev: true,  defaultProd: false },
-  questionBag:       { envSuffix: "QUESTION_BAG",        defaultDev: true,  defaultProd: false },
-  teacherTests:      { envSuffix: "TEACHER_TESTS",       defaultDev: true,  defaultProd: false },
-  teacherRooms:      { envSuffix: "TEACHER_ROOMS",       defaultDev: true,  defaultProd: false },
-  studyMaterials:    { envSuffix: "STUDY_MATERIALS",     defaultDev: false, defaultProd: false },
-  teacherAnalytics:  { envSuffix: "TEACHER_ANALYTICS",   defaultDev: false, defaultProd: false },
-  ogcodePublishing:  { envSuffix: "OGCODE_PUBLISHING",   defaultDev: false, defaultProd: false },
-  documentImport:    { envSuffix: "DOCUMENT_IMPORT",     defaultDev: false, defaultProd: false },
-  adminControlCenter:{ envSuffix: "ADMIN_CONTROL",       defaultDev: false, defaultProd: false },
-  paidEnrollment:    { envSuffix: "PAID_ENROLLMENT",     defaultDev: false, defaultProd: false },
+  workspaces:        { envSuffix: "WORKSPACES",          defaultDev: true,  defaultProd: true },
+  orgCodes:          { envSuffix: "ORG_CODES",           defaultDev: true,  defaultProd: true },
+  enrollment:        { envSuffix: "ENROLLMENT",          defaultDev: true,  defaultProd: true },
+  batches:           { envSuffix: "BATCHES",             defaultDev: true,  defaultProd: true },
+  questionBag:       { envSuffix: "QUESTION_BAG",        defaultDev: true,  defaultProd: true },
+  teacherTests:      { envSuffix: "TEACHER_TESTS",       defaultDev: true,  defaultProd: true },
+  teacherRooms:      { envSuffix: "TEACHER_ROOMS",       defaultDev: true,  defaultProd: true },
+  studyMaterials:    { envSuffix: "STUDY_MATERIALS",     defaultDev: true,  defaultProd: true },
+  teacherAnalytics:  { envSuffix: "TEACHER_ANALYTICS",   defaultDev: true,  defaultProd: true },
+  ogcodePublishing:  { envSuffix: "OGCODE_PUBLISHING",   defaultDev: true,  defaultProd: true },
+  documentImport:    { envSuffix: "DOCUMENT_IMPORT",     defaultDev: true,  defaultProd: true },
+  adminControlCenter:{ envSuffix: "ADMIN_CONTROL",       defaultDev: true,  defaultProd: true },
+  paidEnrollment:    { envSuffix: "PAID_ENROLLMENT",     defaultDev: true,  defaultProd: true },
 };
 
 function parseFlag(raw: string | undefined): boolean | null {
