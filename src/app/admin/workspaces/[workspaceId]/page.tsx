@@ -30,6 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { AdminWorkspaceActions } from "@/components/admin/AdminWorkspaceActions";
+import { WorkspaceExportButton } from "@/components/admin/WorkspaceExportButton";
 import { listAllImportJobsAdminService } from "@/server/workspaces/admin-service";
 import { getWorkspaceById, listCodesForWorkspace } from "@/server/workspaces/store";
 
@@ -65,6 +66,12 @@ export default async function AdminWorkspaceDetailPage({ params }: Props) {
         <Button asChild variant="outline">
           <Link href="/admin/workspaces">Back to list</Link>
         </Button>
+      </div>
+
+      {/* Audit fix R-5 (A-20): expose the streaming JSON export from
+          /api/admin/workspaces/[id]/export — previously curl-only. */}
+      <div className="flex justify-end">
+        <WorkspaceExportButton workspaceId={workspaceId} />
       </div>
 
       <Card>
