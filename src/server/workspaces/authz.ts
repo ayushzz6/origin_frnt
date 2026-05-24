@@ -47,6 +47,37 @@ function hasMinimumRole(role: WorkspaceMemberRole, allowed: WorkspaceMemberRole[
   return allowed.includes(role);
 }
 
+/** Pure decision function used by requireWorkspaceMember. Exposed so
+ * fuzz tests can exercise the full role × status × allowedRoles cube
+ * without stubbing the request/auth/store layers. Returns null when
+ * access is granted, an AuthzError otherwise. */
+export function evaluateWorkspaceAccess(input: {
+  auth: AuthContext;
+  workspace: TeacherWorkspace | null;
+  member: WorkspaceMember | null;
+  allowedRoles?: WorkspaceMemberRole[];
+}): AuthzError | null {
+  if (!input.workspace) {
+    return new AuthzError(403, "Workspace not found or access denied.");
+  }
+  const platformAdmin = input.auth.role === "admin";
+  const member = input.member;
+  if (!platformAdmin && (!member || member.status !== "active")) {
+    return new AuthzError(403, "You are not a member of this workspace.");
+  }
+  if (platformAdmin) return null;
+  if (!OPERATIONAL_STATUSES.includes(input.workspace.status)) {
+    return new AuthzError(403, "This workspace is not operational.");
+  }
+  if (!member) {
+    return new AuthzError(403, "You are not a member of this workspace.");
+  }
+  if (!hasMinimumRole(member.role, input.allowedRoles ?? [])) {
+    return new AuthzError(403, "You do not have permission to perform this action.");
+  }
+  return null;
+}
+
 export async function loadWorkspaceContext(
   request: Request,
   workspaceId: string,
