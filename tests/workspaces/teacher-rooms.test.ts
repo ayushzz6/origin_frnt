@@ -5,11 +5,11 @@ import { isFeatureEnabled } from "@/lib/feature-flags";
 
 const env = process.env as Record<string, string | undefined>;
 
-test("Phase 6: teacherRooms flag is off in prod by default", () => {
+test("Phase 6: teacherRooms flag is on in prod by default (post-launch)", () => {
   const prev = env.NODE_ENV;
   env.NODE_ENV = "production";
   try {
-    assert.equal(isFeatureEnabled("teacherRooms"), false);
+    assert.equal(isFeatureEnabled("teacherRooms"), true);
   } finally {
     env.NODE_ENV = prev;
   }
