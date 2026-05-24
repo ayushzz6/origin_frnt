@@ -186,3 +186,43 @@ Why this matters: the plan is what the next agent reads to build the next phase.
 
 A worked example lives in PR diprajorigin/ORIGIN-V1.0#107 (phases 7-9 alignment), which reasons through 5 deviations Qwen introduced and reconciles all of them to the plan.
 <!-- END:plan-vs-code-policy -->
+
+<!-- BEGIN:phase-10-12-services -->
+# Phase 10-12 services & env vars
+
+Three platform integrations were added with the teacher-launch phase
+10-12 completion (PRs diprajorigin/ORIGIN-V1.0#111 + 2003origin-spec/origin_frnt#13).
+When wiring a new environment (Vercel, staging, CI), set the following.
+
+## `document-import-service` (Phase 10)
+
+A new FastAPI worker at `document-import-service/` in the monorepo. It
+is **monorepo-only** — never push it to the Vercel-deploy repo. Deploy
+it separately (Cloud Run, Render, Fly, etc.) and point Next.js at it:
+
+| Var | Where set | Purpose |
+|---|---|---|
+| `DOCUMENT_IMPORT_SERVICE_URL` | Next.js | Base URL of the worker. Optional in dev — the trigger no-ops and the job stays in `queued`. |
+| `DOCUMENT_IMPORT_SERVICE_TOKEN` | Next.js + worker | Bearer secret for `POST /v1/import-jobs/{id}/run`. Identical value on both sides. |
+| `DOCUMENT_IMPORT_DATABASE_URL` | worker | Same Postgres URL as `USER_DATABASE_URL`. The worker writes to `import.*` and reads `content.assets`, so cross-schema FKs validate. |
+| `R2_ENDPOINT_URL` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_DEFAULT_BUCKET` | worker | Source-file fetch from R2. |
+| `OPENAI_API_KEY` / `OPENAI_VISION_MODEL` | worker | Optional multimodal fallback. When unset the pipeline still runs but skips vision for low-confidence pages. |
+| `DOCUMENT_IMPORT_FORCE_HYBRID` | worker | Force classifier into HYBRID_RECONCILE — only useful for regression-corpus CI. |
+
+System packages required in the worker image: `tesseract-ocr`,
+`poppler-utils`. The provided `document-import-service/Dockerfile`
+installs both.
+
+## Payment webhook (Phase 12)
+
+| Var | Where set | Purpose |
+|---|---|---|
+| `PAYMENT_WEBHOOK_TOKEN` | Next.js | Bearer secret the payment provider uses to call `/api/enrollments/orders?action=mark_paid` (and `mark_payment_pending` / `mark_failed`). These actions explicitly refuse student-session auth — a logged-in student calling them gets a 401. Configure the same value on the provider side. |
+
+## Migrations to apply (in order)
+
+1. `20260523_phase10_fix_status_enum.sql` — idempotent rename of mis-labeled enum values + drops dead `app.workspace_offerings` / `app.enrollment_orders` from earlier draft.
+2. `20260524_phase10_align_import_schema.sql` — adds the plan-canonical columns (`stage`, `target_surface`, `source_asset_id`, `classification`/`diagnostics`/`cost` JSONB, `requested_question_count`, `requested_by`).
+
+Both migrations are idempotent and safe to re-run.
+<!-- END:phase-10-12-services -->
