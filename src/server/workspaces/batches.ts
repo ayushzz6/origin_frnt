@@ -207,7 +207,10 @@ export async function addStudentsToBatches(input: {
   workspaceId: string;
   batchIds: string[];
   studentIds: string[];
-  assignedBy: string;
+  /** `null` records a system-initiated assignment (e.g. paid enrollment
+   * webhook). batch_members.assigned_by is FK to origin_users(id), so a
+   * sentinel string like "system" violates the constraint. */
+  assignedBy: string | null;
 }): Promise<BatchMember[]> {
   await ensureEnrollmentSchema();
   if (input.batchIds.length === 0 || input.studentIds.length === 0) return [];

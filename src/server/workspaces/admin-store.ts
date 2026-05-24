@@ -7,7 +7,7 @@ import type { Pool } from "pg";
 import { getUserPostgresPool } from "@/server/user-postgres";
 
 import { ensureDocumentImportSchema } from "./document-import-schema";
-import type { AdminAuditEvent, AdminUserSearchResult, WorkspaceAdminSummary, WorkspaceSuspensionReason } from "./types";
+import type { AdminAuditEvent, AdminUserSearchResult, DocumentImportJob, ImportJobStage, ImportJobStatus, ImportTargetSurface, WorkspaceAdminSummary, WorkspaceSuspensionReason } from "./types";
 
 function pool(): Pool {
   const p = getUserPostgresPool();
@@ -96,6 +96,83 @@ export async function searchUsers(query: string, filter?: { role?: "student" | "
     for (const user of users) user.workspaceMemberships = membershipMap.get(user.id) ?? [];
   }
   return users;
+}
+
+function rowToImportJob(row: Record<string, unknown>): DocumentImportJob {
+  return {
+    id: row.id as string,
+    workspaceId: row.workspace_id as string,
+    sourceType: row.source_type as DocumentImportJob["sourceType"],
+    sourceFileName: row.source_file_name as string,
+    sourceR2ObjectKey: row.source_r2_object_key as string,
+    sourceR2Bucket: row.source_r2_bucket as string,
+    sourceMimeType: row.source_mime_type as string,
+    sourceSizeBytes: Number(row.source_size_bytes) || 0,
+    sourceSha256: row.source_sha256 as string,
+    sourceAssetId: (row.source_asset_id as string | null) ?? null,
+    subject: (row.subject as string | null) ?? null,
+    chapter: (row.chapter as string | null) ?? null,
+    targetSurface: (row.target_surface as ImportTargetSurface | null) ?? "question_bag",
+    status: row.status as ImportJobStatus,
+    stage: ((row.stage as ImportJobStage | null) ?? "queued"),
+    totalPages: (row.total_pages as number | null) ?? null,
+    processedPages: Number(row.processed_pages) || 0,
+    totalQuestions: (row.total_questions as number | null) ?? null,
+    requestedQuestionCount: (row.requested_question_count as number | null) ?? null,
+    acceptedQuestions: Number(row.accepted_questions) || 0,
+    reviewRequiredQuestions: Number(row.review_required_questions) || 0,
+    classification: (row.classification as Record<string, unknown>) ?? {},
+    diagnostics: (row.diagnostics as Record<string, unknown>) ?? {},
+    cost: (row.cost as Record<string, unknown>) ?? {},
+    errorCode: (row.error_code as string | null) ?? null,
+    errorMessage: (row.error_message as string | null) ?? null,
+    startedAt: row.started_at ? new Date(row.started_at as string).toISOString() : null,
+    completedAt: row.completed_at ? new Date(row.completed_at as string).toISOString() : null,
+    createdBy: row.created_by as string,
+    requestedBy: (row.requested_by as string | null) ?? (row.created_by as string),
+    metadata: (row.metadata as Record<string, unknown>) ?? {},
+    createdAt: new Date(row.created_at as string).toISOString(),
+    updatedAt: new Date(row.updated_at as string).toISOString(),
+  };
+}
+
+/** Cross-workspace listing of import jobs for the admin control center. */
+export async function listAllImportJobs(filter?: {
+  workspaceId?: string;
+  status?: ImportJobStatus;
+  limit?: number;
+}): Promise<DocumentImportJob[]> {
+  await ensureDocumentImportSchema();
+  const params: unknown[] = [];
+  const conditions: string[] = [];
+  if (filter?.workspaceId) {
+    params.push(filter.workspaceId);
+    conditions.push(`workspace_id = $${params.length}`);
+  }
+  if (filter?.status) {
+    params.push(filter.status);
+    conditions.push(`status = $${params.length}`);
+  }
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const limit = filter?.limit ?? 50;
+  params.push(limit);
+  const result = await pool().query(
+    `SELECT * FROM import.document_import_jobs ${where}
+     ORDER BY created_at DESC
+     LIMIT $${params.length}`,
+    params,
+  );
+  return result.rows.map(rowToImportJob);
+}
+
+/** Admin lookup of any import job by id — ignores workspace boundary. */
+export async function getImportJobAdmin(jobId: string): Promise<DocumentImportJob | null> {
+  await ensureDocumentImportSchema();
+  const result = await pool().query(
+    `SELECT * FROM import.document_import_jobs WHERE id = $1`,
+    [jobId],
+  );
+  return result.rows[0] ? rowToImportJob(result.rows[0]) : null;
 }
 
 export async function listAuditEvents(filter?: { workspaceId?: string; entityType?: string; actorUserId?: string; action?: string; limit?: number; offset?: number }): Promise<AdminAuditEvent[]> {

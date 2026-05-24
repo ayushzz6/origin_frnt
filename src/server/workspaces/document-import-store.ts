@@ -8,7 +8,7 @@ import { getUserPostgresPool } from "@/server/user-postgres";
 
 import { createDocumentImportJobId, createImportJobPageId, createImportJobQuestionId } from "./ids";
 import { ensureDocumentImportSchema } from "./document-import-schema";
-import type { DocumentImportJob, ImportJobPage, ImportJobQuestion, ImportJobStatus, ImportJobWithProgress, ImportPageStatus, ImportQuestionStatus, ImportSourceType } from "./types";
+import type { DocumentImportJob, ImportJobPage, ImportJobQuestion, ImportJobStage, ImportJobStatus, ImportJobWithProgress, ImportPageStatus, ImportQuestionStatus, ImportSourceType, ImportTargetSurface } from "./types";
 
 function pool(): Pool {
   const p = getUserPostgresPool();
@@ -18,19 +18,37 @@ function pool(): Pool {
 
 function rowToJob(row: Record<string, unknown>): DocumentImportJob {
   return {
-    id: row.id as string, workspaceId: row.workspace_id as string,
-    sourceType: row.source_type as ImportSourceType, sourceFileName: row.source_file_name as string,
-    sourceR2ObjectKey: row.source_r2_object_key as string, sourceR2Bucket: row.source_r2_bucket as string,
-    sourceMimeType: row.source_mime_type as string, sourceSizeBytes: Number(row.source_size_bytes) || 0,
-    sourceSha256: row.source_sha256 as string, subject: (row.subject as string | null) ?? null,
-    chapter: (row.chapter as string | null) ?? null, status: row.status as ImportJobStatus,
-    totalPages: (row.total_pages as number | null) ?? null, processedPages: Number(row.processed_pages) || 0,
-    totalQuestions: (row.total_questions as number | null) ?? null, acceptedQuestions: Number(row.accepted_questions) || 0,
+    id: row.id as string,
+    workspaceId: row.workspace_id as string,
+    sourceType: row.source_type as ImportSourceType,
+    sourceFileName: row.source_file_name as string,
+    sourceR2ObjectKey: row.source_r2_object_key as string,
+    sourceR2Bucket: row.source_r2_bucket as string,
+    sourceMimeType: row.source_mime_type as string,
+    sourceSizeBytes: Number(row.source_size_bytes) || 0,
+    sourceSha256: row.source_sha256 as string,
+    sourceAssetId: (row.source_asset_id as string | null) ?? null,
+    subject: (row.subject as string | null) ?? null,
+    chapter: (row.chapter as string | null) ?? null,
+    targetSurface: (row.target_surface as ImportTargetSurface | null) ?? "question_bag",
+    status: row.status as ImportJobStatus,
+    stage: ((row.stage as ImportJobStage | null) ?? "queued"),
+    totalPages: (row.total_pages as number | null) ?? null,
+    processedPages: Number(row.processed_pages) || 0,
+    totalQuestions: (row.total_questions as number | null) ?? null,
+    requestedQuestionCount: (row.requested_question_count as number | null) ?? null,
+    acceptedQuestions: Number(row.accepted_questions) || 0,
     reviewRequiredQuestions: Number(row.review_required_questions) || 0,
+    classification: (row.classification as Record<string, unknown>) ?? {},
+    diagnostics: (row.diagnostics as Record<string, unknown>) ?? {},
+    cost: (row.cost as Record<string, unknown>) ?? {},
+    errorCode: (row.error_code as string | null) ?? null,
     errorMessage: (row.error_message as string | null) ?? null,
     startedAt: row.started_at ? new Date(row.started_at as string).toISOString() : null,
     completedAt: row.completed_at ? new Date(row.completed_at as string).toISOString() : null,
-    createdBy: row.created_by as string, metadata: (row.metadata as Record<string, unknown>) ?? {},
+    createdBy: row.created_by as string,
+    requestedBy: (row.requested_by as string | null) ?? (row.created_by as string),
+    metadata: (row.metadata as Record<string, unknown>) ?? {},
     createdAt: new Date(row.created_at as string).toISOString(),
     updatedAt: new Date(row.updated_at as string).toISOString(),
   };
@@ -74,21 +92,54 @@ function rowToQuestion(row: Record<string, unknown>): ImportJobQuestion {
 }
 
 export async function createImportJob(input: {
-  workspaceId: string; userId: string; sourceType: ImportSourceType; fileName: string;
-  mimeType?: string | null; content?: string | null; fileUrl?: string | null;
-  chunkSize?: number | null; overlap?: number | null; metadata?: Record<string, unknown>;
+  workspaceId: string;
+  userId: string;
+  sourceType: ImportSourceType;
+  fileName: string;
+  mimeType?: string | null;
+  content?: string | null;
+  fileUrl?: string | null;
+  chunkSize?: number | null;
+  overlap?: number | null;
+  metadata?: Record<string, unknown>;
+  /** Where these imported questions will land — drives validation + the
+   * review UI's "submit to OGCode" gating later. */
+  targetSurface?: ImportTargetSurface;
+  /** Optional FK to content.assets when Next.js has uploaded the source
+   * file via the asset pipeline first. */
+  sourceAssetId?: string | null;
+  /** Asked-for question count, used by the verifier's count check. */
+  requestedQuestionCount?: number | null;
 }): Promise<DocumentImportJob> {
   await ensureDocumentImportSchema();
   const id = createDocumentImportJobId();
   const r2Key = `imports/${id}/${input.fileName}`;
   const result = await pool().query(
-    `INSERT INTO import.document_import_jobs (id, workspace_id, source_type, source_file_name,
-       source_r2_object_key, source_r2_bucket, source_mime_type, source_size_bytes, source_sha256,
-       created_by, metadata)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb) RETURNING *`,
-    [id, input.workspaceId, input.sourceType, input.fileName, r2Key, "origin-imports",
-     input.mimeType ?? "application/octet-stream", 0, "pending-upload", input.userId,
-     JSON.stringify(input.metadata ?? {})],
+    `INSERT INTO import.document_import_jobs (
+       id, workspace_id, source_type, source_file_name,
+       source_r2_object_key, source_r2_bucket, source_mime_type, source_size_bytes,
+       source_sha256, source_asset_id, target_surface,
+       created_by, requested_by, requested_question_count, metadata
+     )
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15::jsonb)
+     RETURNING *`,
+    [
+      id,
+      input.workspaceId,
+      input.sourceType,
+      input.fileName,
+      r2Key,
+      "origin-imports",
+      input.mimeType ?? "application/octet-stream",
+      0,
+      "pending-upload",
+      input.sourceAssetId ?? null,
+      input.targetSurface ?? "question_bag",
+      input.userId,
+      input.userId,
+      input.requestedQuestionCount ?? null,
+      JSON.stringify(input.metadata ?? {}),
+    ],
   );
   return rowToJob(result.rows[0]);
 }

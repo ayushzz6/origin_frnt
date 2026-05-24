@@ -6,8 +6,6 @@ BEGIN;
 DROP TABLE IF EXISTS import.import_job_questions CASCADE;
 DROP TABLE IF EXISTS import.import_job_pages CASCADE;
 DROP TABLE IF EXISTS import.document_import_jobs CASCADE;
-DROP TABLE IF EXISTS app.enrollment_orders CASCADE;
-DROP TABLE IF EXISTS app.workspace_offerings CASCADE;
 
 DROP TYPE IF EXISTS import.import_question_status;
 DROP TYPE IF EXISTS import.import_page_status;

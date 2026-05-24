@@ -12,7 +12,7 @@ declare global {
   var __originDocumentImportSchemaPromise: Promise<void> | undefined;
 }
 
-const MIGRATION_ID = "20260521_phase10_document_import";
+const MIGRATION_ID = "20260524_phase10_align_import_schema";
 
 function pool() {
   const p = getUserPostgresPool();
@@ -47,6 +47,14 @@ export async function ensureDocumentImportSchema(): Promise<void> {
           EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
           DO $$ BEGIN
+            CREATE TYPE import.job_stage AS ENUM (
+              'queued', 'upload_saved', 'classified', 'text_extracted',
+              'layout_extracted', 'reconciled', 'verified', 'reviewing',
+              'persisted', 'failed'
+            );
+          EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+          DO $$ BEGIN
             CREATE TYPE import.import_page_status AS ENUM ('pending', 'parsed', 'review_required', 'accepted', 'rejected');
           EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
@@ -64,25 +72,61 @@ export async function ensureDocumentImportSchema(): Promise<void> {
             source_mime_type TEXT NOT NULL,
             source_size_bytes BIGINT NOT NULL DEFAULT 0,
             source_sha256 TEXT NOT NULL,
+            source_asset_id TEXT,
             subject TEXT,
             chapter TEXT,
+            target_surface TEXT CHECK (target_surface IN ('question_bag', 'ogcode_draft', 'admin_ogcode')),
             status import.import_job_status NOT NULL DEFAULT 'queued',
+            stage import.job_stage NOT NULL DEFAULT 'queued',
             total_pages INTEGER,
             processed_pages INTEGER NOT NULL DEFAULT 0,
             total_questions INTEGER,
+            requested_question_count INTEGER,
             accepted_questions INTEGER NOT NULL DEFAULT 0,
             review_required_questions INTEGER NOT NULL DEFAULT 0,
+            classification JSONB NOT NULL DEFAULT '{}'::jsonb,
+            diagnostics JSONB NOT NULL DEFAULT '{}'::jsonb,
+            cost JSONB NOT NULL DEFAULT '{}'::jsonb,
+            error_code TEXT,
             error_message TEXT,
             started_at TIMESTAMPTZ,
             completed_at TIMESTAMPTZ,
             created_by TEXT NOT NULL REFERENCES origin_users(id),
+            requested_by TEXT REFERENCES origin_users(id),
             metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
           );
 
+          -- For DBs that pre-date this schema, backfill the new columns
+          -- so the application's INSERTs/SELECTs don't see NULLs where
+          -- they expect defaults.
+          ALTER TABLE import.document_import_jobs
+            ADD COLUMN IF NOT EXISTS source_asset_id TEXT,
+            ADD COLUMN IF NOT EXISTS target_surface TEXT,
+            ADD COLUMN IF NOT EXISTS stage import.job_stage NOT NULL DEFAULT 'queued',
+            ADD COLUMN IF NOT EXISTS requested_question_count INTEGER,
+            ADD COLUMN IF NOT EXISTS classification JSONB NOT NULL DEFAULT '{}'::jsonb,
+            ADD COLUMN IF NOT EXISTS diagnostics JSONB NOT NULL DEFAULT '{}'::jsonb,
+            ADD COLUMN IF NOT EXISTS cost JSONB NOT NULL DEFAULT '{}'::jsonb,
+            ADD COLUMN IF NOT EXISTS error_code TEXT,
+            ADD COLUMN IF NOT EXISTS requested_by TEXT REFERENCES origin_users(id);
+
+          UPDATE import.document_import_jobs
+             SET requested_by = created_by
+           WHERE requested_by IS NULL;
+          UPDATE import.document_import_jobs
+             SET target_surface = 'question_bag'
+           WHERE target_surface IS NULL;
+
           CREATE INDEX IF NOT EXISTS idx_import_jobs_workspace
             ON import.document_import_jobs(workspace_id, status, created_at DESC);
+          CREATE INDEX IF NOT EXISTS idx_import_jobs_target_surface
+            ON import.document_import_jobs(target_surface, status, created_at DESC);
+          CREATE INDEX IF NOT EXISTS idx_import_jobs_stage
+            ON import.document_import_jobs(stage, updated_at DESC);
+          CREATE INDEX IF NOT EXISTS idx_import_jobs_source_asset
+            ON import.document_import_jobs(source_asset_id);
 
           CREATE TABLE IF NOT EXISTS import.import_job_pages (
             id TEXT PRIMARY KEY,

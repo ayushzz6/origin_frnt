@@ -169,6 +169,17 @@ export async function createOrderService(input: {
     throw new AuthzError(400, `Offering is ${offering.status}; not available for purchase.`);
   }
 
+  // Duplicate-purchase idempotency (plan: phase 12 acceptance "duplicate
+  // purchase handled idempotently"). If the student already has a non-
+  // terminal or paid order for this offering, return that one — never
+  // create a parallel order.
+  const existing = await findReusableOrderForStudent({
+    workspaceId: input.workspaceId,
+    offeringId: input.offeringId,
+    studentId: input.studentId,
+  });
+  if (existing) return existing;
+
   const created: CreateEnrollmentOrderInput = {
     workspaceId: input.workspaceId,
     offeringId: input.offeringId,
@@ -190,6 +201,28 @@ export async function createOrderService(input: {
   });
 
   return order;
+}
+
+/** Find an order on the same (workspace, offering, student) tuple that
+ * a new buy click should reuse instead of creating a duplicate:
+ *   - status='paid'           → already bought, return same row.
+ *   - status='created'        → checkout flow still in progress, reuse.
+ *   - status='payment_pending'→ provider intent already issued, reuse.
+ * 'failed', 'refunded', 'cancelled' are terminal — caller may retry. */
+async function findReusableOrderForStudent(args: {
+  workspaceId: string;
+  offeringId: string;
+  studentId: string;
+}): Promise<EnrollmentOrder | null> {
+  const all = await listStudentOrders(args.studentId);
+  return (
+    all.find(
+      (o) =>
+        o.workspaceId === args.workspaceId &&
+        o.offeringId === args.offeringId &&
+        (o.status === "paid" || o.status === "created" || o.status === "payment_pending"),
+    ) ?? null
+  );
 }
 
 export async function markOrderPaymentPendingService(input: {
@@ -254,7 +287,8 @@ export async function markOrderPaidService(input: {
       workspaceId: input.workspaceId,
       batchIds: [offering.targetBatchId],
       studentIds: [order.studentId],
-      assignedBy: "system",
+      // null = system-initiated; FK constraint disallows sentinel strings.
+      assignedBy: null,
     });
   }
 

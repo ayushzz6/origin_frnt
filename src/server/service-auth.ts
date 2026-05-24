@@ -2,7 +2,13 @@ export type ServiceTokenName =
   | "INTERNAL_CRON_TOKEN"
   | "ORIGIN_AI_SERVICE_TOKEN"
   | "GRADER_SERVICE_TOKEN"
-  | "ANALYTICS_SERVICE_TOKEN";
+  | "ANALYTICS_SERVICE_TOKEN"
+  // Phase 12: payment provider webhook secret. Provider posts order
+  // status transitions (mark_paid/mark_payment_pending/mark_failed)
+  // with this token; we never accept those transitions from a student
+  // session, otherwise a logged-in student could mark their own
+  // unpaid order as paid.
+  | "PAYMENT_WEBHOOK_TOKEN";
 
 export class ServiceAuthConfigurationError extends Error {
   constructor(tokenName: ServiceTokenName) {
