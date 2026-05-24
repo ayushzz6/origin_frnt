@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { BatchDeleteButton } from "@/components/teacher/BatchDeleteButton";
 import { BatchRosterManager } from "@/components/teacher/BatchRosterManager";
 import { getBatch, listBatchMembers } from "@/server/workspaces/batches";
 import { listEnrollments } from "@/server/workspaces/enrollments";
@@ -36,12 +37,21 @@ export default async function BatchDetailPage({ params }: Props) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{batch.name}</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          {[batch.course, batch.subject, batch.classLevel].filter(Boolean).join(" · ") || "—"} ·{" "}
-          {batch.status}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">{batch.name}</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            {[batch.course, batch.subject, batch.classLevel].filter(Boolean).join(" · ") || "—"} ·{" "}
+            {batch.status}
+          </p>
+        </div>
+        {canManage ? (
+          <BatchDeleteButton
+            workspaceId={workspaceId}
+            batchId={batchId}
+            batchName={batch.name}
+          />
+        ) : null}
       </div>
 
       <Card>

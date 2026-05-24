@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { csrfHeaders } from "@/lib/csrf";
 
 type Props = {
   workspaceId: string;
@@ -65,7 +66,8 @@ export function ImportUploadForm({ workspaceId }: Props) {
         `/api/teacher/workspaces/${workspaceId}/import-jobs`,
         {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: { "content-type": "application/json", ...csrfHeaders() },
+          credentials: "include",
           body: JSON.stringify({
             sourceType,
             fileName: file.name,

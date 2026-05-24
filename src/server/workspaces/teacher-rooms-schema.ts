@@ -7,7 +7,7 @@
 import type { PoolClient } from "pg";
 
 import { getUserPostgresPool, isUserPostgresConfigured } from "@/server/user-postgres";
-import { ensureRoomsSchema } from "@/server/rooms-postgres";
+import { ensureRoomsSchema, getRoomsPostgresPoolOrThrow } from "@/server/rooms-postgres";
 
 import { ensureAssessmentSchema } from "./assessment-schema";
 
@@ -36,11 +36,30 @@ export async function ensureTeacherRoomsSchema(): Promise<void> {
   if (globalThis.__originTeacherRoomsSchemaEnsured) return;
   if (!globalThis.__originTeacherRoomsSchemaPromise) {
     globalThis.__originTeacherRoomsSchemaPromise = (async () => {
+      // Audit fix (rooms 500 in prod): the rooms.rooms table is owned by
+      // ensureRoomsSchema(), which awaits ensureAnalyticsSchema() before
+      // running its CREATE SCHEMA. If analytics-schema setup ever fails
+      // (privileges, transient connection error) the rooms schema never
+      // gets created and every teacher rooms route 500s with
+      // "schema 'rooms' does not exist". Create the schema defensively
+      // here on the same pool the rooms SELECTs hit before falling
+      // through to the canonical ensure call. Idempotent — CREATE
+      // SCHEMA IF NOT EXISTS does nothing when the schema already exists.
+      const roomsPool = getRoomsPostgresPoolOrThrow();
+      try {
+        await roomsPool.query("CREATE SCHEMA IF NOT EXISTS rooms");
+      } catch (error) {
+        // Surface the underlying failure rather than silently masking it.
+        console.error("[teacher-rooms] CREATE SCHEMA rooms failed:", error);
+        throw error;
+      }
       await ensureAssessmentSchema();
       // rooms.rooms must exist before we can ALTER it. Origin deployments
       // co-locate USER_DATABASE_URL and OGCODE_DATABASE_URL on the same DB
       // because the FK references between rooms/app/content require it.
       await ensureRoomsSchema();
+      // The ALTER + INSERT into app.migrations both target the user pool
+      // (app.* schema), so the migration recording stays on `pool()`.
       const client = await pool().connect();
       try {
         await client.query("BEGIN");
