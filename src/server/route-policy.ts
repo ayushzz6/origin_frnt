@@ -54,6 +54,7 @@ export const AUTHENTICATED_APP_PREFIXES = [
   "/onboarding",
   "/books",
   "/teacher",
+  "/marketplace",
 ] as const;
 
 export const ROLE_APP_PREFIXES = [

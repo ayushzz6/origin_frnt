@@ -529,17 +529,45 @@ export type TeacherRoomSummary = {
 
 export type ImportSourceType = "pdf" | "docx" | "txt" | "image" | "url";
 export type ImportJobStatus = "queued" | "processing" | "needs_review" | "succeeded" | "failed" | "cancelled";
+export type ImportJobStage =
+  | "queued"
+  | "upload_saved"
+  | "classified"
+  | "text_extracted"
+  | "layout_extracted"
+  | "reconciled"
+  | "verified"
+  | "reviewing"
+  | "persisted"
+  | "failed";
+export type ImportTargetSurface = "question_bag" | "ogcode_draft" | "admin_ogcode";
 export type ImportPageStatus = "pending" | "parsed" | "review_required" | "accepted" | "rejected";
 export type ImportQuestionStatus = "draft" | "review_required" | "accepted" | "rejected" | "published";
 
 export type DocumentImportJob = {
   id: string; workspaceId: string; sourceType: ImportSourceType; sourceFileName: string;
   sourceR2ObjectKey: string; sourceR2Bucket: string; sourceMimeType: string;
-  sourceSizeBytes: number; sourceSha256: string; subject: string | null; chapter: string | null;
-  status: ImportJobStatus; totalPages: number | null; processedPages: number;
-  totalQuestions: number | null; acceptedQuestions: number; reviewRequiredQuestions: number;
-  errorMessage: string | null; startedAt: string | null; completedAt: string | null;
-  createdBy: string; metadata: Record<string, unknown>; createdAt: string; updatedAt: string;
+  sourceSizeBytes: number; sourceSha256: string;
+  /** FK to content.assets — present on jobs created via the new flow.
+   * Older jobs may have only the standalone source_r2_* columns. */
+  sourceAssetId: string | null;
+  subject: string | null; chapter: string | null;
+  targetSurface: ImportTargetSurface;
+  status: ImportJobStatus;
+  stage: ImportJobStage;
+  totalPages: number | null; processedPages: number;
+  totalQuestions: number | null;
+  requestedQuestionCount: number | null;
+  acceptedQuestions: number; reviewRequiredQuestions: number;
+  classification: Record<string, unknown>;
+  diagnostics: Record<string, unknown>;
+  cost: Record<string, unknown>;
+  errorCode: string | null;
+  errorMessage: string | null;
+  startedAt: string | null; completedAt: string | null;
+  createdBy: string;
+  requestedBy: string;
+  metadata: Record<string, unknown>; createdAt: string; updatedAt: string;
 };
 
 export type ImportJobPage = {

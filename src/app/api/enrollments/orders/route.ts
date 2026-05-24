@@ -14,7 +14,7 @@ import { z } from "zod";
 
 import { parseJsonBody } from "@/server/http";
 import { requireFeatureEnabled } from "@/lib/feature-flags";
-import { requireAuth } from "@/server/authz";
+import { requireAuth, requireInternal } from "@/server/authz";
 import {
   createOrderService,
   listStudentOrdersService,
@@ -52,34 +52,44 @@ const RefundSchema = z.object({
   reason: z.string().min(1),
 });
 
+/** Webhook-only actions: payment provider posts these with the
+ * PAYMENT_WEBHOOK_TOKEN. Never accept them from a student session,
+ * otherwise a logged-in student could mark their own order paid. */
+const WEBHOOK_ACTIONS = new Set(["mark_payment_pending", "mark_paid", "mark_failed"]);
+
 export async function POST(request: NextRequest) {
   try {
     requireFeatureEnabled("paidEnrollment");
-    const ctx = await requireAuth(request);
     const url = new URL(request.url);
     const action = url.searchParams.get("action");
     const body = await parseJsonBody(request);
 
-    if (action === "mark_payment_pending") {
-      const parsed = MarkPaymentPendingSchema.safeParse(body);
-      if (!parsed.success) return teacherJson({ detail: parsed.error.message }, { status: 400 });
-      const order = await markOrderPaymentPendingService(parsed.data);
-      return teacherJson({ order });
-    }
+    if (action && WEBHOOK_ACTIONS.has(action)) {
+      await requireInternal(request, "PAYMENT_WEBHOOK_TOKEN");
 
-    if (action === "mark_paid") {
-      const parsed = MarkPaidSchema.safeParse(body);
-      if (!parsed.success) return teacherJson({ detail: parsed.error.message }, { status: 400 });
-      const order = await markOrderPaidService(parsed.data);
-      return teacherJson({ order });
-    }
+      if (action === "mark_payment_pending") {
+        const parsed = MarkPaymentPendingSchema.safeParse(body);
+        if (!parsed.success) return teacherJson({ detail: parsed.error.message }, { status: 400 });
+        const order = await markOrderPaymentPendingService(parsed.data);
+        return teacherJson({ order });
+      }
 
-    if (action === "mark_failed") {
+      if (action === "mark_paid") {
+        const parsed = MarkPaidSchema.safeParse(body);
+        if (!parsed.success) return teacherJson({ detail: parsed.error.message }, { status: 400 });
+        const order = await markOrderPaidService(parsed.data);
+        return teacherJson({ order });
+      }
+
+      // action === "mark_failed"
       const parsed = MarkFailedSchema.safeParse(body);
       if (!parsed.success) return teacherJson({ detail: parsed.error.message }, { status: 400 });
       const order = await markOrderFailedService(parsed.data);
       return teacherJson({ order });
     }
+
+    // User-session actions below.
+    const ctx = await requireAuth(request);
 
     if (action === "refund") {
       const parsed = RefundSchema.safeParse(body);
@@ -93,7 +103,7 @@ export async function POST(request: NextRequest) {
       return teacherJson({ order });
     }
 
-    // Default: create a new order
+    // Default: create a new order.
     const parsed = CreateOrderSchema.safeParse(body);
     if (!parsed.success) {
       return teacherJson({ detail: parsed.error.message }, { status: 400 });
