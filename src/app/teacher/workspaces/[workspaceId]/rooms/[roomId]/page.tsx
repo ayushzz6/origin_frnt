@@ -1,10 +1,10 @@
 /**
- * Teacher room detail — audit fix R-4 (A-13).
+ * Teacher room detail — Phase 6 completion.
  *
- * Before this route existed the rooms list was a dead-end: cards
- * weren't clickable and there was nowhere to inspect a room's batch,
- * test, or status. This page is intentionally minimal — full
- * participant-list and live-leaderboard views are tracked separately.
+ * The plan calls for a configure-test drawer, invite code card, live
+ * participants list, and leaderboard history beyond the bare room
+ * metadata. Each of those lives in its own client component; this
+ * server file just gates by workspace membership and renders them.
  */
 
 import Link from "next/link";
@@ -19,6 +19,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { RoomConfigureTestDrawer } from "@/components/teacher/RoomConfigureTestDrawer";
+import { RoomInviteCodeCard } from "@/components/teacher/RoomInviteCodeCard";
+import { RoomLeaderboardHistory } from "@/components/teacher/RoomLeaderboardHistory";
+import { RoomParticipantsList } from "@/components/teacher/RoomParticipantsList";
 import { getTeacherRoomById } from "@/server/workspaces/teacher-rooms";
 import { loadWorkspaceForRender } from "@/server/workspaces/server-loader";
 
@@ -56,12 +60,17 @@ function formatDate(value: string | null): string {
 
 export default async function TeacherRoomDetailPage({ params }: Props) {
   const { workspaceId, roomId } = await params;
-  // Auth + workspace gating runs in the workspace layout; this just
-  // confirms the room belongs to this workspace.
-  await loadWorkspaceForRender(workspaceId);
+  const { membership, isPlatformAdmin } =
+    await loadWorkspaceForRender(workspaceId);
 
   const room = await getTeacherRoomById(workspaceId, roomId);
   if (!room) notFound();
+
+  const canManage =
+    isPlatformAdmin ||
+    membership?.role === "owner" ||
+    membership?.role === "admin" ||
+    membership?.role === "teacher";
 
   return (
     <div className="space-y-6">
@@ -79,11 +88,16 @@ export default async function TeacherRoomDetailPage({ params }: Props) {
             <span className="font-mono text-xs">{room.id}</span>
           </p>
         </div>
-        <Button asChild variant="outline">
-          <Link href={`/teacher/workspaces/${workspaceId}/rooms`}>
-            Back to Rooms
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          {canManage ? (
+            <RoomConfigureTestDrawer workspaceId={workspaceId} room={room} />
+          ) : null}
+          <Button asChild variant="outline">
+            <Link href={`/teacher/workspaces/${workspaceId}/rooms`}>
+              Back to Rooms
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -94,17 +108,18 @@ export default async function TeacherRoomDetailPage({ params }: Props) {
               {room.teacherTestId ? "Configured" : "Not configured"}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-2">
             {room.teacherTestId ? (
               <Link
                 href={`/teacher/workspaces/${workspaceId}/tests`}
                 className="text-sm text-primary hover:underline"
               >
-                View tests list
+                Open in Tests
               </Link>
             ) : (
               <p className="text-sm text-muted-foreground">
-                No test linked to this room.
+                Use the configure-test drawer to attach a workspace
+                test before starting the room.
               </p>
             )}
           </CardContent>
@@ -146,6 +161,51 @@ export default async function TeacherRoomDetailPage({ params }: Props) {
           </CardContent>
         </Card>
       </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Invite code</CardTitle>
+            <CardDescription>
+              Share with students to join the room. Codes expire and can
+              be regenerated while the room is in lobby.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <RoomInviteCodeCard
+              workspaceId={workspaceId}
+              room={room}
+              canManage={Boolean(canManage)}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Live participants</CardTitle>
+            <CardDescription>
+              Students currently in the room. Polled every 5 seconds while
+              the room is live.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <RoomParticipantsList workspaceId={workspaceId} room={room} />
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Leaderboard</CardTitle>
+          <CardDescription>
+            Live ranking for this room, plus the historical leaderboard
+            of every session of the attached test.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RoomLeaderboardHistory workspaceId={workspaceId} room={room} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
