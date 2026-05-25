@@ -42,7 +42,7 @@ export default function HomeClient() {
   };
 
   return (
-    <main className="relative min-h-screen bg-black">
+    <main className="relative min-h-screen bg-background text-foreground transition-colors duration-500">
       <AnimatePresence mode="wait">
         {showIntro ? (
           <motion.div

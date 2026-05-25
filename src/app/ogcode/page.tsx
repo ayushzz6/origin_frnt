@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
-import { getServerUser } from '@/lib/auth-server';
+import { getServerFrontendUser } from '@/lib/auth-server';
 import {
   getOgcodeIndexDataForRender,
 } from '@/server/render-loaders';
@@ -50,14 +50,17 @@ function normalizeStatus(status: string | undefined): 'solved' | 'unsolved' | nu
 }
 
 async function OGCodeContent({ searchParams }: PageProps) {
-  const serverUser = await getServerUser();
-  if (!serverUser) redirect('/');
+  const user = await getServerFrontendUser();
+  if (!user) redirect('/');
+  if (user.role === 'student' && !user.isPremium) {
+    redirect('/premium');
+  }
 
   const resolvedSearchParams = await searchParams;
   let initialData: Awaited<ReturnType<typeof getOgcodeIndexDataForRender>> | null = null;
 
   try {
-    initialData = await getOgcodeIndexDataForRender(serverUser.id, {
+    initialData = await getOgcodeIndexDataForRender(user.id, {
       subject: resolvedSearchParams.subject ?? null,
       difficulty: resolvedSearchParams.difficulty ?? null,
       status: normalizeStatus(resolvedSearchParams.status),

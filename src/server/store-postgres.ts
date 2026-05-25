@@ -524,7 +524,20 @@ export async function hydrateStoreFromPostgres(seed: AppStore): Promise<AppStore
   if (!isUserPostgresConfigured()) return seed;
 
   await ensureAppStoreSchema();
-  const [users, sessions, tasks] = await Promise.all([dbListUsers(), dbListAuthSessions(), loadTasks()]);
+
+  const specs = COLLECTION_SPECS;
+  const results = await Promise.all([
+    dbListUsers(),
+    dbListAuthSessions(),
+    loadTasks(),
+    ...specs.map((spec) => loadCollection(spec)),
+  ]);
+
+  const users = results[0] as StoredUser[];
+  const sessions = results[1] as StoredAuthSession[];
+  const tasks = results[2] as StoredTask[];
+  const collectionRows = results.slice(3) as MutableCollectionValue[][];
+
   const store = normalizeJson(seed);
 
   if (users.length > 0) {
@@ -537,8 +550,9 @@ export async function hydrateStoreFromPostgres(seed: AppStore): Promise<AppStore
   store.authSessions = sessions;
   store.tasks = tasks.length > 0 || pgOnlyFlag("tasks") ? tasks : store.tasks;
 
-  for (const spec of COLLECTION_SPECS) {
-    const rows = await loadCollection(spec);
+  for (let i = 0; i < specs.length; i++) {
+    const spec = specs[i];
+    const rows = collectionRows[i];
     if (rows.length > 0 || pgOnlyFlag(spec.key)) {
       (store[spec.key] as MutableCollectionValue[]) = rows;
     }

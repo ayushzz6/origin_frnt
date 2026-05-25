@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { loadAccessibleWorkspaces } from "@/server/workspaces/server-loader";
+import { TeacherLogoutButton } from "@/components/teacher/TeacherLogoutButton";
 
 export default async function TeacherHomePage() {
   const workspaces = await loadAccessibleWorkspaces();
@@ -60,6 +61,7 @@ export default async function TeacherHomePage() {
           ))}
         </div>
       )}
+      <TeacherLogoutButton />
     </div>
   );
 }

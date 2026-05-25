@@ -273,7 +273,7 @@ export default function TeacherOnboardingPage({ onComplete }: TeacherOnboardingP
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 via-white to-teal-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-teal-950/30 transition-colors duration-300">
+        <div className="min-h-screen flex items-center justify-center p-4 bg-background text-foreground transition-colors duration-300">
             {/* Background Decoration */}
             <div className="absolute inset-0 -z-10 overflow-hidden">
                 <div className="absolute top-20 left-10 w-72 h-72 bg-[#3CACA3]/5 dark:bg-[#3CACA3]/10 rounded-full blur-3xl" />

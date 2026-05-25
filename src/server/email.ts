@@ -105,10 +105,10 @@ function getTransporter(): Transporter {
     // Dev fallback: an opt-in mock that makes the absence of SMTP obvious in logs.
     const mock: Pick<Transporter, 'sendMail' | 'verify'> = {
       sendMail: async (options: SendMailOptions) => {
-        console.warn('[email] dev mock — no SMTP configured; logging instead of sending', {
-          to: redactEmail(options.to),
-          subjectLength: String(options.subject ?? '').length,
-          bodyLength: String(options.text ?? '').length,
+        console.warn('[email] dev mock — no SMTP configured; logging email content:', {
+          to: options.to,
+          subject: options.subject,
+          text: options.text,
         });
         return { messageId: 'dev-mock-' + Date.now() } as Awaited<ReturnType<Transporter['sendMail']>>;
       },

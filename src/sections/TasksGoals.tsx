@@ -97,7 +97,7 @@ export default function TasksGoals({ tasks, onAddTask, onToggleTask, onRemoveTas
   };
 
   return (
-    <div id="tutorial-goals-hub" className="min-h-screen bg-[#F8FAFC] dark:bg-[#020617] text-slate-900 dark:text-slate-100 p-3 sm:p-4 md:p-8 relative overflow-x-hidden">
+    <div id="tutorial-goals-hub" className="min-h-screen bg-background text-foreground p-3 sm:p-4 md:p-8 relative overflow-x-hidden">
       {/* Premium Background Decoration */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden opacity-30 dark:opacity-20">
         <div className="absolute top-[-20%] right-[-10%] w-[70%] h-[70%] bg-rose-100 dark:bg-primary/10 rounded-full blur-[120px]" />

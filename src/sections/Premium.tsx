@@ -124,9 +124,9 @@ export default function Premium({ user, onBack, onSubscribe }: PremiumProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-primary/5 dark:from-slate-950 dark:via-slate-900 dark:to-primary/5 text-slate-900 dark:text-slate-100 transition-colors duration-300">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       {/* Header */}
-      <header className="sticky top-0 z-40 glass border-b border-slate-200/50 dark:bg-slate-900/80 dark:border-slate-800/50 backdrop-blur-md">
+      <header className="sticky top-0 z-40 glass border-b border-border backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">

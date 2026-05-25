@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
-import { getServerUser } from '@/lib/auth-server';
+import { getServerFrontendUser } from '@/lib/auth-server';
 import { listTestsForRender } from '@/server/render-loaders';
 import TestsClient from './_client';
 import TestsLoading from './loading';
@@ -15,12 +15,15 @@ export default function TestsPage() {
 }
 
 async function TestsContent() {
-  const serverUser = await getServerUser();
-  if (!serverUser) redirect('/');
+  const user = await getServerFrontendUser();
+  if (!user) redirect('/');
+  if (user.role === 'student' && !user.isPremium) {
+    redirect('/premium');
+  }
 
   let initialTests: TestPreview[] = [];
   try {
-    initialTests = (await listTestsForRender(serverUser.id)) as unknown as TestPreview[];
+    initialTests = (await listTestsForRender(user.id)) as unknown as TestPreview[];
   } catch {
     // Fall back gracefully; TestList will fetch client-side on mount
   }

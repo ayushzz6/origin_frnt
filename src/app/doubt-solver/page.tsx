@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
-import { getServerUser } from '@/lib/auth-server';
+import { getServerFrontendUser } from '@/lib/auth-server';
 import DoubtSolverClient from './_client';
 
 export default function DoubtSolverPage() {
@@ -12,7 +12,10 @@ export default function DoubtSolverPage() {
 }
 
 async function DoubtSolverGate() {
-  const user = await getServerUser();
+  const user = await getServerFrontendUser();
   if (!user) redirect('/');
+  if (user.role === 'student' && !user.isPremium) {
+    redirect('/premium');
+  }
   return <DoubtSolverClient />;
 }

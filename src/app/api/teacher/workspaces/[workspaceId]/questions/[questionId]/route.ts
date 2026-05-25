@@ -37,7 +37,7 @@ const optionSchema = z.object({
 const editSchema = z.object({
   questionType: questionTypeEnum,
   stem: z.string().min(1),
-  options: z.array(optionSchema).optional(),
+  options: z.array(optionSchema).optional().nullable(),
   correctOption: z.number().int().min(0).optional().nullable(),
   correctOptions: z.array(z.number().int().min(0)).optional().nullable(),
   answerText: z.string().optional().nullable(),
@@ -50,7 +50,7 @@ const editSchema = z.object({
   chapter: z.string().min(1),
   concept: z.string().min(1),
   difficulty: difficultyEnum,
-  tags: z.array(z.string()).optional(),
+  tags: z.array(z.string()).optional().nullable(),
 });
 
 const submitOgCodeSchema = z.object({

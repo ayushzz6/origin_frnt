@@ -1,9 +1,8 @@
 export const dynamic = "force-dynamic";
 
-import { WorkspaceCodeManager } from "@/components/teacher/WorkspaceCodeManager";
-import { WorkspaceSettingsForm } from "@/components/teacher/WorkspaceSettingsForm";
+import { WorkspaceSettingsHighFidelity } from "@/components/teacher/WorkspaceSettingsHighFidelity";
 import { loadWorkspaceForRender } from "@/server/workspaces/server-loader";
-import { listCodesForWorkspace } from "@/server/workspaces/store";
+import { listCodesForWorkspace, listMembers } from "@/server/workspaces/store";
 
 type Props = {
   params: Promise<{ workspaceId: string }>;
@@ -16,33 +15,25 @@ export default async function WorkspaceSettingsPage({ params }: Props) {
     isPlatformAdmin ||
     membership?.role === "owner" ||
     membership?.role === "admin";
+    
   const codes = canEdit ? await listCodesForWorkspace(workspaceId) : [];
+  const members = await listMembers(workspaceId);
 
   return (
-    <div className="max-w-2xl space-y-10">
-      <section className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Workspace settings</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {canEdit
-              ? "Update display info for this workspace."
-              : "You do not have permission to edit settings."}
-          </p>
-        </div>
-        <WorkspaceSettingsForm workspace={workspace} canEdit={canEdit} />
-      </section>
-
-      {canEdit ? (
-        <section className="space-y-4">
-          <div>
-            <h2 className="text-xl font-semibold tracking-tight">Student join codes</h2>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Share these codes so students can enroll into your workspace. Rotate when a code leaks.
-            </p>
-          </div>
-          <WorkspaceCodeManager workspaceId={workspaceId} initialCodes={codes} />
-        </section>
-      ) : null}
+    <div className="space-y-6 max-w-6xl mx-auto">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Workspace Settings</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Manage workspace settings, co-teachers permissions, and OGCode publications.
+        </p>
+      </div>
+      
+      <WorkspaceSettingsHighFidelity 
+        workspace={workspace} 
+        initialCodes={codes} 
+        initialMembers={members} 
+        canEdit={canEdit} 
+      />
     </div>
   );
 }

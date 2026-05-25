@@ -371,8 +371,8 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
   const correctCount = checkResults.filter((result) => Boolean(result?.isCorrect ?? result?.is_correct)).length;
 
   return (
-    <div id="tutorial-dpp-hub" className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-teal-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-teal-950/30 text-slate-900 dark:text-slate-100 transition-colors duration-300">
-      <header className="z-40 bg-white/80 dark:bg-slate-900/80 border-b border-slate-200/50 dark:border-slate-800/50 backdrop-blur-md">
+    <div id="tutorial-dpp-hub" className="min-h-screen bg-background text-foreground transition-colors duration-300">
+      <header className="z-40 bg-background/80 border-b border-border backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14 sm:h-16">
             <div className="flex items-center gap-2 sm:gap-4 truncate">
