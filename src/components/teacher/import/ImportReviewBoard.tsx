@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { csrfHeaders } from "@/lib/csrf";
 import type {
   ImportJobQuestion,
   ImportQuestionStatus,
@@ -135,7 +136,8 @@ export function ImportReviewBoard({
       `/api/teacher/workspaces/${workspaceId}/import-jobs/${jobId}?action=bulk-accept`,
       {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...csrfHeaders() },
+        credentials: "include",
         body: JSON.stringify({ questionIds: ids }),
       },
     );
@@ -161,7 +163,8 @@ export function ImportReviewBoard({
       `/api/teacher/workspaces/${workspaceId}/import-jobs/${jobId}?action=review-question`,
       {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...csrfHeaders() },
+        credentials: "include",
         body: JSON.stringify({
           action,
           questionId: id,

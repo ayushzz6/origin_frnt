@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
+import { csrfHeaders } from "@/lib/csrf";
 import type { WorkspaceStatus } from "@/server/workspaces/types";
 
 type Props =
@@ -39,7 +40,7 @@ export function AdminWorkspaceActions(props: Props) {
             if (!ok) return;
             const res = await fetch(
               `/api/admin/workspaces/${props.workspaceId}/codes/${props.codeId}/revoke`,
-              { method: "POST" },
+              { method: "POST", headers: csrfHeaders(), credentials: "include" },
             );
             if (!res.ok) {
               const data = (await res.json().catch(() => ({}))) as {
@@ -68,7 +69,8 @@ export function AdminWorkspaceActions(props: Props) {
 
     const res = await fetch(`/api/admin/workspaces/${props.workspaceId}`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...csrfHeaders() },
+      credentials: "include",
       body: JSON.stringify({ action }),
     });
     if (!res.ok) {

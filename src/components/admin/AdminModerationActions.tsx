@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
+import { csrfHeaders } from "@/lib/csrf";
 
 type Props = {
   publicationId: string;
@@ -19,7 +20,8 @@ export function AdminModerationActions({ publicationId }: Props) {
       `/api/admin/ogcode/moderation/${publicationId}/approve`,
       {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...csrfHeaders() },
+        credentials: "include",
         body: JSON.stringify({ publish }),
       },
     );
@@ -47,7 +49,8 @@ export function AdminModerationActions({ publicationId }: Props) {
       `/api/admin/ogcode/moderation/${publicationId}/reject`,
       {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...csrfHeaders() },
+        credentials: "include",
         body: JSON.stringify({ mode, notes: notes || null }),
       },
     );

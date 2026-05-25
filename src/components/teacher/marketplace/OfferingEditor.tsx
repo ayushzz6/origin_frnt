@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { csrfHeaders } from "@/lib/csrf";
 
 type Props = {
   workspaceId: string;
@@ -40,7 +41,8 @@ export function OfferingEditor({ workspaceId }: Props) {
         `/api/teacher/workspaces/${workspaceId}/offerings`,
         {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: { "content-type": "application/json", ...csrfHeaders() },
+          credentials: "include",
           body: JSON.stringify({
             title,
             description: description || null,
@@ -66,7 +68,8 @@ export function OfferingEditor({ workspaceId }: Props) {
           `/api/teacher/workspaces/${workspaceId}/offerings/${data.offering.id}`,
           {
             method: "PATCH",
-            headers: { "content-type": "application/json" },
+            headers: { "content-type": "application/json", ...csrfHeaders() },
+            credentials: "include",
             body: JSON.stringify({ status: "active" }),
           },
         );
