@@ -19,7 +19,7 @@ export function getUserPostgresPool(): Pool | null {
   const connectionString = getConnectionString();
   if (!connectionString) return null;
 
-  const poolConfig = createPostgresPoolConfig(connectionString, 5);
+  const poolConfig = createPostgresPoolConfig(connectionString, 25);
 
   if (!globalThis.__originUserPool || globalThis.__originUserPoolConnectionString !== poolConfig.connectionString) {
     void globalThis.__originUserPool?.end().catch(() => undefined);

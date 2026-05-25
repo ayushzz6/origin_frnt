@@ -40,7 +40,7 @@ export default function MilestonesPage({ onBack, userPoints }: MilestonesPagePro
   const currentTier = [...TIER_THRESHOLDS].reverse().find(t => totalPoints >= t.min) || TIER_THRESHOLDS[0];
 
   return (
-    <div className="min-h-screen bg-[#030712] text-white relative overflow-hidden">
+    <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-indigo-600/10 blur-[120px]" />
@@ -48,7 +48,7 @@ export default function MilestonesPage({ onBack, userPoints }: MilestonesPagePro
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-20 flex items-center justify-between px-6 py-4 border-b border-white/5 bg-[#030712]/80 backdrop-blur-lg">
+      <header className="sticky top-0 z-20 flex items-center justify-between px-6 py-4 border-b border-border bg-background/80 backdrop-blur-lg">
         <div className="flex items-center gap-4">
           <button
             onClick={onBack}

@@ -1193,6 +1193,9 @@ function ensureAllCollections(store: AppStore): boolean {
 
 let cachedStore: AppStore | null = null;
 let cachedSeedStore: AppStore | null = null;
+let lastHydratedAt = 0;
+const CACHE_TTL_MS = 2000; // Cache for 2 seconds
+let activeHydrationPromise: Promise<AppStore> | null = null;
 
 function getSeedStore(): AppStore {
   if (!cachedSeedStore) {
@@ -1210,21 +1213,40 @@ export function readStore(): AppStore {
   return cachedStore;
 }
 
-export async function readStoreAsync(): Promise<AppStore> {
-  const seed = getSeedStore();
-  const store = await hydrateStoreFromPostgres(seed);
-  cachedStore = store;
-  return store;
+export async function readStoreAsync(forceFresh = false): Promise<AppStore> {
+  const now = Date.now();
+  if (cachedStore && !forceFresh && (now - lastHydratedAt < CACHE_TTL_MS)) {
+    return cachedStore;
+  }
+
+  if (activeHydrationPromise && !forceFresh) {
+    return activeHydrationPromise;
+  }
+
+  activeHydrationPromise = (async () => {
+    try {
+      const seed = getSeedStore();
+      const store = await hydrateStoreFromPostgres(seed);
+      cachedStore = store;
+      lastHydratedAt = Date.now();
+      return store;
+    } finally {
+      activeHydrationPromise = null;
+    }
+  })();
+
+  return activeHydrationPromise;
 }
 
 const storeMutex = new Mutex();
 
 export async function withStoreAsync<T>(mutate: (store: AppStore) => Promise<T> | T): Promise<T> {
   return storeMutex.runExclusive(async () => {
-    const store = await readStoreAsync();
+    const store = await readStoreAsync(true);
     const result = await mutate(store);
     await persistStoreToPostgres(store);
     cachedStore = store;
+    lastHydratedAt = Date.now();
     return result;
   });
 }

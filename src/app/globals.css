@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "katex/dist/katex.min.css";
 
@@ -26,6 +27,9 @@
 
   --radius: 0.75rem;
 
+  --font-display: var(--font-display);
+  --font-sans: var(--font-body);
+
   --color-origin-blue: #2563eb;
   --color-origin-dark: #020617;
 
@@ -33,47 +37,49 @@
 }
 
 :root {
-  --background: 345 60% 97.5%; /* More saturated lightish pink */
-  --foreground: 222.2 47.4% 11.2%;
-  --card: 345 50% 98.5%; /* Pinkish cards instead of pure white */
-  --card-foreground: 222.2 47.4% 11.2%;
-  --popover: 345 50% 98.5%;
-  --popover-foreground: 222.2 47.4% 11.2%;
-  --primary: 346.8 77.2% 49.8%;
-  --primary-foreground: 350 100% 98%;
-  --secondary: 350 40% 95%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 350 40% 95%;
-  --muted-foreground: 350 10% 45%;
-  --accent: 350 40% 95%;
-  --accent-foreground: 222.2 47.4% 11.2%;
+  --font-display: 'Instrument Serif', serif;
+  --font-body: 'Inter', sans-serif;
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --primary: 199 94% 60%;
+  --primary-foreground: 0 0% 0%;
+  --secondary: 220 14.3% 95.9%;
+  --secondary-foreground: 220 8.9% 46.1%;
+  --muted: 220 14.3% 95.9%;
+  --muted-foreground: 220 8.9% 46.1%;
+  --accent: 220 14.3% 95.9%;
+  --accent-foreground: 222.2 84% 4.9%;
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 210 40% 98%;
-  --border: 350 30% 92%;
-  --input: 350 30% 92%;
-  --ring: 346.8 77.2% 49.8%;
+  --border: 0 0% 0%;
+  --input: 0 0% 0%;
+  --ring: 199 94% 60%;
 }
 
 .dark {
-  --background: 224 71% 4%; /* Deep dark with hint of navy/black */
-  --foreground: 350 40% 98%;
-  --card: 224 71% 4%;
-  --card-foreground: 350 40% 98%;
-  --popover: 224 71% 4%;
-  --popover-foreground: 350 40% 98%;
-  --primary: 221.2 83.2% 53.3%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 222.2 47.4% 11.2%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 222.2 47.4% 11.2%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 222.2 47.4% 11.2%;
-  --accent-foreground: 210 40% 98%;
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+  --muted-foreground: 240 4% 66%;
+  --primary: 0 0% 100%;
+  --primary-foreground: 0 0% 4%;
+  --secondary: 0 0% 10%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 0 0% 10%;
+  --accent: 0 0% 10%;
+  --accent-foreground: 0 0% 98%;
+  --border: 0 0% 100% / 30%;
+  --input: 0 0% 100% / 30%;
+  --ring: 0 0% 100%;
+  --card: 0 0% 0%;
+  --card-foreground: 0 0% 100%;
+  --popover: 0 0% 0%;
+  --popover-foreground: 0 0% 100%;
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 224.3 76.3% 48.0%;
 }
 
 @layer base {
@@ -82,7 +88,7 @@
   }
   body {
     @apply bg-background text-foreground antialiased selection:bg-primary/20 transition-colors duration-500;
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: var(--font-body), system-ui, sans-serif;
   }
 }
 
@@ -234,4 +240,147 @@
     margin: 0 !important;
     display: inline-block !important;
   }
+
+  /* Cinematic animations */
+  @keyframes fade-rise {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-fade-rise { animation: fade-rise 0.8s ease-out both; }
+  .animate-fade-rise-delay { animation: fade-rise 0.8s ease-out 0.2s both; }
+  .animate-fade-rise-delay-2 { animation: fade-rise 0.8s ease-out 0.4s both; }
+
+  /* Liquid Glass styles */
+  .liquid-glass {
+    background: rgba(255, 255, 255, 0.01);
+    background-blend-mode: luminosity;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: none;
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+  }
+  .liquid-glass::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1.4px;
+    background: linear-gradient(180deg,
+      rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.15) 20%,
+      rgba(255,255,255,0) 40%, rgba(255,255,255,0) 60%,
+      rgba(255,255,255,0.15) 80%, rgba(255,255,255,0.45) 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
 }
+
+/* Pure Theme Background Overrides (Force Pure Dark & Pure White) */
+
+/* 1. Hide decorative background glow elements with large blurs */
+[class*="blur-[60px]"],
+[class*="blur-[80px]"],
+[class*="blur-[100px]"],
+[class*="blur-[120px]"],
+[class*="blur-[130px]"],
+[class*="blur-[140px]"],
+[class*="blur-[160px]"] {
+  display: none !important;
+}
+
+/* 2. Force slate/zinc/gray backgrounds in dark mode to be pure black (#000000) */
+.dark .bg-slate-900,
+.dark .bg-slate-950,
+.dark .bg-zinc-900,
+.dark .bg-zinc-950,
+.dark .bg-neutral-900,
+.dark .bg-neutral-950,
+.dark [class*="bg-slate-900/"],
+.dark [class*="bg-slate-950/"],
+.dark [class*="bg-zinc-900/"],
+.dark [class*="bg-zinc-950/"] {
+  background-color: #000000 !important;
+}
+
+/* 3. Force white/slate/zinc/gray light backgrounds in light mode to be pure white (#ffffff) */
+html:not(.dark) .bg-slate-50,
+html:not(.dark) .bg-slate-100,
+html:not(.dark) .bg-gray-50,
+html:not(.dark) .bg-gray-100,
+html:not(.dark) .bg-zinc-50,
+html:not(.dark) .bg-zinc-100,
+html:not(.dark) [class*="bg-slate-50/"],
+html:not(.dark) [class*="bg-slate-100/"],
+html:not(.dark) [class*="bg-gray-50/"],
+html:not(.dark) [class*="bg-gray-100/"],
+html:not(.dark) [class*="bg-zinc-50/"],
+html:not(.dark) [class*="bg-zinc-100/"] {
+  background-color: #ffffff !important;
+}
+
+/* Custom Border Alignment (Shiny Light White in Dark Mode, solid Black in Light Mode) */
+
+/* 1. Dark Theme Borders: Override explicit gray/slate/zinc/white border classes to be shiny light white and thicker (2px) */
+.dark .border:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]) {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  border-width: 2px !important;
+}
+.dark .border-t:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]) {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  border-top-width: 2px !important;
+}
+.dark .border-b:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]) {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  border-bottom-width: 2px !important;
+}
+.dark .border-l:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]) {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  border-left-width: 2px !important;
+}
+.dark .border-r:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]) {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  border-right-width: 2px !important;
+}
+.dark .border-x:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]) {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  border-left-width: 2px !important;
+  border-right-width: 2px !important;
+}
+.dark .border-y:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]) {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  border-top-width: 2px !important;
+  border-bottom-width: 2px !important;
+}
+
+.dark [class*="border-slate-"],
+.dark [class*="border-zinc-"],
+.dark [class*="border-white/10"],
+.dark [class*="border-white/5"],
+.dark [class*="border-border"] {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* 2. Light Theme Borders: Override explicit gray/slate/zinc/black border classes to be solid black */
+html:not(.dark) .border:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]),
+html:not(.dark) .border-t:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]),
+html:not(.dark) .border-b:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]),
+html:not(.dark) .border-l:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]),
+html:not(.dark) .border-r:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]),
+html:not(.dark) .border-x:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]),
+html:not(.dark) .border-y:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]),
+html:not(.dark) [class*="border-slate-"],
+html:not(.dark) [class*="border-zinc-"],
+html:not(.dark) [class*="border-gray-"],
+html:not(.dark) [class*="border-[#F1F5F9]"],
+html:not(.dark) [class*="border-[#E2E8F0]"],
+html:not(.dark) [class*="border-[#e2e8f0]"],
+html:not(.dark) [class*="border-[#f1f5f9]"],
+html:not(.dark) [class*="border-border"] {
+  border-color: #000000 !important;
+}
+
+

@@ -11,6 +11,8 @@ import EvilEye from '@/components/EvilEye';
 const FloatingLines = dynamic(() => import('@/components/ui/FloatingLines'), { ssr: false });
 const CardSwap = dynamic(() => import('@/components/ui/CardSwap'), { ssr: false });
 import { useTheme } from 'next-themes';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
 import {
   MessageCircle,
   BarChart3,
@@ -24,7 +26,8 @@ import {
   ChevronRight,
   CheckCircle2,
   Sun,
-  Moon
+  Moon,
+  Crown
 } from 'lucide-react';
 import { getRegistrationStatusAction } from '@/server/actions/system-actions';
 
@@ -100,12 +103,43 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
   const heroRef = useRef<HTMLDivElement>(null);
   const howItWorksRef = useRef<HTMLDivElement>(null);
   const { theme, setTheme, resolvedTheme } = useTheme();
+  const { user } = useAuth();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [regStatus, setRegStatus] = useState<{ count: number; limit: number; seatsLeft: number } | null>(null);
   const counterRef = useRef<HTMLDivElement>(null);
   const isCounterInView = useInView(counterRef, { once: true, amount: 0.5 });
+
+  const navLinks = [
+    { name: 'Dashboard', path: '/dashboard', isPremium: false },
+    { name: 'OGCode', path: '/ogcode', isPremium: true },
+    { name: 'AI Explainer', path: '/doubt-solver', isPremium: true },
+    { name: 'Study Rooms', path: '/study-rooms', isPremium: true },
+    { name: 'Tests', path: '/tests', isPremium: true },
+  ];
+
+  const handleNavLinkClick = (e: React.MouseEvent, path: string, isPremiumLink: boolean) => {
+    e.preventDefault();
+    if (!user) {
+      router.push('/role-selection');
+      return;
+    }
+    if (user.role === 'teacher') {
+      router.push('/teacher');
+      return;
+    }
+    if (user.role === 'admin') {
+      router.push('/admin');
+      return;
+    }
+    if (isPremiumLink && !user.isPremium) {
+      router.push('/premium');
+      return;
+    }
+    router.push(path);
+  };
 
   useEffect(() => {
     const fetchRegStatus = async () => {
@@ -196,12 +230,12 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
 
   // Enhanced FeatureCard with nicer styling, borders, hover effects
   const FeatureCard = ({ feature }: { feature: typeof features[0] }) => (
-    <div className="group relative bg-card/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-800/50 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 overflow-hidden h-full flex flex-col">
+    <div className="group relative bg-card/80 dark:bg-card/85 backdrop-blur-xl rounded-3xl border border-border/50 dark:border-white/10 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 overflow-hidden h-full flex flex-col">
       {/* Gradient top line */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/60 via-primary to-primary/60 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       
       {/* Tab Header */}
-      <div className="h-14 bg-gray-50/50 dark:bg-gray-800/30 border-b border-gray-200/30 dark:border-gray-700/30 flex items-center px-6 gap-3 shrink-0">
+      <div className="h-14 bg-gray-50/50 dark:bg-white/[0.01] border-b border-border/30 dark:border-white/10 flex items-center px-6 gap-3 shrink-0">
         <div className="flex gap-2">
           <div className="w-3 h-3 rounded-full bg-red-400/60" />
           <div className="w-3 h-3 rounded-full bg-amber-400/60" />
@@ -225,7 +259,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         </p>
 
         {/* Video Preview */}
-        <div className="w-full mt-auto rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 shadow-md group-hover:shadow-xl transition-all duration-500 relative h-32">
+        <div className="w-full mt-auto rounded-xl overflow-hidden border border-border dark:border-white/10 bg-gray-100 dark:bg-white/[0.05] shadow-md group-hover:shadow-xl transition-all duration-500 relative h-32">
           <video
             autoPlay
             loop
@@ -245,25 +279,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
   );
 
   return (
-    <div className="min-h-screen bg-background dark:bg-gray-950 text-gray-900 dark:text-white selection:bg-rose-200 dark:selection:bg-rose-800/50 font-sans antialiased transition-colors duration-500 relative overflow-x-hidden">
-      {/* Background Layer: Dark Theme (Evil Eye) */}
-      {/* {mounted && actualTheme === 'dark' && (
-        <div className="fixed inset-0 z-0 pointer-events-none">
-          <EvilEye
-            eyeColor="#0cc6efff"
-            intensity={0.6}
-            pupilSize={0.65}
-            irisWidth={0.5}
-            glowIntensity={0.25}
-            scale={0.85}
-            noiseScale={1.2}
-            pupilFollow={1.5}
-            flameSpeed={1}
-            backgroundColor="#000000ff"
-          />
-        </div>
-      )} */}
-
+    <div className="min-h-screen bg-background text-foreground selection:bg-primary/20 font-sans antialiased transition-colors duration-500 relative overflow-x-hidden">
       {/* Background Layer: Light Theme – softer wave lines */}
       {mounted && actualTheme === 'light' && (
         <div className="fixed inset-0 z-0 pointer-events-none opacity-70">
@@ -279,149 +295,146 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
           />
         </div>
       )}
-      {mounted && actualTheme === 'dark' && (
-        <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-          {/* Subtle vignette for depth */}
-          <div className="absolute inset-0 z-[1] bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)]" />
-          
-          <FloatingLines
-            enabledWaves={['top', 'middle', 'bottom']}
-            linesGradient={['#6366f1', '#06b6d4', '#d946ef', '#4f46e5']}
-            lineCount={[8, 12, 16]}
-            lineDistance={[8, 6, 4]}
-            bendRadius={5.0}
-            bendStrength={-0.6}
-            interactive={true}
-            parallax={true}
-          />
-        </div>
-      )}
-      {/* Navigation – refined glass with subtle shadow */}
-      <nav className="fixed top-6 left-0 right-0 mx-auto z-50 flex justify-center px-4">
-        <div className="bg-card/70 dark:bg-black/50 backdrop-blur-xl px-3 py-2 rounded-full flex items-center justify-between lg:justify-center gap-4 lg:gap-12 shadow-lg border border-rose-100 dark:border-white/10 ring-1 ring-black/5 w-full max-w-fit md:w-auto transition-all duration-300 hover:shadow-xl">
+      {/* Hero Section Wrapper for Dark Theme Video Background */}
+      <div className="relative min-h-screen flex flex-col justify-between z-10 overflow-hidden">
+        {mounted && actualTheme === 'dark' && (
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
+          >
+            <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260314_131748_f2ca2a28-fed7-44c8-b9a9-bd9acdd5ec31.mp4" type="video/mp4" />
+          </video>
+        )}
+
+        {/* Navigation – glassmorphic floating navbar */}
+        <nav className="relative z-10 flex flex-row justify-between items-center px-8 py-4 max-w-7xl mx-auto w-[calc(100%-2rem)] mt-6 rounded-full border border-black/5 dark:border-white/5 bg-white/20 dark:bg-white/[0.02] backdrop-blur-md shadow-[0_8px_32px_0_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
           <div className="flex items-center gap-3">
             <img src="/origin-new.jpg" alt="ORIGIN" className="h-9 w-auto rounded-lg object-contain" />
+            <span 
+              className="text-3xl tracking-tight text-foreground font-normal"
+              style={{ fontFamily: "'Instrument Serif', serif" }}
+            >
+              O3 Origin<sup className="text-xs">®</sup>
+            </span>
           </div>
 
-          {/* Desktop Links */}
-          <div className="hidden lg:flex items-center gap-8 px-3">
-            <a href="#features" className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-all duration-300">
-              Features
-            </a>
-            <a href="#how-it-works" className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-all duration-300">
-              Protocol
-            </a>
-            <a href="#pricing" className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-all duration-300">
-              Pricing
-            </a>
+          {/* Desktop Links (hidden on mobile, md:flex) */}
+          <div className="hidden md:flex items-center gap-8">
+            {navLinks.map((link) => (
+              <a
+                key={link.name}
+                href={link.path}
+                onClick={(e) => handleNavLinkClick(e, link.path, link.isPremium)}
+                className={`text-sm font-medium transition-colors hover:text-foreground flex items-center gap-1.5 ${link.path === '/dashboard' ? 'text-foreground font-semibold' : 'text-muted-foreground'}`}
+              >
+                {link.name}
+                {link.isPremium && (
+                  <Crown className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20" />
+                )}
+              </a>
+            ))}
           </div>
 
-          <div className="flex items-center gap-2 lg:gap-3 pr-1">
+          <div className="flex items-center gap-4">
             <button
               onClick={() => setTheme(actualTheme === 'dark' ? 'light' : 'dark')}
-              className="hidden lg:flex items-center justify-center p-2 rounded-full bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 border border-gray-200 dark:border-white/10 transition-all duration-300 active:scale-90"
+              className="flex items-center justify-center p-2 rounded-full hover:bg-white/10 border border-white/10 transition-all duration-300"
             >
               {mounted && (actualTheme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-primary" />)}
             </button>
-
-            <Button
+            
+            <button
               onClick={onGetStarted}
-              className="bg-primary hover:opacity-90 text-primary-foreground rounded-full px-7 lg:px-10 h-10 lg:h-11 text-[10px] lg:text-[11px] uppercase tracking-[0.2em] font-black shadow-md hover:shadow-xl transition-all duration-300 active:scale-95"
+              className="liquid-glass rounded-full px-6 py-2.5 text-sm text-foreground hover:scale-[1.03] transition-transform cursor-pointer"
             >
-              Join Now
-            </Button>
+              Begin Journey
+            </button>
 
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="lg:hidden p-2 text-gray-600 dark:text-gray-300">
+            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden p-2 text-foreground">
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
-        </div>
-      </nav>
+        </nav>
 
-      {/* Mobile Menu Overlay – smooth */}
-      {mobileMenuOpen && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          className="fixed inset-0 z-[45] bg-background/95 dark:bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center p-8 lg:hidden"
-        >
-          <div className="flex flex-col items-center gap-12 w-full max-w-sm">
-            {[
-              { name: 'Features', href: '#features' },
-              { name: 'Protocol', href: '#how-it-works' },
-              { name: 'Pricing', href: '#pricing' }
-            ].map((link) => (
-              <a
-                key={link.name}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className="text-3xl font-black uppercase tracking-[0.2em] text-gray-800 dark:text-white hover:text-primary transition-all active:scale-95"
-              >
-                {link.name}
-              </a>
-            ))}
-            <div className="h-px w-full bg-gray-200 dark:bg-gray-800" />
-            <div className="flex items-center justify-between w-full px-8">
-              <span className="text-xs font-black uppercase tracking-widest text-gray-500">Theme</span>
-              <button
-                onClick={() => setTheme(actualTheme === 'dark' ? 'light' : 'dark')}
-                className="flex items-center gap-3 px-6 py-3 rounded-full border border-gray-300 dark:border-gray-700 text-gray-800 dark:text-white font-black text-xs uppercase tracking-widest bg-gray-100 dark:bg-gray-800"
-              >
-                {mounted ? (actualTheme === 'dark' ? <><Sun className="w-4 h-4" /> Light</> : <><Moon className="w-4 h-4" /> Dark</>) : <><Moon className="w-4 h-4" /> Dark</>}
-              </button>
+        {/* Mobile Menu Overlay – smooth */}
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed inset-0 z-[45] bg-background/95 backdrop-blur-2xl flex flex-col items-center justify-center p-8 md:hidden"
+          >
+            <div className="flex flex-col items-center gap-12 w-full max-w-sm">
+              {navLinks.map((link) => (
+                <a
+                  key={link.name}
+                  href={link.path}
+                  onClick={(e) => {
+                    setMobileMenuOpen(false);
+                    handleNavLinkClick(e, link.path, link.isPremium);
+                  }}
+                  className={`text-3xl font-black uppercase tracking-[0.2em] hover:text-primary transition-all active:scale-95 flex items-center gap-2 ${link.path === '/dashboard' ? 'text-foreground' : 'text-muted-foreground'}`}
+                >
+                  {link.name}
+                  {link.isPremium && (
+                    <Crown className="w-6 h-6 text-amber-500 fill-amber-500/20" />
+                  )}
+                </a>
+              ))}
+              <div className="h-px w-full bg-border" />
+              <div className="flex items-center justify-between w-full px-8">
+                <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Theme</span>
+                <button
+                  onClick={() => setTheme(actualTheme === 'dark' ? 'light' : 'dark')}
+                  className="flex items-center gap-3 px-6 py-3 rounded-full border border-border text-foreground font-black text-xs uppercase tracking-widest bg-muted"
+                >
+                  {mounted ? (actualTheme === 'dark' ? <><Sun className="w-4 h-4" /> Light</> : <><Moon className="w-4 h-4" /> Dark</>) : <><Moon className="w-4 h-4" /> Dark</>}
+                </button>
+              </div>
             </div>
-          </div>
-        </motion.div>
-      )}
+          </motion.div>
+        )}
 
-      {/* Hero Section – enhanced typography + spacing */}
-      <section ref={heroRef} className="relative min-h-[90vh] flex items-center justify-center pt-32 pb-20 overflow-hidden z-10 px-4">
-        <div className="max-w-6xl mx-auto text-center space-y-12">
-          <div className="flex flex-col items-center space-y-12">
-            <div className="space-y-6">
-              {/* {regStatus && regStatus.seatsLeft > 0 && (
-                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-emerald-50 dark:bg-blue-900/30 border border-emerald-200 dark:border-blue-800 text-rose-700 dark:text-blue-300 shadow-sm">
-                  <Sparkles className="w-4 h-4 animate-pulse" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">Limited Access: {regStatus.seatsLeft} Seats Left</span>
-                </motion.div>
-              )} */}
-              <h1 className="text-6xl sm:text-8xl lg:text-9xl font-black tracking-tighter leading-[0.9] text-gray-900 dark:text-white flex flex-col items-center">
-                <span className="opacity-90">The Topper Knew Something</span>
-                <span className="block text-4xl sm:text-7xl lg:text-[5rem] xl:text-[7rem] bg-gradient-to-r from-primary via-primary/90 to-primary bg-clip-text text-transparent mt-4 pb-4">
-                  You didn't. Now you do.
-                </span>
-              </h1>
-            </div>
-            <p className="text-lg sm:text-xl md:text-2xl text-gray-600 dark:text-white/80 max-w-2xl mx-auto font-medium leading-relaxed">
-              Crack Every Competitive Exams with Unfair Precision using A.I. <br className="hidden sm:block" /> Stop guessing, start mastering.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-5 pt-6">
-              <Button onClick={onGetStarted} size="lg" className="w-full sm:w-auto rounded-full px-12 py-9 text-2xl bg-primary hover:opacity-90 shadow-xl shadow-primary/30 transition-all hover:scale-105 group font-black uppercase tracking-wider">
-                Join Origin
-                <ChevronRight className="w-6 h-6 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Button>
-              <Button variant="outline" size="lg" className="w-full sm:w-auto rounded-full px-12 py-9 text-2xl border-2 border-gray-300 dark:border-white/20 text-gray-800 dark:text-white hover:bg-gray-50 dark:hover:bg-white/10 transition-all hover:scale-105 font-black uppercase tracking-wider" onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}>
-                Explore Protocol
-              </Button>
-            </div>
-          </div>
+        {/* Hero Section – cinematic and vertically centered */}
+        <section ref={heroRef} className="relative z-10 flex flex-col items-center justify-center text-center px-6 flex-grow max-w-7xl mx-auto w-full py-12">
+          <h1 
+            className="text-5xl sm:text-7xl md:text-8xl leading-[0.95] tracking-[-2.46px] max-w-7xl font-normal text-foreground animate-fade-rise"
+            style={{ fontFamily: "'Instrument Serif', serif" }}
+          >
+            Where <em className="not-italic text-muted-foreground">dreams</em> rise <em className="not-italic text-muted-foreground">through the silence.</em>
+          </h1>
+          
+          <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mt-8 leading-relaxed animate-fade-rise-delay">
+            We're designing tools for deep thinkers, bold creators, and quiet rebels. Amid the chaos, we build digital spaces for sharp focus and inspired work.
+          </p>
 
-          {/* Stats row with subtle hover */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.6 }} className="pt-20 flex flex-wrap items-center justify-center gap-12 md:gap-20">
+          <button
+            onClick={onGetStarted}
+            className="liquid-glass rounded-full px-14 py-5 text-base text-foreground mt-12 hover:scale-[1.03] transition-transform cursor-pointer animate-fade-rise-delay-2"
+          >
+            Begin Journey
+          </button>
+        </section>
+
+        {/* Stats row with subtle hover at the bottom of the first page viewport */}
+        <div className="relative z-10 w-full pb-16">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.6 }} className="flex flex-wrap items-center justify-center gap-12 md:gap-20">
             {stats.map((stat, i) => (
               <div key={i} className="text-center group">
-                <div className="text-3xl font-black text-gray-800 dark:text-white mb-2 group-hover:scale-110 transition-transform tracking-tight">
+                <div className="text-3xl font-black text-foreground mb-2 group-hover:scale-110 transition-transform tracking-tight">
                   {stat.value}
                 </div>
-                <div className="text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-[0.3em]">
+                <div className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">
                   {stat.label}
                 </div>
               </div>
             ))}
           </motion.div>
         </div>
-      </section>
+      </div>
 
       {/* Features Section - Responsive: Rotating cards on desktop, grid on mobile */}
       <section id="features" className="py-28 lg:py-36 relative z-10 overflow-x-hidden">
@@ -441,8 +454,8 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             <div className="flex justify-center items-center min-h-[520px] w-full relative">
               <CardSwap className="relative !transform-none !bottom-auto !right-auto mx-auto" width="520px" height="520px" verticalDistance={40} pauseOnHover={true}>
                 {features.map((feature, index) => (
-                  <Card key={index} className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-3xl border border-gray-200/70 dark:border-gray-800/70 shadow-2xl overflow-hidden">
-                    <div className="h-14 bg-gray-50/80 dark:bg-gray-800/40 border-b border-gray-200/50 dark:border-gray-700/50 flex items-center px-6 gap-3">
+                  <Card key={index} className="bg-white/90 dark:bg-card/95 backdrop-blur-xl rounded-3xl border border-border/70 dark:border-white/10 shadow-2xl overflow-hidden">
+                    <div className="h-14 bg-gray-50/80 dark:bg-white/[0.02] border-b border-border/50 dark:border-white/10 flex items-center px-6 gap-3">
                       <div className="flex gap-2">
                         <div className="w-3 h-3 rounded-full bg-red-400/60" />
                         <div className="w-3 h-3 rounded-full bg-amber-400/60" />
@@ -456,7 +469,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
                       </div>
                       <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">{feature.title}</h3>
                       <p className="text-gray-600 dark:text-gray-300 leading-relaxed font-medium mb-6">{feature.description}</p>
-                      <div className="w-full rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 relative h-32">
+                      <div className="w-full rounded-xl overflow-hidden border border-border dark:border-white/10 bg-gray-100 dark:bg-white/[0.05] relative h-32">
                         <video autoPlay loop muted playsInline className="w-full h-full object-cover" poster="/video-poster.jpg">
                           <source src={feature.video} type="video/mp4" />
                         </video>
@@ -502,7 +515,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
               </motion.div>
               <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8 }} viewport={{ once: true }} className="flex-1 relative group">
                 <div className="absolute inset-0 bg-primary/80/20 blur-[80px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                <div className="relative rounded-3xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-2xl">
+                <div className="relative rounded-3xl overflow-hidden border border-border dark:border-white/10 shadow-2xl">
                   <img src="/images/protocol/diagnose.png" alt="Diagnose" className="w-full h-auto object-cover hover:scale-105 transition-transform duration-1000" />
                 </div>
               </motion.div>
@@ -526,7 +539,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
               </motion.div>
               <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8 }} viewport={{ once: true }} className="flex-1 relative group">
                 <div className="absolute inset-0 bg-primary/80/20 blur-[80px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                <div className="relative rounded-3xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-2xl">
+                <div className="relative rounded-3xl overflow-hidden border border-border dark:border-white/10 shadow-2xl">
                   <img src="/images/protocol/plan.png" alt="Plan" className="w-full h-auto object-cover hover:scale-105 transition-transform duration-1000" />
                 </div>
               </motion.div>
@@ -550,7 +563,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
               </motion.div>
               <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8 }} viewport={{ once: true }} className="flex-1 relative group">
                 <div className="absolute inset-0 bg-teal-500/20 blur-[80px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                <div className="relative rounded-3xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-2xl">
+                <div className="relative rounded-3xl overflow-hidden border border-border dark:border-white/10 shadow-2xl">
                   <img src="/images/protocol/execute.png" alt="Execute" className="w-full h-auto object-cover hover:scale-105 transition-transform duration-1000" />
                 </div>
               </motion.div>
@@ -574,7 +587,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
               </motion.div>
               <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8 }} viewport={{ once: true }} className="flex-1 relative group">
                 <div className="absolute inset-0 bg-amber-500/20 blur-[80px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                <div className="relative rounded-3xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-2xl">
+                <div className="relative rounded-3xl overflow-hidden border border-border dark:border-white/10 shadow-2xl">
                   <img src="/images/protocol/achieve.png" alt="Achieve" className="w-full h-auto object-cover hover:scale-105 transition-transform duration-1000" />
                 </div>
               </motion.div>
@@ -636,7 +649,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
               { name: 'Pro', price: 'Waitlist', desc: 'The complete performance architecture.', features: ['Unlimited AI Research', 'Cognitive Failure Analysis', 'Dynamic Personalized Paths', 'Adaptive Arena Access', 'Rank Improvement Metrics', 'Focus & Velocity Tracking', 'Elite Community Access', 'Priority Support'], cta: 'Join Waitlist', popular: true, comingSoon: true },
               { name: 'Elite', price: 'Waitlist', desc: '1-on-1 performance engineering.', features: ['Everything in Pro', 'Personal AI Tutor Agent', 'Mastery-Based Explanations', 'End-to-End Milestone Maps', 'Rapid Revision Protocols', 'Mental Performance Gear', 'Advanced Predictive Ops'], cta: 'Join Waitlist', popular: false, comingSoon: true },
             ].map((plan, index) => (
-              <div key={index} className={`relative p-10 flex flex-col rounded-3xl transition-all duration-500 hover:scale-[1.02] ${plan.popular ? 'bg-card dark:bg-gray-950 border-2 border-rose-500 shadow-2xl shadow-rose-500/10' : 'bg-card/80 dark:bg-gray-900/80 backdrop-blur-sm border border-gray-200 dark:border-gray-800 shadow-xl'}`}>
+              <div key={index} className={`relative p-10 flex flex-col rounded-3xl transition-all duration-500 hover:scale-[1.02] ${plan.popular ? 'bg-card dark:bg-card border-2 border-rose-500 shadow-2xl shadow-rose-500/10' : 'bg-card/80 dark:bg-white/[0.01] backdrop-blur-sm border border-border dark:border-white/10 shadow-xl'}`}>
                 {plan.popular && <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 px-5 py-2 rounded-full bg-primary text-white text-[10px] font-black uppercase tracking-[0.2em] shadow-lg">Most Strategic</div>}
                 <div className="mb-8">
                   <h3 className="text-2xl font-black mb-2 tracking-tight text-gray-900 dark:text-white">{plan.name}</h3>
@@ -651,11 +664,11 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
                     </div>
                   ))}
                 </div>
-                <div className="mt-auto">
-                  <Button onClick={onGetStarted} className={`w-full py-6 rounded-xl text-[11px] uppercase tracking-[0.2em] font-black transition-all duration-300 ${plan.popular ? 'bg-primary hover:opacity-90 text-primary-foreground shadow-lg shadow-primary/20' : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
-                    {plan.cta}
-                  </Button>
-                </div>
+                  <div className="mt-auto">
+                    <Button onClick={onGetStarted} className={`w-full py-6 rounded-xl text-[11px] uppercase tracking-[0.2em] font-black transition-all duration-300 ${plan.popular ? 'bg-primary hover:opacity-90 text-primary-foreground shadow-lg shadow-primary/20' : 'bg-secondary dark:bg-white/[0.05] text-foreground hover:bg-secondary/80 dark:hover:bg-white/[0.1]'}`}>
+                      {plan.cta}
+                    </Button>
+                  </div>
               </div>
             ))}
           </div>
@@ -690,7 +703,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
       </section>
 
       {/* Footer */}
-      <footer className="py-10 relative z-10 border-t border-primary/10 dark:border-gray-800 bg-background/50 dark:bg-black/30 backdrop-blur-md">
+      <footer className="py-10 relative z-10 border-t border-border/50 dark:border-white/10 bg-background/50 dark:bg-card/30 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center md:items-end justify-between gap-8">
           <div className="flex flex-col items-center md:items-start gap-2">
             <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em]">© O3 Origin</span>

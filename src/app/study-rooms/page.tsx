@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 
-import { getServerUser } from '@/lib/auth-server';
+import { getServerFrontendUser } from '@/lib/auth-server';
 import { listRoomsForUser, type RoomSummary } from '@/server/study-rooms';
 import StudyRoomsClient from './_client';
 
@@ -14,8 +14,11 @@ export default function StudyRoomsPage() {
 }
 
 async function StudyRoomsGate() {
-  const user = await getServerUser();
+  const user = await getServerFrontendUser();
   if (!user) redirect('/');
+  if (user.role === 'student' && !user.isPremium) {
+    redirect('/premium');
+  }
 
   let rooms: RoomSummary[] = [];
   try {

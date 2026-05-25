@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { TeacherTopbar } from "@/components/teacher/TeacherTopbar";
 import { WorkspaceSwitcher } from "@/components/teacher/WorkspaceSwitcher";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import {
   loadAccessibleWorkspaces,
@@ -65,6 +66,7 @@ export default async function WorkspaceLayout({ children, params }: Props) {
             Platform admin override
           </span>
         ) : null}
+        <ThemeToggle />
         {/* Audit fix R-3 (A-10): expose logout/profile from the teacher chrome. */}
         <TeacherTopbar
           workspaceId={workspaceId}

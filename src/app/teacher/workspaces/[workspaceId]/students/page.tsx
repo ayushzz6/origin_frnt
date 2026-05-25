@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StudentsManager } from "@/components/teacher/StudentsManager";
+import { StudentsManagerHighFidelity } from "@/components/teacher/StudentsManagerHighFidelity";
 import { listBatches } from "@/server/workspaces/batches";
 import { listEnrollments } from "@/server/workspaces/enrollments";
 import { loadWorkspaceForRender } from "@/server/workspaces/server-loader";
@@ -12,70 +11,35 @@ type Props = {
 
 export default async function WorkspaceStudentsPage({ params }: Props) {
   const { workspaceId } = await params;
-  await loadWorkspaceForRender(workspaceId);
+  const { membership, isPlatformAdmin } = await loadWorkspaceForRender(workspaceId);
+  
+  // Parallel fetch enrollments and batches
   const [enrollments, batches] = await Promise.all([
     listEnrollments(workspaceId, { status: "all" }),
     listBatches(workspaceId, { status: "active" }),
   ]);
-  const unassigned = enrollments.filter((e) => e.status === "unassigned");
-  const active = enrollments.filter((e) => e.status === "active");
-  const suspended = enrollments.filter(
-    (e) => e.status === "suspended" || e.status === "left",
-  );
+
+  const canManage =
+    isPlatformAdmin ||
+    membership?.role === "owner" ||
+    membership?.role === "admin" ||
+    membership?.role === "teacher";
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 max-w-6xl mx-auto animate-fade-in">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Students</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          {enrollments.length} enrolled · {unassigned.length} awaiting assignment
+        <h1 className="text-2xl font-bold tracking-tight">Students Directory</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Approve onboarding queue memberships, filter by batch rosters, and manage student statuses.
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Unassigned</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <StudentsManager
-            workspaceId={workspaceId}
-            students={unassigned}
-            batches={batches}
-            emptyLabel="No unassigned students yet."
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Active</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <StudentsManager
-            workspaceId={workspaceId}
-            students={active}
-            batches={batches}
-            emptyLabel="No active students yet."
-          />
-        </CardContent>
-      </Card>
-
-      {suspended.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Suspended / left</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <StudentsManager
-              workspaceId={workspaceId}
-              students={suspended}
-              batches={batches}
-              emptyLabel=""
-              readOnly
-            />
-          </CardContent>
-        </Card>
-      ) : null}
+      <StudentsManagerHighFidelity
+        workspaceId={workspaceId}
+        students={enrollments}
+        batches={batches}
+        canManage={canManage}
+      />
     </div>
   );
 }
