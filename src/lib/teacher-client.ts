@@ -17,6 +17,8 @@ function readCsrfCookie(): string | null {
 
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; status: number; detail: string };
 
+const MUTATION_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
 export async function apiJson<T>(
   path: string,
   init: RequestInit & { json?: unknown } = {},
@@ -29,6 +31,14 @@ export async function apiJson<T>(
   };
   if (json !== undefined) {
     requestHeaders["Content-Type"] = "application/json";
+  }
+  // CSRF: attach the token on every mutation request, not only when a JSON
+  // body is being sent. DELETE has no body, and POST-with-init.body skips
+  // the json branch — both were going out unprotected and the server
+  // refused them with "Invalid CSRF token". (Reported on batch delete +
+  // marketplace checkout.)
+  const method = (rest.method ?? "GET").toUpperCase();
+  if (MUTATION_METHODS.has(method)) {
     const csrf = readCsrfCookie();
     if (csrf) requestHeaders["x-csrf-token"] = csrf;
   }
