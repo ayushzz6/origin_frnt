@@ -24,6 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { OfferingEditor } from "@/components/teacher/marketplace/OfferingEditor";
+import { OfferingRowActions } from "@/components/teacher/marketplace/OfferingRowActions";
 import { listOfferingsService } from "@/server/workspaces/marketplace-service";
 import { loadWorkspaceForRender } from "@/server/workspaces/server-loader";
 
@@ -120,14 +121,23 @@ export default async function TeacherOfferingsPage({ params }: Props) {
                       {new Date(o.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button asChild size="sm" variant="ghost">
-                        <Link
-                          href={`/marketplace/institutes/${workspaceId}`}
-                          target="_blank"
-                        >
-                          Preview
-                        </Link>
-                      </Button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Button asChild size="sm" variant="ghost">
+                          <Link
+                            href={`/marketplace/institutes/${workspaceId}`}
+                            target="_blank"
+                          >
+                            Preview
+                          </Link>
+                        </Button>
+                        {canManage ? (
+                          <OfferingRowActions
+                            workspaceId={workspaceId}
+                            offeringId={o.id}
+                            status={o.status}
+                          />
+                        ) : null}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

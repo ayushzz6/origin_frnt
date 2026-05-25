@@ -58,16 +58,23 @@ export async function ensureTeacherRoomsSchema(): Promise<void> {
       // co-locate USER_DATABASE_URL and OGCODE_DATABASE_URL on the same DB
       // because the FK references between rooms/app/content require it.
       await ensureRoomsSchema();
-      // The ALTER + INSERT into app.migrations both target the user pool
-      // (app.* schema), so the migration recording stays on `pool()`.
-      const client = await pool().connect();
+
+      // The ALTER must run on the pool that owns rooms.rooms (the OGCode
+      // pool — see getRoomsPostgresPool → getOgcodePostgresPool). The
+      // previous version ran ALTER on the USER pool, which works only
+      // when USER_DATABASE_URL and OGCODE_DATABASE_URL point at the
+      // same physical DB. In the current production env they don't, so
+      // the ALTER was failing with "schema rooms does not exist" and
+      // every teacher rooms page 500'd. The migration INSERT still
+      // needs the USER pool because app.migrations lives there.
+      const roomsClient = await roomsPool.connect();
       try {
-        await client.query("BEGIN");
-        await client.query(`
+        await roomsClient.query("BEGIN");
+        await roomsClient.query(`
           ALTER TABLE rooms.rooms
-            ADD COLUMN IF NOT EXISTS workspace_id TEXT REFERENCES app.teacher_workspaces(id) ON DELETE SET NULL,
-            ADD COLUMN IF NOT EXISTS batch_id TEXT REFERENCES app.batches(id) ON DELETE SET NULL,
-            ADD COLUMN IF NOT EXISTS teacher_test_id TEXT REFERENCES assessment.tests(id) ON DELETE SET NULL,
+            ADD COLUMN IF NOT EXISTS workspace_id TEXT,
+            ADD COLUMN IF NOT EXISTS batch_id TEXT,
+            ADD COLUMN IF NOT EXISTS teacher_test_id TEXT,
             ADD COLUMN IF NOT EXISTS room_kind TEXT NOT NULL DEFAULT 'student_room';
 
           CREATE INDEX IF NOT EXISTS idx_rooms_workspace_status
@@ -77,15 +84,65 @@ export async function ensureTeacherRoomsSchema(): Promise<void> {
           CREATE INDEX IF NOT EXISTS idx_rooms_teacher_test
             ON rooms.rooms(teacher_test_id) WHERE teacher_test_id IS NOT NULL;
         `);
-        await recordMigration(client);
-        await client.query("COMMIT");
-        globalThis.__originTeacherRoomsSchemaEnsured = true;
+        await roomsClient.query("COMMIT");
       } catch (error) {
-        await client.query("ROLLBACK").catch(() => undefined);
+        await roomsClient.query("ROLLBACK").catch(() => undefined);
         throw error;
       } finally {
-        client.release();
+        roomsClient.release();
       }
+
+      // FK references: only valid when app.teacher_workspaces etc. live in
+      // the same physical DB as rooms.rooms. We attempt to add them on
+      // the rooms pool but tolerate "relation does not exist" — a hard
+      // requirement would break deployments that route the two pools to
+      // different DBs.
+      try {
+        await roomsPool.query(`
+          DO $$ BEGIN
+            ALTER TABLE rooms.rooms
+              ADD CONSTRAINT fk_rooms_workspace
+              FOREIGN KEY (workspace_id) REFERENCES app.teacher_workspaces(id) ON DELETE SET NULL NOT VALID;
+          EXCEPTION
+            WHEN duplicate_object THEN NULL;
+            WHEN undefined_table THEN NULL;
+          END $$;
+          DO $$ BEGIN
+            ALTER TABLE rooms.rooms
+              ADD CONSTRAINT fk_rooms_batch
+              FOREIGN KEY (batch_id) REFERENCES app.batches(id) ON DELETE SET NULL NOT VALID;
+          EXCEPTION
+            WHEN duplicate_object THEN NULL;
+            WHEN undefined_table THEN NULL;
+          END $$;
+          DO $$ BEGIN
+            ALTER TABLE rooms.rooms
+              ADD CONSTRAINT fk_rooms_teacher_test
+              FOREIGN KEY (teacher_test_id) REFERENCES assessment.tests(id) ON DELETE SET NULL NOT VALID;
+          EXCEPTION
+            WHEN duplicate_object THEN NULL;
+            WHEN undefined_table THEN NULL;
+          END $$;
+        `);
+      } catch (error) {
+        console.warn("[teacher-rooms] cross-schema FK setup skipped:", error);
+      }
+
+      // Record the migration on the USER pool (app.migrations lives there).
+      try {
+        const client = await pool().connect();
+        try {
+          await recordMigration(client);
+        } finally {
+          client.release();
+        }
+      } catch (error) {
+        // Recording the migration is best-effort; don't fail the
+        // bootstrap if app.migrations isn't reachable yet.
+        console.warn("[teacher-rooms] recordMigration skipped:", error);
+      }
+
+      globalThis.__originTeacherRoomsSchemaEnsured = true;
     })().catch((error) => {
       globalThis.__originTeacherRoomsSchemaPromise = undefined;
       throw error;

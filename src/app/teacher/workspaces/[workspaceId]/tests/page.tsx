@@ -7,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { CreateTestDialog } from "@/components/teacher/CreateTestDialog";
 import { listTeacherTests } from "@/server/workspaces/tests-service";
 import { loadWorkspaceForRender } from "@/server/workspaces/server-loader";
 
@@ -34,7 +35,12 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default async function TeacherTestsPage({ params }: Props) {
   const { workspaceId } = await params;
-  await loadWorkspaceForRender(workspaceId);
+  const { membership, isPlatformAdmin } = await loadWorkspaceForRender(workspaceId);
+  const canCreate =
+    isPlatformAdmin ||
+    membership?.role === "owner" ||
+    membership?.role === "admin" ||
+    membership?.role === "teacher";
 
   const tests = await listTeacherTests(workspaceId, { status: "all" });
 
@@ -47,6 +53,7 @@ export default async function TeacherTestsPage({ params }: Props) {
             {tests.length} tests total.
           </p>
         </div>
+        {canCreate ? <CreateTestDialog workspaceId={workspaceId} /> : null}
       </div>
 
       {tests.length === 0 ? (
@@ -54,10 +61,9 @@ export default async function TeacherTestsPage({ params }: Props) {
           <CardHeader>
             <CardTitle>No tests yet</CardTitle>
             <CardDescription>
-              Tests created via the API will appear here. The create-test wizard
-              is not yet built — POST to{" "}
-              <code className="text-xs">/api/teacher/workspaces/{workspaceId}/tests</code>{" "}
-              to seed.
+              {canCreate
+                ? "Click \"Create test\" above to pick questions from the workspace Question Bag and seed the first test."
+                : "Tests created by an owner/admin/teacher will appear here."}
             </CardDescription>
           </CardHeader>
         </Card>
