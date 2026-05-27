@@ -2,6 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { GraduationCap, BookOpen, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 
 interface RoleSelectionProps {
     onSelectRole: (role: 'student' | 'teacher') => void;
@@ -22,7 +23,13 @@ export default function RoleSelection({ onSelectRole, onBack }: RoleSelectionPro
                 <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.03] mix-blend-overlay"></div>
             </div>
 
-            <div className="w-full max-w-3xl relative z-10">
+            <motion.div
+                initial={{ scale: 0.3, opacity: 0, filter: 'blur(10px)' }}
+                animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
+                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                style={{ transformOrigin: 'center' }}
+                className="w-full max-w-3xl relative z-10"
+            >
                 {/* Back Button */}
                 <button
                     onClick={onBack}
@@ -143,7 +150,7 @@ export default function RoleSelection({ onSelectRole, onBack }: RoleSelectionPro
                     </div>
 
                 </div>
-            </div>
+            </motion.div>
         </div>
     );
 }

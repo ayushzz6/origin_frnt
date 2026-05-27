@@ -177,11 +177,11 @@ function ClientShellInner({ children }: { children: React.ReactNode }) {
   return (
     <TutorialProvider>
       <div id="tutorial-welcome" className={cn(
-        "h-screen bg-background text-foreground font-sans antialiased overflow-hidden relative flex transition-colors duration-700",
+        "h-dvh bg-background text-foreground font-sans antialiased overflow-hidden relative flex transition-colors duration-700",
         aiSide === 'right' ? 'flex-row' : 'flex-row-reverse'
       )}>
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0 relative h-screen">
+        <div className="flex-1 flex flex-col min-w-0 relative h-dvh">
           <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-40 dark:opacity-20">
             <div className="absolute top-[-20%] right-[-10%] w-[70%] h-[70%] bg-primary/10 rounded-full blur-[120px]" />
             <div className="absolute bottom-[-20%] left-[-10%] w-[60%] h-[60%] bg-primary/10 rounded-full blur-[100px]" />

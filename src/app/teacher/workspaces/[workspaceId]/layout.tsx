@@ -1,14 +1,9 @@
 export const dynamic = "force-dynamic";
 
-import Link from "next/link";
-
-import { TeacherTopbar } from "@/components/teacher/TeacherTopbar";
-import { WorkspaceSwitcher } from "@/components/teacher/WorkspaceSwitcher";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { TeacherHeader } from "@/components/teacher/TeacherHeader";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import {
-  loadAccessibleWorkspaces,
-  loadWorkspaceForRender,
+  loadWorkspaceLayoutData,
 } from "@/server/workspaces/server-loader";
 
 type Props = {
@@ -33,8 +28,7 @@ const NAV_ITEMS: NavItem[] = [
 
 export default async function WorkspaceLayout({ children, params }: Props) {
   const { workspaceId } = await params;
-  const context = await loadWorkspaceForRender(workspaceId);
-  const accessible = await loadAccessibleWorkspaces();
+  const { context, accessible } = await loadWorkspaceLayoutData(workspaceId);
   const current = accessible.find((w) => w.id === workspaceId) ?? {
     ...context.workspace,
     role: "owner" as const,
@@ -47,33 +41,17 @@ export default async function WorkspaceLayout({ children, params }: Props) {
   );
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-10 flex items-center gap-6 border-b bg-background/95 px-6 py-3 backdrop-blur">
-        <WorkspaceSwitcher current={current} workspaces={accessible} />
-        <nav className="flex flex-1 items-center gap-1">
-          {visibleNavItems.map((item) => (
-            <Link
-              key={item.label}
-              href={`/teacher/workspaces/${workspaceId}${item.href}`}
-              className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-        {context.isPlatformAdmin && !context.membership ? (
-          <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-700">
-            Platform admin override
-          </span>
-        ) : null}
-        <ThemeToggle />
-        {/* Audit fix R-3 (A-10): expose logout/profile from the teacher chrome. */}
-        <TeacherTopbar
-          workspaceId={workspaceId}
-          marketplaceEnabled={marketplaceEnabled}
-        />
-      </header>
-      <main className="flex-1 px-6 py-8">{children}</main>
+    <div className="flex min-h-dvh flex-col">
+      <TeacherHeader
+        workspaceId={workspaceId}
+        current={current}
+        workspaces={accessible}
+        visibleNavItems={visibleNavItems}
+        isPlatformAdmin={context.isPlatformAdmin}
+        membership={context.membership}
+        marketplaceEnabled={marketplaceEnabled}
+      />
+      <main className="flex-1 px-4 pt-6 pb-20 md:px-6 md:pt-8 md:pb-24 lg:pb-8">{children}</main>
     </div>
   );
 }

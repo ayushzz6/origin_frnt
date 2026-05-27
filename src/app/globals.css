@@ -299,10 +299,16 @@
 .dark .bg-zinc-950,
 .dark .bg-neutral-900,
 .dark .bg-neutral-950,
+.dark .bg-gray-900,
+.dark .bg-gray-950,
 .dark [class*="bg-slate-900/"],
 .dark [class*="bg-slate-950/"],
 .dark [class*="bg-zinc-900/"],
-.dark [class*="bg-zinc-950/"] {
+.dark [class*="bg-zinc-950/"],
+.dark [class*="bg-neutral-900/"],
+.dark [class*="bg-neutral-950/"],
+.dark [class*="bg-gray-900/"],
+.dark [class*="bg-gray-950/"] {
   background-color: #000000 !important;
 }
 
@@ -358,6 +364,8 @@ html:not(.dark) [class*="bg-zinc-100/"] {
 
 .dark [class*="border-slate-"],
 .dark [class*="border-zinc-"],
+.dark [class*="border-gray-"],
+.dark [class*="border-neutral-"],
 .dark [class*="border-white/10"],
 .dark [class*="border-white/5"],
 .dark [class*="border-border"] {

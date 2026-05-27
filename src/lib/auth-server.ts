@@ -7,6 +7,7 @@
  */
 
 import { cookies } from "next/headers";
+import { cache } from "react";
 
 import { getAuthenticatedUser } from "@/server/authz";
 import { readStoreAsync } from "@/server/store";
@@ -25,9 +26,9 @@ async function cookieBackedRequest(): Promise<Request> {
   });
 }
 
-export async function getServerUser(): Promise<StoredUser | null> {
+export const getServerUser = cache(async function getServerUser(): Promise<StoredUser | null> {
   return getAuthenticatedUser(await cookieBackedRequest());
-}
+});
 
 /**
  * Resolves the current request to a frontend-shape `User` suitable for

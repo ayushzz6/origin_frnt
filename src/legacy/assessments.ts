@@ -3823,15 +3823,21 @@ async function buildLeaderboardEntriesFromDb(user: StoredUser, subject: string |
   if (subject) queryParams.push(subject);
   queryParams.push(users.map((entry) => entry.id));
 
-  const resultsResult = await ogcodePool.query(`
-    SELECT
-      user_id,
-      SUM(correct_answers) as total_solved,
-      AVG(percentage) as avg_accuracy
-    FROM analytics.test_results tr
-    WHERE tr.user_id = ANY($${userIdParamIndex}::text[]) ${subjectFilter}
-    GROUP BY user_id
-  `, queryParams);
+  let resultsResult;
+  try {
+    resultsResult = await ogcodePool.query(`
+      SELECT
+        user_id,
+        SUM(correct_answers) as total_solved,
+        AVG(percentage) as avg_accuracy
+      FROM analytics.test_results tr
+      WHERE tr.user_id = ANY($${userIdParamIndex}::text[]) ${subjectFilter}
+      GROUP BY user_id
+    `, queryParams);
+  } catch (error) {
+    console.error("[buildLeaderboardEntriesFromDb] DB query failed, falling back to empty stats:", error);
+    resultsResult = { rows: [] };
+  }
 
   const statsMap = new Map();
   resultsResult.rows.forEach(row => {

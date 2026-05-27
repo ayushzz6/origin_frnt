@@ -4,6 +4,7 @@
  */
 
 import { redirect } from "next/navigation";
+import { cache } from "react";
 
 import { getServerUser } from "@/lib/auth-server";
 
@@ -14,11 +15,11 @@ import type {
   WorkspaceMembershipSummary,
 } from "./types";
 
-export async function loadAccessibleWorkspaces(): Promise<WorkspaceMembershipSummary[]> {
+export const loadAccessibleWorkspaces = cache(async function loadAccessibleWorkspaces(): Promise<WorkspaceMembershipSummary[]> {
   const user = await getServerUser();
   if (!user) redirect("/auth?next=/teacher");
   return listWorkspacesForUser(user.id);
-}
+});
 
 export type WorkspaceServerContext = {
   workspace: TeacherWorkspace;
@@ -27,13 +28,18 @@ export type WorkspaceServerContext = {
   userId: string;
 };
 
-export async function loadWorkspaceForRender(workspaceId: string): Promise<WorkspaceServerContext> {
+export const loadWorkspaceForRender = cache(async function loadWorkspaceForRender(workspaceId: string): Promise<WorkspaceServerContext> {
   const user = await getServerUser();
   if (!user) redirect(`/auth?next=/teacher/workspaces/${workspaceId}`);
-  const workspace = await getWorkspaceById(workspaceId);
+
+  // Fetch workspace and membership status in parallel
+  const [workspace, membership] = await Promise.all([
+    getWorkspaceById(workspaceId),
+    getActiveMembership(workspaceId, user.id),
+  ]);
+
   if (!workspace) redirect("/teacher");
   const isPlatformAdmin = user.role === "admin";
-  const membership = await getActiveMembership(workspaceId, user.id);
   if (!isPlatformAdmin && (!membership || membership.status !== "active")) {
     redirect("/teacher");
   }
@@ -43,4 +49,37 @@ export async function loadWorkspaceForRender(workspaceId: string): Promise<Works
     isPlatformAdmin,
     userId: user.id,
   };
-}
+});
+
+export type WorkspaceLayoutData = {
+  context: WorkspaceServerContext;
+  accessible: WorkspaceMembershipSummary[];
+};
+
+export const loadWorkspaceLayoutData = cache(async function loadWorkspaceLayoutData(workspaceId: string): Promise<WorkspaceLayoutData> {
+  const user = await getServerUser();
+  if (!user) redirect(`/auth?next=/teacher/workspaces/${workspaceId}`);
+
+  // Fetch workspace details, active membership status, and accessible list in parallel
+  const [workspace, membership, accessible] = await Promise.all([
+    getWorkspaceById(workspaceId),
+    getActiveMembership(workspaceId, user.id),
+    listWorkspacesForUser(user.id),
+  ]);
+
+  if (!workspace) redirect("/teacher");
+  const isPlatformAdmin = user.role === "admin";
+  if (!isPlatformAdmin && (!membership || membership.status !== "active")) {
+    redirect("/teacher");
+  }
+
+  return {
+    context: {
+      workspace,
+      membership,
+      isPlatformAdmin,
+      userId: user.id,
+    },
+    accessible,
+  };
+});

@@ -630,6 +630,7 @@ function buildSeedUsers(joinedAt: string): StoredUser[] {
       streak: 5,
       totalStudyTime: 420,
       joinedAt,
+      isPremium: true,
       isOnboarded: true,
       selectedCourse: "JEE Main + Advanced",
       subjects: ["Physics", "Chemistry", "Mathematics"],
@@ -1194,7 +1195,7 @@ function ensureAllCollections(store: AppStore): boolean {
 let cachedStore: AppStore | null = null;
 let cachedSeedStore: AppStore | null = null;
 let lastHydratedAt = 0;
-const CACHE_TTL_MS = 2000; // Cache for 2 seconds
+const CACHE_TTL_MS = 5 * 60 * 1000; // Cache for 5 minutes (300000ms) to ensure lightning-fast interactions
 let activeHydrationPromise: Promise<AppStore> | null = null;
 
 function getSeedStore(): AppStore {

@@ -235,13 +235,13 @@ export function StudentsManagerHighFidelity({ workspaceId, students, batches, ca
     <div className="space-y-6 relative">
       
       {/* DirectoryTabSwitcher */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4 gap-4">
-        <div className="flex items-center gap-1 bg-muted/30 p-1 rounded-xl border">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4 gap-4 w-full">
+        <div className="flex items-center gap-1 bg-muted/30 p-1 rounded-xl border overflow-x-auto max-w-full scrollbar-none whitespace-nowrap shrink-0 w-full sm:w-auto">
           <Button 
             variant={activeTab === "active" ? "default" : "ghost"}
             size="sm"
             onClick={() => { setActiveTab("active"); setSelectedStudentIds(new Set()); }}
-            className={`rounded-lg h-9 px-4 ${activeTab === "active" ? "bg-primary text-black font-semibold shadow-sm" : ""}`}
+            className={`rounded-lg h-9 px-4 shrink-0 whitespace-nowrap ${activeTab === "active" ? "bg-primary text-black font-semibold shadow-sm" : ""}`}
           >
             Active Directory ({tabCounts.active})
           </Button>
@@ -249,7 +249,7 @@ export function StudentsManagerHighFidelity({ workspaceId, students, batches, ca
             variant={activeTab === "unassigned" ? "default" : "ghost"}
             size="sm"
             onClick={() => { setActiveTab("unassigned"); setSelectedStudentIds(new Set()); }}
-            className={`rounded-lg h-9 px-4 ${activeTab === "unassigned" ? "bg-primary text-black font-semibold shadow-sm" : ""}`}
+            className={`rounded-lg h-9 px-4 shrink-0 whitespace-nowrap ${activeTab === "unassigned" ? "bg-primary text-black font-semibold shadow-sm" : ""}`}
           >
             Onboarding Queue ({tabCounts.unassigned})
           </Button>
@@ -257,7 +257,7 @@ export function StudentsManagerHighFidelity({ workspaceId, students, batches, ca
             variant={activeTab === "suspended" ? "default" : "ghost"}
             size="sm"
             onClick={() => { setActiveTab("suspended"); setSelectedStudentIds(new Set()); }}
-            className={`rounded-lg h-9 px-4 ${activeTab === "suspended" ? "bg-primary text-black font-semibold shadow-sm" : ""}`}
+            className={`rounded-lg h-9 px-4 shrink-0 whitespace-nowrap ${activeTab === "suspended" ? "bg-primary text-black font-semibold shadow-sm" : ""}`}
           >
             Suspended/Left ({tabCounts.suspended})
           </Button>

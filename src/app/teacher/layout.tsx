@@ -14,5 +14,5 @@ export default async function TeacherShellLayout({ children }: { children: React
   if (user.role !== "teacher" && user.role !== "admin") {
     redirect("/dashboard");
   }
-  return <div className="min-h-screen bg-background">{children}</div>;
+  return <div className="min-h-dvh bg-background">{children}</div>;
 }
