@@ -1,7 +1,7 @@
 'use client';
 import { useRef, useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { motion, useScroll, useTransform, useSpring, useInView } from 'framer-motion';
+import { motion, useScroll, useTransform, useSpring, useInView, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import CrystalBackground from '@/components/ui/CrystalBackground';
 import { Card } from '@/components/ui/CardSwap';
@@ -111,6 +111,27 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
   const [regStatus, setRegStatus] = useState<{ count: number; limit: number; seatsLeft: number } | null>(null);
   const counterRef = useRef<HTMLDivElement>(null);
   const isCounterInView = useInView(counterRef, { once: true, amount: 0.5 });
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [showStickyCTA, setShowStickyCTA] = useState(false);
+
+  const handleBeginJourney = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    if (actualTheme === 'dark') {
+      setIsTransitioning(true);
+      if (videoRef.current) {
+        videoRef.current.loop = false;
+        videoRef.current.currentTime = 0;
+        videoRef.current.play().catch((err) => console.log('Video play failed:', err));
+      }
+      setTimeout(() => {
+        onGetStarted();
+      }, 800);
+    } else {
+      onGetStarted();
+    }
+  };
+
 
   const navLinks = [
     { name: 'Dashboard', path: '/dashboard', isPremium: false },
@@ -155,6 +176,16 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleScroll = () => {
+      // Show sticky CTA once scrolled past hero section (~400px)
+      setShowStickyCTA(window.scrollY > 400);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const actualTheme = mounted ? resolvedTheme : (theme === 'system' ? 'dark' : theme);
@@ -235,7 +266,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/60 via-primary to-primary/60 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       
       {/* Tab Header */}
-      <div className="h-14 bg-gray-50/50 dark:bg-white/[0.01] border-b border-border/30 dark:border-white/10 flex items-center px-6 gap-3 shrink-0">
+      <div className="h-14 bg-gray-50/50 dark:bg-white/[0.01] border-b border-border/30 dark:border-white/10 flex items-center px-4 sm:px-6 gap-3 shrink-0">
         <div className="flex gap-2">
           <div className="w-3 h-3 rounded-full bg-red-400/60" />
           <div className="w-3 h-3 rounded-full bg-amber-400/60" />
@@ -247,7 +278,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
       </div>
 
       {/* Card Content */}
-      <div className="p-8 flex flex-col justify-center items-start text-left h-full">
+      <div className="p-6 sm:p-8 flex flex-col justify-center items-start text-left h-full">
         <div className="w-14 h-14 rounded-2xl bg-gradient-to-br bg-primary/10 flex items-center justify-center mb-6 text-primary dark:text-primary/70 shadow-inner ring-1 ring-primary/20">
           <feature.icon className="w-7 h-7" />
         </div>
@@ -279,7 +310,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
   );
 
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary/20 font-sans antialiased transition-colors duration-500 relative overflow-x-hidden">
+    <div className="min-h-dvh bg-background text-foreground selection:bg-primary/20 font-sans antialiased transition-colors duration-500 relative overflow-x-hidden">
       {/* Background Layer: Light Theme – softer wave lines */}
       {mounted && actualTheme === 'light' && (
         <div className="fixed inset-0 z-0 pointer-events-none opacity-70">
@@ -296,28 +327,40 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         </div>
       )}
       {/* Hero Section Wrapper for Dark Theme Video Background */}
-      <div className="relative min-h-screen flex flex-col justify-between z-10 overflow-hidden">
+      <motion.div
+        animate={isTransitioning ? { scale: 0.95, opacity: 0, filter: 'blur(10px)' } : { scale: 1, opacity: 1, filter: 'blur(0px)' }}
+        transition={{ duration: 0.8, ease: 'easeOut' }}
+        className="relative min-h-dvh flex flex-col justify-between z-10 overflow-hidden"
+      >
         {mounted && actualTheme === 'dark' && (
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
+          <motion.div
+            animate={isTransitioning ? { scale: 0.1, opacity: 0, filter: 'blur(10px)' } : { scale: 1, opacity: 1, filter: 'blur(0px)' }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            style={{ transformOrigin: '52% 75%' }}
+            className="absolute inset-0 w-full h-full z-0 pointer-events-none"
           >
-            <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260314_131748_f2ca2a28-fed7-44c8-b9a9-bd9acdd5ec31.mp4" type="video/mp4" />
-          </video>
+            <video
+              ref={videoRef}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+            >
+              <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260314_131748_f2ca2a28-fed7-44c8-b9a9-bd9acdd5ec31.mp4" type="video/mp4" />
+            </video>
+          </motion.div>
         )}
 
         {/* Navigation – glassmorphic floating navbar */}
-        <nav className="relative z-10 flex flex-row justify-between items-center px-8 py-4 max-w-7xl mx-auto w-[calc(100%-2rem)] mt-6 rounded-full border border-black/5 dark:border-white/5 bg-white/20 dark:bg-white/[0.02] backdrop-blur-md shadow-[0_8px_32px_0_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
-          <div className="flex items-center gap-3">
-            <img src="/origin-new.jpg" alt="ORIGIN" className="h-9 w-auto rounded-lg object-contain" />
+        <nav className="relative z-50 flex flex-row justify-between items-center px-4 py-2.5 sm:px-6 md:px-8 md:py-4 max-w-7xl mx-auto w-[calc(100%-1rem)] sm:w-[calc(100%-2rem)] mt-3 sm:mt-6 rounded-full border border-black/5 dark:border-white/5 bg-white/20 dark:bg-white/[0.02] backdrop-blur-md shadow-[0_8px_32px_0_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
+          <div className="flex items-center gap-1.5 sm:gap-3">
+            <img src="/origin-new.jpg" alt="ORIGIN" className="h-7 w-auto sm:h-9 rounded-lg object-contain" />
             <span 
-              className="text-3xl tracking-tight text-foreground font-normal"
+              className="text-lg xs:text-xl sm:text-2xl md:text-3xl tracking-tight text-foreground font-normal whitespace-nowrap"
               style={{ fontFamily: "'Instrument Serif', serif" }}
             >
-              O3 Origin<sup className="text-xs">®</sup>
+              O3 Origin<sup className="text-[10px]">®</sup>
             </span>
           </div>
 
@@ -338,7 +381,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             ))}
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <button
               onClick={() => setTheme(actualTheme === 'dark' ? 'light' : 'dark')}
               className="flex items-center justify-center p-2 rounded-full hover:bg-white/10 border border-white/10 transition-all duration-300"
@@ -347,8 +390,8 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             </button>
             
             <button
-              onClick={onGetStarted}
-              className="liquid-glass rounded-full px-6 py-2.5 text-sm text-foreground hover:scale-[1.03] transition-transform cursor-pointer"
+              onClick={handleBeginJourney}
+              className="liquid-glass rounded-full px-3.5 py-2 text-xs sm:px-6 sm:py-2.5 sm:text-sm text-foreground hover:scale-[1.03] transition-transform cursor-pointer"
             >
               Begin Journey
             </button>
@@ -365,7 +408,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed inset-0 z-[45] bg-background/95 backdrop-blur-2xl flex flex-col items-center justify-center p-8 md:hidden"
+            className="fixed inset-0 z-40 bg-background/95 backdrop-blur-2xl flex flex-col items-center justify-center p-8 md:hidden"
           >
             <div className="flex flex-col items-center gap-12 w-full max-w-sm">
               {navLinks.map((link) => (
@@ -399,29 +442,29 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         )}
 
         {/* Hero Section – cinematic and vertically centered */}
-        <section ref={heroRef} className="relative z-10 flex flex-col items-center justify-center text-center px-6 flex-grow max-w-7xl mx-auto w-full py-12">
+        <section ref={heroRef} className="relative z-10 flex flex-col items-center justify-center text-center px-6 flex-grow max-w-7xl mx-auto w-full py-8 sm:py-12">
           <h1 
-            className="text-5xl sm:text-7xl md:text-8xl leading-[0.95] tracking-[-2.46px] max-w-7xl font-normal text-foreground animate-fade-rise"
+            className="text-3xl xs:text-4xl sm:text-7xl md:text-8xl leading-[0.95] tracking-[-2.46px] max-w-7xl font-normal text-foreground animate-fade-rise"
             style={{ fontFamily: "'Instrument Serif', serif" }}
           >
             Where <em className="not-italic text-muted-foreground">dreams</em> rise <em className="not-italic text-muted-foreground">through the silence.</em>
           </h1>
           
-          <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mt-8 leading-relaxed animate-fade-rise-delay">
+          <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mt-6 sm:mt-8 leading-relaxed animate-fade-rise-delay">
             We're designing tools for deep thinkers, bold creators, and quiet rebels. Amid the chaos, we build digital spaces for sharp focus and inspired work.
           </p>
 
           <button
-            onClick={onGetStarted}
-            className="liquid-glass rounded-full px-14 py-5 text-base text-foreground mt-12 hover:scale-[1.03] transition-transform cursor-pointer animate-fade-rise-delay-2"
+            onClick={handleBeginJourney}
+            className="liquid-glass rounded-full px-8 py-4 text-sm sm:px-14 sm:py-5 sm:text-base text-foreground mt-8 sm:mt-12 hover:scale-[1.03] transition-transform cursor-pointer animate-fade-rise-delay-2"
           >
             Begin Journey
           </button>
         </section>
 
         {/* Stats row with subtle hover at the bottom of the first page viewport */}
-        <div className="relative z-10 w-full pb-16">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.6 }} className="flex flex-wrap items-center justify-center gap-12 md:gap-20">
+        <div className="relative z-10 w-full pb-8 sm:pb-16">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.6 }} className="flex flex-wrap items-center justify-center gap-6 sm:gap-12 md:gap-20">
             {stats.map((stat, i) => (
               <div key={i} className="text-center group">
                 <div className="text-3xl font-black text-foreground mb-2 group-hover:scale-110 transition-transform tracking-tight">
@@ -434,7 +477,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             ))}
           </motion.div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Features Section - Responsive: Rotating cards on desktop, grid on mobile */}
       <section id="features" className="py-28 lg:py-36 relative z-10 overflow-x-hidden">
@@ -649,7 +692,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
               { name: 'Pro', price: 'Waitlist', desc: 'The complete performance architecture.', features: ['Unlimited AI Research', 'Cognitive Failure Analysis', 'Dynamic Personalized Paths', 'Adaptive Arena Access', 'Rank Improvement Metrics', 'Focus & Velocity Tracking', 'Elite Community Access', 'Priority Support'], cta: 'Join Waitlist', popular: true, comingSoon: true },
               { name: 'Elite', price: 'Waitlist', desc: '1-on-1 performance engineering.', features: ['Everything in Pro', 'Personal AI Tutor Agent', 'Mastery-Based Explanations', 'End-to-End Milestone Maps', 'Rapid Revision Protocols', 'Mental Performance Gear', 'Advanced Predictive Ops'], cta: 'Join Waitlist', popular: false, comingSoon: true },
             ].map((plan, index) => (
-              <div key={index} className={`relative p-10 flex flex-col rounded-3xl transition-all duration-500 hover:scale-[1.02] ${plan.popular ? 'bg-card dark:bg-card border-2 border-rose-500 shadow-2xl shadow-rose-500/10' : 'bg-card/80 dark:bg-white/[0.01] backdrop-blur-sm border border-border dark:border-white/10 shadow-xl'}`}>
+              <div key={index} className={`relative p-6 sm:p-10 flex flex-col rounded-3xl transition-all duration-500 hover:scale-[1.02] ${plan.popular ? 'bg-card dark:bg-card border-2 border-rose-500 shadow-2xl shadow-rose-500/10' : 'bg-card/80 dark:bg-white/[0.01] backdrop-blur-sm border border-border dark:border-white/10 shadow-xl'}`}>
                 {plan.popular && <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 px-5 py-2 rounded-full bg-primary text-white text-[10px] font-black uppercase tracking-[0.2em] shadow-lg">Most Strategic</div>}
                 <div className="mb-8">
                   <h3 className="text-2xl font-black mb-2 tracking-tight text-gray-900 dark:text-white">{plan.name}</h3>
@@ -665,7 +708,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
                   ))}
                 </div>
                   <div className="mt-auto">
-                    <Button onClick={onGetStarted} className={`w-full py-6 rounded-xl text-[11px] uppercase tracking-[0.2em] font-black transition-all duration-300 ${plan.popular ? 'bg-primary hover:opacity-90 text-primary-foreground shadow-lg shadow-primary/20' : 'bg-secondary dark:bg-white/[0.05] text-foreground hover:bg-secondary/80 dark:hover:bg-white/[0.1]'}`}>
+                    <Button onClick={handleBeginJourney} className={`w-full py-6 rounded-xl text-[11px] uppercase tracking-[0.2em] font-black transition-all duration-300 ${plan.popular ? 'bg-primary hover:opacity-90 text-primary-foreground shadow-lg shadow-primary/20' : 'bg-secondary dark:bg-white/[0.05] text-foreground hover:bg-secondary/80 dark:hover:bg-white/[0.1]'}`}>
                       {plan.cta}
                     </Button>
                   </div>
@@ -690,7 +733,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
                   {regStatus ? `⚠️ ${regStatus.seatsLeft > 0 ? `Only ${regStatus.seatsLeft} Seats Left` : 'Capacity Reached'}` : '⚠️ Limited Seats Remaining'}
                 </p>
               </div>
-              <Button onClick={onGetStarted} className="bg-primary hover:opacity-90 text-primary-foreground rounded-full px-14 py-8 text-2xl font-black shadow-2xl shadow-primary/30 transition-all duration-300 hover:scale-105 group">
+              <Button onClick={handleBeginJourney} className="bg-primary hover:opacity-90 text-primary-foreground rounded-full px-14 py-8 text-2xl font-black shadow-2xl shadow-primary/30 transition-all duration-300 hover:scale-105 group">
                 START YOUR JOURNEY
                 <Zap className="w-7 h-7 ml-3 group-hover:rotate-12 transition-transform" />
               </Button>
@@ -720,6 +763,27 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
           </div>
         </div>
       </footer>
+
+      {/* Mobile & Tablet Sticky bottom CTA */}
+      <AnimatePresence>
+        {showStickyCTA && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.95 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="fixed bottom-4 left-4 right-4 z-40 lg:hidden"
+          >
+            <button
+              onClick={() => handleBeginJourney()}
+              className="w-full bg-primary text-black font-semibold rounded-full py-4 text-base hover:scale-[1.01] active:scale-[0.99] transition-all shadow-xl shadow-primary/25 flex items-center justify-center gap-2 border border-primary/25 backdrop-blur-md"
+            >
+              <span>Begin Journey</span>
+              <ChevronRight className="w-5 h-5 text-black" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

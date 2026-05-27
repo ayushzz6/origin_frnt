@@ -71,7 +71,7 @@ export default function FloatingChat({ onOpen, hideMainButton }: FloatingChatPro
       </AnimatePresence>
 
       {!hideMainButton && (
-        <div ref={containerRef} className="fixed bottom-4 right-4 z-50 flex flex-col items-end sm:bottom-6 sm:right-6">
+        <div ref={containerRef} className="fixed bottom-24 right-4 sm:bottom-28 sm:right-6 lg:bottom-6 lg:right-6 z-50 flex flex-col items-end">
           <motion.button
             type="button"
             whileHover={{ scale: 1.05 }}
@@ -84,17 +84,17 @@ export default function FloatingChat({ onOpen, hideMainButton }: FloatingChatPro
             <div className="relative group">
               <div className="absolute inset-0 rounded-full bg-primary/20 blur-2xl scale-0 transition-transform duration-500 group-hover:scale-150" />
               <div className="absolute inset-0 z-0 flex items-center justify-center text-blue-100">
-                <Sparkles className="h-7 w-7" />
+                <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7" />
               </div>
               <img
                 src="/Dipraj-ChatBot.png"
                 alt="Origin AI"
-                className="relative z-10 h-24 w-24 object-contain drop-shadow-2xl transition-all duration-300 group-hover:brightness-110 sm:h-28 sm:w-28"
+                className="relative z-10 h-16 w-16 object-contain drop-shadow-2xl transition-all duration-300 group-hover:brightness-110 sm:h-20 sm:w-20 lg:h-24 lg:w-24"
                 onError={(event) => {
                   (event.target as HTMLImageElement).style.display = 'none';
                 }}
               />
-              <div className="absolute right-4 top-4 z-20 h-4 w-4 rounded-full border-2 border-white bg-primary shadow-md dark:border-slate-900" />
+              <div className="absolute right-2 top-2 z-20 h-3 w-3 rounded-full border-2 border-white bg-primary shadow-md dark:border-slate-900 sm:right-2.5 sm:top-2.5 sm:h-3.5 sm:w-3.5 lg:right-4 lg:top-4 lg:h-4 lg:w-4" />
             </div>
           </motion.button>
         </div>

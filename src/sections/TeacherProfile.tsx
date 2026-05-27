@@ -43,19 +43,22 @@ import { apiJson } from '@/lib/teacher-client';
 import type { User as UserType } from '@/types';
 
 interface WorkspaceSummary {
-    workspaceId: string;
-    workspace: {
-        id: string;
-        displayName: string;
-        workspaceType: 'personal' | 'institute';
-        status: string;
-        verificationStatus?: string;
-        city?: string | null;
-        state?: string | null;
-        country?: string | null;
-    };
-    role: string;
-    status: string;
+    id: string;
+    workspaceType: 'personal' | 'institute';
+    ownerUserId: string;
+    displayName: string;
+    legalName: string | null;
+    slug: string | null;
+    logoAssetId: string | null;
+    city: string | null;
+    state: string | null;
+    country: string;
+    subjects: string[];
+    courses: string[];
+    status: 'active' | 'trial' | 'suspended' | 'closed';
+    verificationStatus: 'unverified' | 'pending' | 'verified' | 'rejected';
+    role: 'owner' | 'admin' | 'teacher';
+    memberStatus: 'invited' | 'active' | 'disabled' | 'removed';
 }
 
 interface TeacherProfileProps {
@@ -334,8 +337,8 @@ export default function TeacherProfile({ user, onBack, onLogout }: TeacherProfil
                         )}
                         {workspaces.map((m) => (
                             <a
-                                key={m.workspaceId}
-                                href={`/teacher/workspaces/${m.workspaceId}`}
+                                key={m.id}
+                                href={`/teacher/workspaces/${m.id}`}
                                 className="hover:bg-accent flex items-center justify-between rounded-lg border p-4 transition"
                             >
                                 <div className="flex items-center gap-3">
@@ -344,10 +347,10 @@ export default function TeacherProfile({ user, onBack, onLogout }: TeacherProfil
                                     </div>
                                     <div>
                                         <p className="text-sm font-medium">
-                                            {m.workspace.displayName}
+                                            {m.displayName}
                                         </p>
                                         <p className="text-muted-foreground text-xs uppercase tracking-wide">
-                                            {m.workspace.workspaceType} · {m.role} · {m.workspace.status}
+                                            {m.workspaceType} · {m.role} · {m.status}
                                         </p>
                                     </div>
                                 </div>
