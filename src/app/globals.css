@@ -47,8 +47,8 @@
   --popover-foreground: 222.2 84% 4.9%;
   --primary: 199 94% 60%;
   --primary-foreground: 0 0% 0%;
-  --secondary: 220 14.3% 95.9%;
-  --secondary-foreground: 220 8.9% 46.1%;
+  --secondary: 199 94% 60%;
+  --secondary-foreground: 0 0% 0%;
   --muted: 220 14.3% 95.9%;
   --muted-foreground: 220 8.9% 46.1%;
   --accent: 220 14.3% 95.9%;
@@ -64,8 +64,8 @@
   --background: 0 0% 0%;
   --foreground: 0 0% 100%;
   --muted-foreground: 240 4% 66%;
-  --primary: 0 0% 100%;
-  --primary-foreground: 0 0% 4%;
+  --primary: 221.2 83.2% 53.3%;
+  --primary-foreground: 0 0% 100%;
   --secondary: 0 0% 10%;
   --secondary-foreground: 0 0% 98%;
   --muted: 0 0% 10%;
@@ -390,5 +390,54 @@ html:not(.dark) [class*="border-[#f1f5f9]"],
 html:not(.dark) [class*="border-border"] {
   border-color: #000000 !important;
 }
+
+/* 3. Dark Theme: Override solid white/light backgrounds in dark mode to be pure black (#000000) except for NTA Testing Agency pages */
+.dark .bg-white:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .bg-slate-50:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .bg-slate-100:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .bg-slate-200:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .bg-gray-50:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .bg-gray-100:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .bg-gray-200:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .bg-zinc-50:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .bg-zinc-100:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .bg-zinc-200:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .bg-neutral-50:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .bg-neutral-100:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .bg-neutral-200:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .bg-stone-50:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .bg-stone-100:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .bg-stone-200:not(.nta-testing-agency *):not(.nta-testing-agency) {
+  background-color: #000000 !important;
+}
+
+/* 4. Dark Theme: Override text color inside modified dark backgrounds to be white if they have explicit dark text colors, except for NTA Testing Agency pages */
+.dark .text-black:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .text-slate-950:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .text-slate-900:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .text-slate-800:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .text-slate-700:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .text-slate-600:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .text-gray-950:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .text-gray-900:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .text-gray-800:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .text-gray-700:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .text-gray-600:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .text-zinc-950:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .text-zinc-900:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .text-zinc-800:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .text-zinc-700:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .text-zinc-600:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .text-neutral-950:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .text-neutral-900:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .text-neutral-800:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .text-neutral-700:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .text-stone-950:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .text-stone-900:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .text-stone-800:not(.nta-testing-agency *):not(.nta-testing-agency),
+.dark .text-stone-700:not(.nta-testing-agency *):not(.nta-testing-agency) {
+  color: #ffffff !important;
+}
+
 
 
