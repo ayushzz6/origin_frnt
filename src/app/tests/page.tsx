@@ -17,9 +17,6 @@ export default function TestsPage() {
 async function TestsContent() {
   const user = await getServerFrontendUser();
   if (!user) redirect('/');
-  if (user.role === 'student' && !user.isPremium) {
-    redirect('/premium');
-  }
 
   let initialTests: TestPreview[] = [];
   try {

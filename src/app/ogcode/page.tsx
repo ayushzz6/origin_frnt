@@ -52,9 +52,6 @@ function normalizeStatus(status: string | undefined): 'solved' | 'unsolved' | nu
 async function OGCodeContent({ searchParams }: PageProps) {
   const user = await getServerFrontendUser();
   if (!user) redirect('/');
-  if (user.role === 'student' && !user.isPremium) {
-    redirect('/premium');
-  }
 
   const resolvedSearchParams = await searchParams;
   let initialData: Awaited<ReturnType<typeof getOgcodeIndexDataForRender>> | null = null;
