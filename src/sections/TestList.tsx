@@ -617,7 +617,7 @@ interface TestCardProps {
 }
 
 function TestCard({ test, onStart, onViewAnalysis, user, getSubjectIcon, getSubjectColor, getDifficultyColor }: TestCardProps) {
-  const isLocked = test.isPremium && !user.isPremium;
+  const isLocked = false;
 
   return (
     <Card className={`group relative border-0 bg-card/40 dark:bg-white/5 backdrop-blur-xl shadow-soft hover:shadow-primary/10 transition-all duration-500 rounded-[2rem] sm:rounded-[32px] overflow-hidden ${isLocked ? 'grayscale opacity-80' : ''}`}>

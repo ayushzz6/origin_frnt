@@ -135,10 +135,10 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
 
   const navLinks = [
     { name: 'Dashboard', path: '/dashboard', isPremium: false },
-    { name: 'OGCode', path: '/ogcode', isPremium: true },
-    { name: 'AI Explainer', path: '/doubt-solver', isPremium: true },
-    { name: 'Study Rooms', path: '/study-rooms', isPremium: true },
-    { name: 'Tests', path: '/tests', isPremium: true },
+    { name: 'OGCode', path: '/ogcode', isPremium: false },
+    { name: 'AI Explainer', path: '/doubt-solver', isPremium: false },
+    { name: 'Study Rooms', path: '/study-rooms', isPremium: false },
+    { name: 'Tests', path: '/tests', isPremium: false },
   ];
 
   const handleNavLinkClick = (e: React.MouseEvent, path: string, isPremiumLink: boolean) => {
@@ -153,10 +153,6 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
     }
     if (user.role === 'admin') {
       router.push('/admin');
-      return;
-    }
-    if (isPremiumLink && !user.isPremium) {
-      router.push('/premium');
       return;
     }
     router.push(path);
@@ -326,31 +322,33 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
           />
         </div>
       )}
-      {/* Hero Section Wrapper for Dark Theme Video Background */}
+      {/* Fixed video background for dark mode - placed globally */}
+      {mounted && actualTheme === 'dark' && (
+        <motion.div
+          animate={isTransitioning ? { scale: 0.1, opacity: 0, filter: 'blur(10px)' } : { scale: 1, opacity: 1, filter: 'blur(0px)' }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          style={{ transformOrigin: '52% 75%' }}
+          className="fixed inset-0 w-full h-full z-0 pointer-events-none"
+        >
+          <video
+            ref={videoRef}
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full h-full object-cover"
+          >
+            <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260314_131748_f2ca2a28-fed7-44c8-b9a9-bd9acdd5ec31.mp4" type="video/mp4" />
+          </video>
+        </motion.div>
+      )}
+
+      {/* Hero Section Wrapper */}
       <motion.div
         animate={isTransitioning ? { scale: 0.95, opacity: 0, filter: 'blur(10px)' } : { scale: 1, opacity: 1, filter: 'blur(0px)' }}
         transition={{ duration: 0.8, ease: 'easeOut' }}
         className="relative min-h-dvh flex flex-col justify-between z-10 overflow-hidden"
       >
-        {mounted && actualTheme === 'dark' && (
-          <motion.div
-            animate={isTransitioning ? { scale: 0.1, opacity: 0, filter: 'blur(10px)' } : { scale: 1, opacity: 1, filter: 'blur(0px)' }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            style={{ transformOrigin: '52% 75%' }}
-            className="absolute inset-0 w-full h-full z-0 pointer-events-none"
-          >
-            <video
-              ref={videoRef}
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-full h-full object-cover"
-            >
-              <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260314_131748_f2ca2a28-fed7-44c8-b9a9-bd9acdd5ec31.mp4" type="video/mp4" />
-            </video>
-          </motion.div>
-        )}
 
         {/* Navigation – glassmorphic floating navbar */}
         <nav className="relative z-50 flex flex-row justify-between items-center px-4 py-2.5 sm:px-6 md:px-8 md:py-4 max-w-7xl mx-auto w-[calc(100%-1rem)] sm:w-[calc(100%-2rem)] mt-3 sm:mt-6 rounded-full border border-black/5 dark:border-white/5 bg-white/20 dark:bg-white/[0.02] backdrop-blur-md shadow-[0_8px_32px_0_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
