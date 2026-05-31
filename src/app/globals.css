@@ -393,15 +393,20 @@ html:not(.dark) [class*="border-border"] {
   border-color: #000000 !important;
 }
 
-/* GPU-accelerated scrolling for all scroll containers */
-main,
+/* GPU-accelerated scrolling for all scroll containers (excluding main to preserve fixed backgrounds) */
 .custom-scrollbar,
-[class*="overflow-y-auto"],
-[class*="overflow-y-scroll"] {
+[class*="overflow-y-auto"]:not(main),
+[class*="overflow-y-scroll"]:not(main) {
   -webkit-overflow-scrolling: touch !important;
   will-change: scroll-position;
   transform: translateZ(0);
   backface-visibility: hidden;
+}
+
+main {
+  transform: none !important;
+  will-change: auto !important;
+  backface-visibility: visible !important;
 }
 
 /* Custom persistent text selection highlighting for Origin AI */
