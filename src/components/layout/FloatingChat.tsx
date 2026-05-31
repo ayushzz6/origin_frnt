@@ -43,6 +43,7 @@ export default function FloatingChat({ onOpen, hideMainButton }: FloatingChatPro
           <motion.button
             type="button"
             key="origin-ai-selection-action"
+            data-origin-ai-root="true"
             initial={{ opacity: 0, scale: 0.92, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 8 }}
@@ -74,6 +75,7 @@ export default function FloatingChat({ onOpen, hideMainButton }: FloatingChatPro
         <div ref={containerRef} className="fixed bottom-24 right-4 sm:bottom-28 sm:right-6 lg:bottom-6 lg:right-6 z-50 flex flex-col items-end">
           <motion.button
             type="button"
+            data-origin-ai-root="true"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => onOpen()}

@@ -72,13 +72,13 @@ function ClientShellInner({ children }: { children: React.ReactNode }) {
     const lenis = new Lenis({
       wrapper: mainElement,
       content: (mainElement.firstElementChild as HTMLElement) || mainElement,
-      duration: 1.2,
+      duration: 0.8,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,
-      touchMultiplier: 2,
+      touchMultiplier: 1.5,
       infinite: false,
-      wheelMultiplier: 1,
-      lerp: 0.1,
+      wheelMultiplier: 1.2,
+      lerp: 0.18,
       syncTouch: false,
       syncTouchLerp: 0.075,
     });
@@ -211,6 +211,7 @@ function ClientShellInner({ children }: { children: React.ReactNode }) {
   const isTestsPath = pathname === '/tests' || pathname.startsWith('/tests/');
   const isStudyRoomTestPath = /^\/study-rooms\/[^/]+\/test/.test(pathname);
   const isSpecialPath = pathname.startsWith('/tests/') || pathname.startsWith('/ogcode/') || isStudyRoomTestPath;
+  const isFullViewportApp = pathname === '/doubt-solver' || pathname.startsWith('/tests/') || isStudyRoomTestPath;
   const shouldHideOriginAi = isTestsPath || isStudyRoomTestPath;
   const shouldShowFloatingOriginAi =
     deferredUiReady &&
@@ -248,12 +249,13 @@ function ClientShellInner({ children }: { children: React.ReactNode }) {
           <main 
             ref={mainRef}
             className={cn(
-              "flex-1 flex flex-col relative z-10 overflow-y-auto overflow-x-hidden custom-scrollbar",
+              "flex-1 flex flex-col relative z-10 overflow-x-hidden custom-scrollbar",
+              isFullViewportApp ? "overflow-hidden" : "overflow-y-auto",
               "transition-all duration-300 min-w-[320px]",
               mounted && showNavbar ? 'pt-[92px]' : ''
             )}
           >
-            <div className="flex-1 flex flex-col relative w-full max-w-full">
+            <div className="flex-1 flex flex-col relative w-full max-w-full h-full min-h-0">
               {children}
             </div>
           </main>

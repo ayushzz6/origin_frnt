@@ -41,7 +41,7 @@ export const TutorialOverlay: React.FC = () => {
 
     updatePosition();
     window.addEventListener('resize', updatePosition);
-    window.addEventListener('scroll', updatePosition);
+    window.addEventListener('scroll', updatePosition, { passive: true });
 
     return () => {
       window.removeEventListener('resize', updatePosition);

@@ -393,4 +393,37 @@ html:not(.dark) [class*="border-border"] {
   border-color: #000000 !important;
 }
 
+/* GPU-accelerated scrolling for all scroll containers */
+main,
+.custom-scrollbar,
+[class*="overflow-y-auto"],
+[class*="overflow-y-scroll"] {
+  -webkit-overflow-scrolling: touch !important;
+  will-change: scroll-position;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Custom persistent text selection highlighting for Origin AI */
+::highlight(origin-ai-selection) {
+  background-color: rgba(244, 63, 94, 0.35) !important;
+  color: inherit !important;
+}
+
+/* Global premium text selection styling */
+::selection {
+  background-color: rgba(244, 63, 94, 0.25);
+  color: inherit;
+}
+
+/* Improve KaTeX formula selection accuracy and clickability */
+.katex-mathml {
+  user-select: none !important;
+  pointer-events: none !important;
+}
+.katex-html {
+  user-select: text !important;
+}
+
+
 

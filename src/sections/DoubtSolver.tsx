@@ -332,10 +332,6 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
     scrollToBottom();
   }, [activeSession?.messages, isTyping]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [activeSession?.messages, isTyping]);
-
   const handleSendMessage = async (overrideText?: string) => {
     const currentMessage = overrideText ?? message;
     // Use the time-buffered highlight: even if the browser cleared the
@@ -656,7 +652,7 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
   };
 
   return (
-    <div className="h-screen w-full bg-background text-foreground flex flex-col font-sans relative overflow-hidden transition-colors duration-300">
+    <div className="h-full min-h-0 w-full bg-background text-foreground flex flex-col font-sans relative overflow-hidden transition-colors duration-300">
       {/* Background Decor */}
       <div className="absolute inset-0 z-0 pointer-events-none opacity-40"
         style={{
@@ -1592,8 +1588,8 @@ function ImageUploadModal({ onClose, onUpload }: { onClose: () => void, onUpload
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-[#020617]/90 backdrop-blur-md" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-[#0A1128] border border-white/10 rounded-[32px] p-8 shadow-2xl overflow-hidden">
+      <div className="absolute inset-0 bg-background/90 backdrop-blur-md" onClick={onClose} />
+      <div className="relative w-full max-w-lg bg-card border border-border/40 rounded-[32px] p-8 shadow-2xl overflow-hidden">
         <div className="flex justify-between items-center mb-8">
           <h3 className="text-xl font-bold text-foreground dark:text-white">Visual Problem Solver</h3>
           <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full"><X className="w-5 h-5 text-slate-400" /></button>

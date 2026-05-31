@@ -540,14 +540,14 @@ export default function TestInterface({ test, onComplete, onExit, timerSource, s
   });
 
   return (
-    <div className="min-h-screen bg-white text-black font-sans text-sm selection:bg-blue-200 flex flex-col relative">
+    <div className="h-dvh overflow-hidden bg-background text-foreground font-sans text-sm selection:bg-blue-200/30 flex flex-col relative">
 
       {/* 0. Verification Overlay */}
       {!isExamStarted && (
         <div className="fixed inset-0 z-[200] bg-slate-900 flex items-center justify-center p-4 sm:p-8 overflow-y-auto">
           {verificationStep === 'instructions' ? (
             /* Phase 1: Instructions */
-            <div className="max-w-5xl w-full bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+            <div className="max-w-5xl w-full bg-card rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
               {/* Header */}
               <div className="bg-rose-900 px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -1111,7 +1111,7 @@ export default function TestInterface({ test, onComplete, onExit, timerSource, s
 
               <div className="flex items-center gap-1.5">
                 <div className="w-8 h-7 bg-gray-200 border border-gray-300 rounded-sm flex items-center justify-center font-bold text-gray-500 relative">
-                  <span className="bg-white px-1 leading-none z-10">{stats.not_visited}</span>
+                  <span className="bg-background px-1 leading-none z-10">{stats.not_visited}</span>
                 </div>
                 <span className="leading-tight w-20">Not Visited</span>
               </div>
@@ -1150,7 +1150,7 @@ export default function TestInterface({ test, onComplete, onExit, timerSource, s
 
           {/* Palette Grid */}
           <div className="flex-1 p-4 bg-rose-50/30 overflow-y-auto">
-            <div className="bg-[#EBEBEB] text-primary font-bold py-1 px-2 border-b border-primary text-xs uppercase mb-2 inline-block">
+            <div className="bg-muted text-primary font-bold py-1 px-2 border-b border-primary text-xs uppercase mb-2 inline-block">
               {test.title}
             </div>
             <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-y-2 gap-x-1 justify-items-center">
@@ -1160,7 +1160,7 @@ export default function TestInterface({ test, onComplete, onExit, timerSource, s
                 let innerContent = (i + 1).toString().padStart(2, '0');
 
                 if (status === 'not_visited') {
-                  shapeClass += " bg-white border border-gray-400 text-gray-800 rounded-sm";
+                  shapeClass += " bg-card border border-border text-foreground rounded-sm";
                 } else if (status === 'not_answered') {
                   shapeClass += " text-white";
                   innerContent = <div className="absolute inset-0 bg-[#D9534F] flex items-center justify-center" style={{ clipPath: 'polygon(0% 0%, 100% 0%, 100% 70%, 70% 100%, 0% 100%)' }}>{innerContent}</div> as any;
