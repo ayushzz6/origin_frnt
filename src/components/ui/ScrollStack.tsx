@@ -216,7 +216,7 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
   const setupLenis = useCallback(() => {
     if (useWindowScroll) {
       const mainScroller = document.querySelector('main');
-      if (typeof window !== 'undefined' && (window as any).lenis && (window as any).lenis.options.wrapper === mainScroller) {
+      if (typeof window !== 'undefined' && (window as any).lenis && (window as any).lenis.options && (window as any).lenis.options.wrapper === mainScroller) {
         const lenis = (window as any).lenis;
         lenis.on('scroll', handleScroll);
         lenisRef.current = lenis;

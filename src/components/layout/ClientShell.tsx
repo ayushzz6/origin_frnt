@@ -102,7 +102,7 @@ function ClientShellInner({ children }: { children: React.ReactNode }) {
     const mainElement = mainRef.current;
     if (mainElement) {
       mainElement.scrollTop = 0;
-      if ((window as any).lenis) {
+      if ((window as any).lenis && typeof (window as any).lenis.scrollTo === 'function') {
         (window as any).lenis.scrollTo(0, { immediate: true });
       }
     }
