@@ -52,6 +52,13 @@ function ClientShellInner({ children }: { children: React.ReactNode }) {
   const { user, logout, isNavigationLocked } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+  
+  const isTestsPath = pathname === '/tests' || pathname.startsWith('/tests/');
+  const isStudyRoomTestPath = /^\/study-rooms\/[^/]+\/test/.test(pathname);
+  const isSpecialPath = pathname.startsWith('/tests/') || pathname.startsWith('/ogcode/') || isStudyRoomTestPath;
+  const isFullViewportApp = pathname === '/doubt-solver' || pathname.startsWith('/tests/') || pathname.startsWith('/ogcode/') || isStudyRoomTestPath;
+  const shouldHideOriginAi = isTestsPath || isStudyRoomTestPath;
+
   const { resolvedTheme, setTheme } = useTheme();
   const { 
     setSidebarWidth, 
@@ -68,6 +75,10 @@ function ClientShellInner({ children }: { children: React.ReactNode }) {
     if (!mounted) return;
     const mainElement = mainRef.current;
     if (!mainElement) return;
+
+    if (isFullViewportApp) {
+      return;
+    }
 
     const lenis = new Lenis({
       wrapper: mainElement,
@@ -96,7 +107,7 @@ function ClientShellInner({ children }: { children: React.ReactNode }) {
       lenis.destroy();
       delete (window as any).lenis;
     };
-  }, [mounted]);
+  }, [mounted, isFullViewportApp]);
 
   React.useEffect(() => {
     const mainElement = mainRef.current;
@@ -208,11 +219,6 @@ function ClientShellInner({ children }: { children: React.ReactNode }) {
   };
 
   const noNavbarPaths = ['/', '/auth', '/onboarding', '/role-selection'];
-  const isTestsPath = pathname === '/tests' || pathname.startsWith('/tests/');
-  const isStudyRoomTestPath = /^\/study-rooms\/[^/]+\/test/.test(pathname);
-  const isSpecialPath = pathname.startsWith('/tests/') || pathname.startsWith('/ogcode/') || isStudyRoomTestPath;
-  const isFullViewportApp = pathname === '/doubt-solver' || pathname.startsWith('/tests/') || isStudyRoomTestPath;
-  const shouldHideOriginAi = isTestsPath || isStudyRoomTestPath;
   const shouldShowFloatingOriginAi =
     deferredUiReady &&
     !!user &&
