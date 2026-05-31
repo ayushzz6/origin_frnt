@@ -13,7 +13,6 @@ import { useResizable } from '@/hooks/use-resizable';
 import AiSidebar from './AiSidebar';
 import { LayoutProvider, useLayout } from '@/context/LayoutContext';
 import { TimeTrackerProvider } from '@/context/TimeTrackerContext';
-import Lenis from 'lenis';
 
 const FloatingChat = dynamic(() => import('./FloatingChat'), { ssr: false });
 const TutorialOverlay = dynamic(() =>
@@ -72,59 +71,9 @@ function ClientShellInner({ children }: { children: React.ReactNode }) {
   const mainRef = React.useRef<HTMLElement | null>(null);
 
   React.useEffect(() => {
-    if (!mounted) return;
-    const mainElement = mainRef.current;
-    if (!mainElement) return;
-
-    if (isFullViewportApp) {
-      return;
-    }
-
-    const lenis = new Lenis({
-      wrapper: mainElement,
-      content: (mainElement.firstElementChild as HTMLElement) || mainElement,
-      duration: 0.8,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      smoothWheel: true,
-      touchMultiplier: 1.5,
-      infinite: false,
-      wheelMultiplier: 1.2,
-      lerp: 0.18,
-      syncTouch: false,
-      syncTouchLerp: 0.075,
-    });
-
-    const raf = (time: number) => {
-      lenis.raf(time);
-      rafId = requestAnimationFrame(raf);
-    };
-    let rafId = requestAnimationFrame(raf);
-
-    (window as any).lenis = lenis;
-
-    // Observe size changes of the content element to resize Lenis automatically
-    const resizeObserver = new ResizeObserver(() => {
-      lenis.resize();
-    });
-    if (mainElement.firstElementChild) {
-      resizeObserver.observe(mainElement.firstElementChild);
-    }
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      resizeObserver.disconnect();
-      lenis.destroy();
-      delete (window as any).lenis;
-    };
-  }, [mounted, isFullViewportApp]);
-
-  React.useEffect(() => {
     const mainElement = mainRef.current;
     if (mainElement) {
       mainElement.scrollTop = 0;
-      if ((window as any).lenis && typeof (window as any).lenis.scrollTo === 'function') {
-        (window as any).lenis.scrollTo(0, { immediate: true });
-      }
     }
   }, [pathname]);
 

@@ -1,6 +1,5 @@
 import React, { useLayoutEffect, useRef, useCallback } from 'react';
 import type { ReactNode } from 'react';
-import Lenis from 'lenis';
 
 export interface ScrollStackItemProps {
   itemClassName?: string;
@@ -9,7 +8,7 @@ export interface ScrollStackItemProps {
 
 export const ScrollStackItem: React.FC<ScrollStackItemProps> = ({ children, itemClassName = '' }) => (
   <div
-    className={`scroll-stack-card relative w-full h-[80vh] my-12 p-3 sm:p-4 rounded-[24px] sm:rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.45)] box-border origin-top will-change-transform flex flex-col gap-2 sm:gap-3 items-center border border-border/50 dark:border-white/10 ${itemClassName}`.trim()}
+    className={`scroll-stack-card relative w-full h-[85vh] sm:h-[80vh] my-12 p-3 sm:p-4 rounded-[24px] sm:rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.45)] box-border origin-top will-change-transform flex flex-col gap-2 sm:gap-3 items-center border border-border/50 dark:border-white/10 ${itemClassName}`.trim()}
     style={{
       backfaceVisibility: 'hidden',
       transformStyle: 'preserve-3d'
@@ -52,15 +51,11 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
 }) => {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const stackCompletedRef = useRef(false);
-  const animationFrameRef = useRef<number | null>(null);
-  const lenisRef = useRef<Lenis | null>(null);
   const cardsRef = useRef<HTMLElement[]>([]);
   const lastTransformsRef = useRef(new Map<number, any>());
   const isUpdatingRef = useRef(false);
   const cardOffsetsRef = useRef<number[]>([]);
   const endElementTopRef = useRef<number>(0);
-  const checkTimeoutRef = useRef<any>(null);
-  const isNativeFallbackRef = useRef(false);
 
   const calculateProgress = useCallback((scrollTop: number, start: number, end: number) => {
     if (scrollTop < start) return 0;
@@ -215,88 +210,6 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
     updateCardTransforms();
   }, [updateCardTransforms]);
 
-  const setupLenis = useCallback(() => {
-    if (useWindowScroll) {
-      const mainScroller = document.querySelector('main');
-      
-      const tryBindGlobalLenis = () => {
-        if (typeof window === 'undefined') return false;
-        const gl = (window as any).lenis;
-        const isMatchingWrapper = gl && (
-          gl.rootElement === mainScroller || 
-          gl.options?.wrapper === mainScroller ||
-          (gl.options && gl.options.wrapper === mainScroller)
-        );
-
-        if (isMatchingWrapper) {
-          // If we had a native listener, clean it up
-          if (isNativeFallbackRef.current && mainScroller) {
-            mainScroller.removeEventListener('scroll', handleScroll);
-            isNativeFallbackRef.current = false;
-          }
-          gl.on('scroll', handleScroll);
-          lenisRef.current = gl;
-          return true;
-        }
-        return false;
-      };
-
-      // Try immediately
-      if (tryBindGlobalLenis()) {
-        return lenisRef.current;
-      }
-
-      // Fallback to native scroll listener until global Lenis is ready
-      if (mainScroller) {
-        mainScroller.addEventListener('scroll', handleScroll, { passive: true });
-        isNativeFallbackRef.current = true;
-      }
-
-      // Poll to check if global Lenis becomes available (since parent mounts after child)
-      let attempts = 0;
-      const poll = () => {
-        if (tryBindGlobalLenis()) {
-          return;
-        }
-        if (attempts < 100) { // poll up to 5 seconds
-          attempts++;
-          checkTimeoutRef.current = setTimeout(poll, 50);
-        }
-      };
-      checkTimeoutRef.current = setTimeout(poll, 50);
-      return null;
-    } else {
-      const scroller = scrollerRef.current;
-      if (!scroller) return;
-
-      const lenis = new Lenis({
-        wrapper: scroller,
-        content: scroller.querySelector('.scroll-stack-inner') as HTMLElement,
-        duration: 1.2,
-        easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-        smoothWheel: true,
-        touchMultiplier: 2,
-        infinite: false,
-        gestureOrientation: 'vertical',
-        wheelMultiplier: 1,
-        lerp: 0.1,
-        syncTouch: false,
-        syncTouchLerp: 0.075
-      });
-
-      lenis.on('scroll', handleScroll);
-
-      const raf = (time: number) => {
-        lenis.raf(time);
-        animationFrameRef.current = requestAnimationFrame(raf);
-      };
-      animationFrameRef.current = requestAnimationFrame(raf);
-
-      lenisRef.current = lenis;
-      return lenis;
-    }
-  }, [handleScroll, useWindowScroll]);
-
   useLayoutEffect(() => {
     if (!useWindowScroll && !scrollerRef.current) return;
 
@@ -363,28 +276,27 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
       }
     }
 
-    setupLenis();
+    let scrollTarget: HTMLElement | Window | null = null;
+    if (useWindowScroll) {
+      const mainScroller = document.querySelector('main');
+      if (mainScroller) {
+        scrollTarget = mainScroller;
+      } else {
+        scrollTarget = window;
+      }
+    } else {
+      scrollTarget = scrollerRef.current;
+    }
+
+    if (scrollTarget) {
+      scrollTarget.addEventListener('scroll', handleScroll, { passive: true });
+    }
 
     updateCardTransforms();
 
     return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-      if (checkTimeoutRef.current) {
-        clearTimeout(checkTimeoutRef.current);
-      }
-      const mainScroller = document.querySelector('main');
-      if (isNativeFallbackRef.current && mainScroller) {
-        mainScroller.removeEventListener('scroll', handleScroll);
-        isNativeFallbackRef.current = false;
-      }
-      if (lenisRef.current) {
-        if (typeof window !== 'undefined' && lenisRef.current === (window as any).lenis) {
-          lenisRef.current.off('scroll', handleScroll);
-        } else {
-          lenisRef.current.destroy();
-        }
+      if (scrollTarget) {
+        scrollTarget.removeEventListener('scroll', handleScroll);
       }
       stackCompletedRef.current = false;
       cardsRef.current = [];
@@ -403,7 +315,7 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
     blurAmount,
     useWindowScroll,
     onStackComplete,
-    setupLenis,
+    handleScroll,
     updateCardTransforms
   ]);
 
