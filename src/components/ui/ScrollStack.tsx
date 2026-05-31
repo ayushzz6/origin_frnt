@@ -59,6 +59,8 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
   const isUpdatingRef = useRef(false);
   const cardOffsetsRef = useRef<number[]>([]);
   const endElementTopRef = useRef<number>(0);
+  const checkTimeoutRef = useRef<any>(null);
+  const isNativeFallbackRef = useRef(false);
 
   const calculateProgress = useCallback((scrollTop: number, start: number, end: number) => {
     if (scrollTop < start) return 0;
@@ -216,37 +218,53 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
   const setupLenis = useCallback(() => {
     if (useWindowScroll) {
       const mainScroller = document.querySelector('main');
-      if (typeof window !== 'undefined' && (window as any).lenis && (window as any).lenis.options && (window as any).lenis.options.wrapper === mainScroller) {
-        const lenis = (window as any).lenis;
-        lenis.on('scroll', handleScroll);
-        lenisRef.current = lenis;
-        return lenis;
+      
+      const tryBindGlobalLenis = () => {
+        if (typeof window === 'undefined') return false;
+        const gl = (window as any).lenis;
+        const isMatchingWrapper = gl && (
+          gl.rootElement === mainScroller || 
+          gl.options?.wrapper === mainScroller ||
+          (gl.options && gl.options.wrapper === mainScroller)
+        );
+
+        if (isMatchingWrapper) {
+          // If we had a native listener, clean it up
+          if (isNativeFallbackRef.current && mainScroller) {
+            mainScroller.removeEventListener('scroll', handleScroll);
+            isNativeFallbackRef.current = false;
+          }
+          gl.on('scroll', handleScroll);
+          lenisRef.current = gl;
+          return true;
+        }
+        return false;
+      };
+
+      // Try immediately
+      if (tryBindGlobalLenis()) {
+        return lenisRef.current;
       }
 
-      const lenis = new Lenis({
-        wrapper: mainScroller || undefined,
-        content: mainScroller ? (mainScroller.firstElementChild as HTMLElement) : undefined,
-        duration: 1.2,
-        easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-        smoothWheel: true,
-        touchMultiplier: 2,
-        infinite: false,
-        wheelMultiplier: 1,
-        lerp: 0.1,
-        syncTouch: false,
-        syncTouchLerp: 0.075
-      });
+      // Fallback to native scroll listener until global Lenis is ready
+      if (mainScroller) {
+        mainScroller.addEventListener('scroll', handleScroll, { passive: true });
+        isNativeFallbackRef.current = true;
+      }
 
-      lenis.on('scroll', handleScroll);
-
-      const raf = (time: number) => {
-        lenis.raf(time);
-        animationFrameRef.current = requestAnimationFrame(raf);
+      // Poll to check if global Lenis becomes available (since parent mounts after child)
+      let attempts = 0;
+      const poll = () => {
+        if (tryBindGlobalLenis()) {
+          return;
+        }
+        if (attempts < 100) { // poll up to 5 seconds
+          attempts++;
+          checkTimeoutRef.current = setTimeout(poll, 50);
+        }
       };
-      animationFrameRef.current = requestAnimationFrame(raf);
-
-      lenisRef.current = lenis;
-      return lenis;
+      checkTimeoutRef.current = setTimeout(poll, 50);
+      return null;
     } else {
       const scroller = scrollerRef.current;
       if (!scroller) return;
@@ -352,6 +370,14 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (checkTimeoutRef.current) {
+        clearTimeout(checkTimeoutRef.current);
+      }
+      const mainScroller = document.querySelector('main');
+      if (isNativeFallbackRef.current && mainScroller) {
+        mainScroller.removeEventListener('scroll', handleScroll);
+        isNativeFallbackRef.current = false;
       }
       if (lenisRef.current) {
         if (typeof window !== 'undefined' && lenisRef.current === (window as any).lenis) {
