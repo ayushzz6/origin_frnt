@@ -409,12 +409,6 @@ main {
   backface-visibility: visible !important;
 }
 
-/* Custom persistent text selection highlighting for Origin AI */
-::highlight(origin-ai-selection) {
-  background-color: rgba(244, 63, 94, 0.35) !important;
-  color: inherit !important;
-}
-
 /* Global premium text selection styling */
 ::selection {
   background-color: rgba(244, 63, 94, 0.25);
