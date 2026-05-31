@@ -13,6 +13,7 @@ import { useResizable } from '@/hooks/use-resizable';
 import AiSidebar from './AiSidebar';
 import { LayoutProvider, useLayout } from '@/context/LayoutContext';
 import { TimeTrackerProvider } from '@/context/TimeTrackerContext';
+import Lenis from 'lenis';
 
 const FloatingChat = dynamic(() => import('./FloatingChat'), { ssr: false });
 const TutorialOverlay = dynamic(() =>
@@ -60,6 +61,52 @@ function ClientShellInner({ children }: { children: React.ReactNode }) {
   } = useLayout();
   const [mounted, setMounted] = React.useState(false);
   const [deferredUiReady, setDeferredUiReady] = React.useState(false);
+
+  const mainRef = React.useRef<HTMLElement | null>(null);
+
+  React.useEffect(() => {
+    if (!mounted) return;
+    const mainElement = mainRef.current;
+    if (!mainElement) return;
+
+    const lenis = new Lenis({
+      wrapper: mainElement,
+      content: (mainElement.firstElementChild as HTMLElement) || mainElement,
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+      touchMultiplier: 2,
+      infinite: false,
+      wheelMultiplier: 1,
+      lerp: 0.1,
+      syncTouch: false,
+      syncTouchLerp: 0.075,
+    });
+
+    const raf = (time: number) => {
+      lenis.raf(time);
+      rafId = requestAnimationFrame(raf);
+    };
+    let rafId = requestAnimationFrame(raf);
+
+    (window as any).lenis = lenis;
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      lenis.destroy();
+      delete (window as any).lenis;
+    };
+  }, [mounted]);
+
+  React.useEffect(() => {
+    const mainElement = mainRef.current;
+    if (mainElement) {
+      mainElement.scrollTop = 0;
+      if ((window as any).lenis) {
+        (window as any).lenis.scrollTo(0, { immediate: true });
+      }
+    }
+  }, [pathname]);
 
   // Side AI State
   const [isAiOpen, setIsAiOpenInternal] = React.useState(false);
@@ -198,11 +245,14 @@ function ClientShellInner({ children }: { children: React.ReactNode }) {
               setTheme={setTheme}
             />
           )}
-          <main className={cn(
-            "flex-1 flex flex-col relative z-10 overflow-y-auto overflow-x-hidden custom-scrollbar",
-            "transition-all duration-300 min-w-[320px]",
-            mounted && showNavbar ? 'pt-[92px]' : ''
-          )}>
+          <main 
+            ref={mainRef}
+            className={cn(
+              "flex-1 flex flex-col relative z-10 overflow-y-auto overflow-x-hidden custom-scrollbar",
+              "transition-all duration-300 min-w-[320px]",
+              mounted && showNavbar ? 'pt-[92px]' : ''
+            )}
+          >
             <div className="flex-1 flex flex-col relative w-full max-w-full">
               {children}
             </div>

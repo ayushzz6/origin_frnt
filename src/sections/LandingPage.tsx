@@ -10,6 +10,10 @@ import EvilEye from '@/components/EvilEye';
 // Heavy graphics libs (three, gsap) — split into their own chunks
 const FloatingLines = dynamic(() => import('@/components/ui/FloatingLines'), { ssr: false });
 const CardSwap = dynamic(() => import('@/components/ui/CardSwap'), { ssr: false });
+const SplitText = dynamic(() => import('@/components/ui/SplitText'), { ssr: false });
+const CircularGallery = dynamic(() => import('@/components/ui/CircularGallery'), { ssr: false });
+const ScrollStack = dynamic(() => import('@/components/ui/ScrollStack'), { ssr: false });
+const ScrollStackItem = dynamic(() => import('@/components/ui/ScrollStack').then(mod => mod.ScrollStackItem), { ssr: false });
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -106,6 +110,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
   const { user } = useAuth();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const actualTheme = mounted ? resolvedTheme : (theme === 'system' ? 'dark' : theme);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [regStatus, setRegStatus] = useState<{ count: number; limit: number; seatsLeft: number } | null>(null);
@@ -115,6 +120,72 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [showStickyCTA, setShowStickyCTA] = useState(false);
 
+  const scrubVideoRef = useRef<HTMLVideoElement>(null);
+  const prevXRef = useRef<number | null>(null);
+  const targetTimeRef = useRef<number>(0);
+  const isSeekingRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    if (!mounted || actualTheme !== 'light') return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const video = scrubVideoRef.current;
+      if (!video) return;
+      
+      const duration = video.duration;
+      if (isNaN(duration) || duration === 0) return;
+
+      if (prevXRef.current === null) {
+        prevXRef.current = e.clientX;
+        return;
+      }
+
+      const delta = e.clientX - prevXRef.current;
+      prevXRef.current = e.clientX;
+
+      const SENSITIVITY = 0.8;
+      const timeOffset = (delta / window.innerWidth) * SENSITIVITY * duration;
+      
+      let nextTarget = targetTimeRef.current + timeOffset;
+      if (nextTarget < 0) nextTarget = 0;
+      if (nextTarget > duration) nextTarget = duration;
+      
+      targetTimeRef.current = nextTarget;
+
+      if (!isSeekingRef.current) {
+        isSeekingRef.current = true;
+        const diff = nextTarget - video.currentTime;
+        if (Math.abs(diff) > 0.05) {
+          const step = diff * 0.15;
+          video.currentTime = Math.max(0, Math.min(duration, video.currentTime + step));
+        } else {
+          video.currentTime = nextTarget;
+        }
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      prevXRef.current = null;
+    };
+  }, [mounted, actualTheme]);
+
+  const handleSeeked = () => {
+    const video = scrubVideoRef.current;
+    if (!video) return;
+    
+    const diff = targetTimeRef.current - video.currentTime;
+    if (Math.abs(diff) > 0.05) {
+      const step = diff * 0.15;
+      video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + step));
+    } else if (Math.abs(diff) > 0.001) {
+      video.currentTime = targetTimeRef.current;
+    } else {
+      isSeekingRef.current = false;
+    }
+  };
+
   const handleBeginJourney = (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
     if (actualTheme === 'dark') {
@@ -122,7 +193,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
       if (videoRef.current) {
         videoRef.current.loop = false;
         videoRef.current.currentTime = 0;
-        videoRef.current.play().catch((err) => console.log('Video play failed:', err));
+        videoRef.current.play().catch((err) => console.warn('Video play failed:', err));
       }
       setTimeout(() => {
         onGetStarted();
@@ -139,6 +210,104 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
     { name: 'AI Explainer', path: '/doubt-solver', isPremium: false },
     { name: 'Study Rooms', path: '/study-rooms', isPremium: false },
     { name: 'Tests', path: '/tests', isPremium: false },
+  ];
+
+  const ncertBooks = [
+    { image: '/images/ncert/Physics-class-11-part-1.png', text: 'Physics Class 11 & HCV' },
+    { image: '/images/ncert/Physics-class-12-part-1.png', text: 'Physics Class 12 & Irodov' },
+    { image: '/images/ncert/Chemistry-class-11-part-1.png', text: 'Chemistry Class 11 Part 1' },
+    { image: '/images/ncert/Chemistry-class-11-part-2.png', text: 'Chemistry Class 11 Part 2' },
+    { image: '/images/ncert/Biology-class-11.png', text: 'NCERT Biology Class 11' },
+    { image: '/images/ncert/Biology-class-12.png', text: 'NCERT Biology Class 12' },
+    { image: '/images/ncert/Mathematics-class-11.png', text: 'Maths Class 11 & Cengage' },
+    { image: '/images/ncert/Mathematics-class-12-part-1.png', text: 'Maths Class 12 & Exemplar' }
+  ];
+
+  const appFeatures = [
+    {
+      image: '/images/app-features/Origin-bot-emotional.png',
+      category: 'AI Mentor',
+      title: 'Origin AI Mentor & Support',
+      description: 'Your 24/7 emotionally intelligent companion built to understand your mood, identify learning friction points, and explain micro-concepts adaptively. It keeps you inspired and clear-headed.',
+      audience: 'Student Interface'
+    },
+    {
+      image: '/images/app-features/Focus-timer.png',
+      category: 'Productivity',
+      title: 'Integrated Pomodoro Engine',
+      description: 'Block out distractions and build perfect flow states. Track your direct study hours with scientifically-proven session intervals and rest blocks optimized for rigorous preps.',
+      audience: 'Student Interface'
+    },
+    {
+      image: '/images/app-features/Global-Ranking.png',
+      category: 'Competition',
+      title: 'Real-time Leaderboards & Stats',
+      description: 'Gauge your performance against top national rankers daily. See precise global percentiles, accurate subject accuracy curves, and absolute velocity scores updated instantly.',
+      audience: 'Student Interface'
+    },
+    {
+      image: '/images/app-features/OG-code-to-Practice.png',
+      category: 'Coding & Practice',
+      title: 'OGCode Practice Environment',
+      description: 'Convert conceptual physics or maths logic directly into interactive sandbox challenges. Solve code-driven logic boards that establish structural thinking.',
+      audience: 'Student Interface'
+    },
+    {
+      image: '/images/app-features/Origin-testing-Agency.png',
+      category: 'Evaluation',
+      title: 'Origin Testing Agency',
+      description: 'Engage in full-length custom mock assessments built dynamically to mimic real NTA templates. Get immediate failure reviews, predictive AIR metrics, and concept gap diagnostics.',
+      audience: 'Student Interface'
+    },
+    {
+      image: '/images/app-features/Peronalized-dpp-generation.png',
+      category: 'Practice Engine',
+      title: 'Personalized DPP Generation',
+      description: 'Never solve generic question sheets again. Our AI analyzes your mock mistakes and generates customized Daily Practice Problems matching your unique concept friction points.',
+      audience: 'Student Interface'
+    },
+    {
+      image: '/images/app-features/Room-feature.png',
+      category: 'Collaboration',
+      title: 'Interactive Study Rooms',
+      description: 'Join real-time, interactive virtual study rooms. Solve challenges alongside classmates, exchange immediate chat notes, share code snippets, and sync up on collective mock sprints.',
+      audience: 'Student Interface'
+    },
+    {
+      image: '/images/app-features/books-study-notes.png',
+      category: 'Resource Hub',
+      title: 'Study Notes & Reference Vault',
+      description: 'Access hyper-precise summary blueprints, structured micro-concepts, and formulas cross-referenced directly from gold standards like NCERT, HC Verma, and Irodov.',
+      audience: 'Student Interface'
+    },
+    {
+      image: '/images/app-features/teacher/Live-test.png',
+      category: 'Teacher Operating System',
+      title: 'Live Batch Mock Control',
+      description: 'Deploy live custom tests to multiple student batches instantaneously. Monitor student solve speed, check ongoing accuracy spreads, and spot struggling students live.',
+      audience: 'Teacher Interface'
+    },
+    {
+      image: '/images/app-features/teacher/Syallabus-compliton-tracker.png',
+      category: 'Teacher Operating System',
+      title: 'Syllabus Mastery Map',
+      description: 'Track overall batch coverage and subject syllabus percentiles dynamically. Pinpoint exactly which topics have low collective mastery and adjust future lecture blocks.',
+      audience: 'Teacher Interface'
+    },
+    {
+      image: '/images/app-features/teacher/Teacher-Batch.png',
+      category: 'Teacher Operating System',
+      title: 'Cohort Performance Analytics',
+      description: 'Organize hundreds of students into performance cohorts. Dive deep into individual growth metrics, parent reports, and batch engagement distributions on one dashboard.',
+      audience: 'Teacher Interface'
+    },
+    {
+      image: '/images/app-features/teacher/Teacher-question.png',
+      category: 'Teacher Operating System',
+      title: 'Infinite Question Pool Builder',
+      description: 'Construct proprietary class tests using the AI-assisted problem importer. Auto-parse hand-written sheets or PDFs and tag them with precise subjects, chapters, and difficulty levels in seconds.',
+      audience: 'Teacher Interface'
+    }
   ];
 
   const handleNavLinkClick = (e: React.MouseEvent, path: string, isPremiumLink: boolean) => {
@@ -174,20 +343,38 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  const mainRef = useRef<HTMLElement | null>(null);
+  const [mountedMain, setMountedMain] = useState(false);
+
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const handleScroll = () => {
-      // Show sticky CTA once scrolled past hero section (~400px)
-      setShowStickyCTA(window.scrollY > 400);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    mainRef.current = document.querySelector('main');
+    setMountedMain(true);
   }, []);
 
-  const actualTheme = mounted ? resolvedTheme : (theme === 'system' ? 'dark' : theme);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mainScroller = mainRef.current;
+    const handleScroll = () => {
+      const scrollTop = mainScroller ? mainScroller.scrollTop : window.scrollY;
+      setShowStickyCTA(scrollTop > 400);
+    };
+    if (mainScroller) {
+      mainScroller.addEventListener('scroll', handleScroll, { passive: true });
+    } else {
+      window.addEventListener('scroll', handleScroll, { passive: true });
+    }
+    return () => {
+      if (mainScroller) {
+        mainScroller.removeEventListener('scroll', handleScroll);
+      } else {
+        window.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, [mountedMain]);
 
   const { scrollYProgress } = useScroll({
     target: howItWorksRef,
+    container: mainRef,
     offset: ["start center", "end center"]
   });
   const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
@@ -306,20 +493,21 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
   );
 
   return (
-    <div className="min-h-dvh bg-background text-foreground selection:bg-primary/20 font-sans antialiased transition-colors duration-500 relative overflow-x-hidden">
-      {/* Background Layer: Light Theme – softer wave lines */}
+    <div className="min-h-dvh bg-background text-foreground selection:bg-primary/20 font-sans antialiased transition-colors duration-500 relative overflow-x-visible">
+      {/* Background Layer: Light Theme – mouse-scrub controlled video */}
       {mounted && actualTheme === 'light' && (
-        <div className="fixed inset-0 z-0 pointer-events-none opacity-70">
-          <FloatingLines
-            enabledWaves={['top', 'middle', 'bottom']}
-            linesGradient={['#fda4af', '#fb7185', '#f43f5e']}
-            lineCount={[8, 12, 16]}
-            lineDistance={[8, 6, 4]}
-            bendRadius={5.0}
-            bendStrength={-0.5}
-            interactive={true}
-            parallax={true}
-          />
+        <div className="fixed inset-0 z-0 pointer-events-none w-full h-full">
+          <video
+            ref={scrubVideoRef}
+            muted
+            playsInline
+            preload="auto"
+            className="w-full h-full object-cover"
+            style={{ position: 'fixed', inset: 0, zIndex: 0, objectPosition: '70% center' }}
+            onSeeked={handleSeeked}
+          >
+            <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260530_042513_df96a13b-6155-4f6e-8b93-c9dee66fba08.mp4" type="video/mp4" />
+          </video>
         </div>
       )}
       {/* Fixed video background for dark mode - placed globally */}
@@ -356,7 +544,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             <img src="/origin-new.jpg" alt="ORIGIN" className="h-7 w-auto sm:h-9 rounded-lg object-contain" />
             <span 
               className="text-lg xs:text-xl sm:text-2xl md:text-3xl tracking-tight text-foreground font-normal whitespace-nowrap"
-              style={{ fontFamily: "'Instrument Serif', serif" }}
+              style={{ fontFamily: 'var(--font-heading)' }}
             >
               O3 Origin<sup className="text-[10px]">®</sup>
             </span>
@@ -441,12 +629,20 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
 
         {/* Hero Section – cinematic and vertically centered */}
         <section ref={heroRef} className="relative z-10 flex flex-col items-center justify-center text-center px-6 flex-grow max-w-7xl mx-auto w-full py-8 sm:py-12">
-          <h1 
-            className="text-3xl xs:text-4xl sm:text-7xl md:text-8xl leading-[0.95] tracking-[-2.46px] max-w-7xl font-normal text-foreground animate-fade-rise"
-            style={{ fontFamily: "'Instrument Serif', serif" }}
-          >
-            Where <em className="not-italic text-muted-foreground">dreams</em> rise <em className="not-italic text-muted-foreground">through the silence.</em>
-          </h1>
+          <SplitText
+            tag="h1"
+            text="Where dreams rise through the silence."
+            className="text-3xl xs:text-4xl sm:text-7xl md:text-8xl leading-[0.95] tracking-[-2.46px] max-w-7xl font-normal text-foreground"
+            delay={80}
+            duration={0.8}
+            ease="power3.out"
+            splitType="words"
+            from={{ opacity: 0, y: 50, rotateX: 40 }}
+            to={{ opacity: 1, y: 0, rotateX: 0 }}
+            threshold={0.1}
+            rootMargin="-50px"
+            textAlign="center"
+          />
           
           <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mt-6 sm:mt-8 leading-relaxed animate-fade-rise-delay">
             We're designing tools for deep thinkers, bold creators, and quiet rebels. Amid the chaos, we build digital spaces for sharp focus and inspired work.
@@ -524,116 +720,121 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         </div>
       </section>
 
-      {/* The Protocol Section – improved spacing, images still work */}
+      {/* Immersive Book Gallery Section - Replacing the old Protocol */}
       <section id="how-it-works" ref={howItWorksRef} className="py-28 lg:py-40 relative z-10 overflow-hidden">
         <div className="max-w-7xl mx-auto px-6">
-          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: "easeOut" }} viewport={{ once: true }} className="text-center mb-24">
-            <h2 className="text-[10px] font-black text-primary tracking-[0.5em] uppercase mb-6">Mastery Framework</h2>
+          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: "easeOut" }} viewport={{ once: true }} className="text-center mb-16">
+            <h2 className="text-[10px] font-black text-primary tracking-[0.5em] uppercase mb-6">Our Knowledge Base</h2>
             <h1 className="text-6xl sm:text-7xl lg:text-8xl font-black text-gray-900 dark:text-white mb-6 tracking-tighter">
-              The <span className="bg-gradient-to-r from-primary via-primary/90 to-primary bg-clip-text text-transparent">Protocol.</span>
+              Trained on <span className="bg-gradient-to-r from-primary via-primary/90 to-primary bg-clip-text text-transparent">Gold Standards.</span>
             </h1>
             <p className="text-xl sm:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto font-medium leading-relaxed">
-              A systematic, AI-driven approach to mastering the syllabus and securing your top rank.
+              We trained our AI on exact NCERT textbooks and reference gold standards like <strong className="text-primary">HC Verma, Irodov, NCERT Exemplar</strong>, and standard preparatory resources.
             </p>
           </motion.div>
 
-          <div className="space-y-40 lg:space-y-64 relative">
-            {/* Step 1 */}
-            <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-32">
-              <motion.div initial={{ opacity: 0, x: -50 }} whileInView={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.2 }} viewport={{ once: true, margin: "-100px" }} className="flex-1 space-y-6">
-                <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-emerald-300 border border-emerald-200 dark:border-rose-800">
-                  <span className="text-xs font-black uppercase tracking-widest">Step 01</span>
-                </div>
-                <h2 className="text-5xl lg:text-6xl font-black text-gray-900 dark:text-white tracking-tighter">Diagnose.</h2>
-                <p className="text-xl lg:text-2xl text-gray-600 dark:text-gray-300 leading-relaxed font-medium">Identify critical knowledge gaps with hyper-precise AI diagnostic tests. Our AI maps your cognitive profile in real-time.</p>
-                <ul className="space-y-4 pt-4">
-                  {["Real-time gap detection", "Cognitive strength mapping", "Syllabus coverage audit"].map((item, i) => (
-                    <li key={i} className="flex items-center gap-3 text-gray-700 dark:text-gray-300 font-bold">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary/80" /> {item}
-                    </li>
-                  ))}
-                </ul>
-              </motion.div>
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8 }} viewport={{ once: true }} className="flex-1 relative group">
-                <div className="absolute inset-0 bg-primary/80/20 blur-[80px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                <div className="relative rounded-3xl overflow-hidden border border-border dark:border-white/10 shadow-2xl">
-                  <img src="/images/protocol/diagnose.png" alt="Diagnose" className="w-full h-auto object-cover hover:scale-105 transition-transform duration-1000" />
-                </div>
-              </motion.div>
-            </div>
-
-            {/* Step 2 */}
-            <div className="flex flex-col lg:flex-row-reverse items-center gap-16 lg:gap-32">
-              <motion.div initial={{ opacity: 0, x: 50 }} whileInView={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.2 }} viewport={{ once: true, margin: "-100px" }} className="flex-1 space-y-6">
-                <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 border border-primary/20 dark:border-rose-800">
-                  <span className="text-xs font-black uppercase tracking-widest">Step 02</span>
-                </div>
-                <h2 className="text-5xl lg:text-6xl font-black text-gray-900 dark:text-white tracking-tighter">Plan.</h2>
-                <p className="text-xl lg:text-2xl text-gray-600 dark:text-gray-300 leading-relaxed font-medium">Get a custom roadmap generated by our AIR prediction engine. Every hour of study is optimized for maximum mark gains.</p>
-                <ul className="space-y-4 pt-4">
-                  {["Personalized path to AIR < 100", "Dynamic subject re-prioritization", "Time-blocked efficiency maps"].map((item, i) => (
-                    <li key={i} className="flex items-center gap-3 text-gray-700 dark:text-gray-300 font-bold">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary/80" /> {item}
-                    </li>
-                  ))}
-                </ul>
-              </motion.div>
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8 }} viewport={{ once: true }} className="flex-1 relative group">
-                <div className="absolute inset-0 bg-primary/80/20 blur-[80px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                <div className="relative rounded-3xl overflow-hidden border border-border dark:border-white/10 shadow-2xl">
-                  <img src="/images/protocol/plan.png" alt="Plan" className="w-full h-auto object-cover hover:scale-105 transition-transform duration-1000" />
-                </div>
-              </motion.div>
-            </div>
-
-            {/* Step 3 */}
-            <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-32">
-              <motion.div initial={{ opacity: 0, x: -50 }} whileInView={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.2 }} viewport={{ once: true, margin: "-100px" }} className="flex-1 space-y-6">
-                <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
-                  <span className="text-xs font-black uppercase tracking-widest">Step 03</span>
-                </div>
-                <h2 className="text-5xl lg:text-6xl font-black text-gray-900 dark:text-white tracking-tighter">Execute.</h2>
-                <p className="text-xl lg:text-2xl text-gray-600 dark:text-gray-300 leading-relaxed font-medium">Practice with adaptive DPPs that evolve as you solve. No two students ever solve the same question set.</p>
-                <ul className="space-y-4 pt-4">
-                  {["Infinite adaptive problem sets", "Hyper-focused doubt resolution", "Scientifically designed focus blocks"].map((item, i) => (
-                    <li key={i} className="flex items-center gap-3 text-gray-700 dark:text-gray-300 font-bold">
-                      <div className="w-1.5 h-1.5 rounded-full bg-teal-500" /> {item}
-                    </li>
-                  ))}
-                </ul>
-              </motion.div>
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8 }} viewport={{ once: true }} className="flex-1 relative group">
-                <div className="absolute inset-0 bg-teal-500/20 blur-[80px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                <div className="relative rounded-3xl overflow-hidden border border-border dark:border-white/10 shadow-2xl">
-                  <img src="/images/protocol/execute.png" alt="Execute" className="w-full h-auto object-cover hover:scale-105 transition-transform duration-1000" />
-                </div>
-              </motion.div>
-            </div>
-
-            {/* Step 4 */}
-            <div className="flex flex-col lg:flex-row-reverse items-center gap-16 lg:gap-32">
-              <motion.div initial={{ opacity: 0, x: 50 }} whileInView={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.2 }} viewport={{ once: true, margin: "-100px" }} className="flex-1 space-y-6">
-                <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                  <span className="text-xs font-black uppercase tracking-widest">Step 04</span>
-                </div>
-                <h2 className="text-5xl lg:text-6xl font-black text-gray-900 dark:text-white tracking-tighter">Achieve.</h2>
-                <p className="text-xl lg:text-2xl text-gray-600 dark:text-gray-300 leading-relaxed font-medium">Track your rank improvements daily. See your predicted AIR rise as you master more concepts.</p>
-                <ul className="space-y-4 pt-4">
-                  {["Daily AIR prediction updates", "Milestone celebration engine", "Final sprint optimization"].map((item, i) => (
-                    <li key={i} className="flex items-center gap-3 text-gray-700 dark:text-gray-300 font-bold">
-                      <div className="w-1.5 h-1.5 rounded-full bg-amber-500" /> {item}
-                    </li>
-                  ))}
-                </ul>
-              </motion.div>
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8 }} viewport={{ once: true }} className="flex-1 relative group">
-                <div className="absolute inset-0 bg-amber-500/20 blur-[80px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                <div className="relative rounded-3xl overflow-hidden border border-border dark:border-white/10 shadow-2xl">
-                  <img src="/images/protocol/achieve.png" alt="Achieve" className="w-full h-auto object-cover hover:scale-105 transition-transform duration-1000" />
-                </div>
-              </motion.div>
-            </div>
+          {/* Curved Circular WebGL Gallery container */}
+          <div className="relative w-full h-[550px] sm:h-[650px] overflow-hidden rounded-3xl border border-border/40 dark:border-white/5 bg-gray-50/20 dark:bg-white/[0.01] backdrop-blur-sm shadow-[0_16px_48px_rgba(0,0,0,0.1)] dark:shadow-[0_16px_48px_rgba(0,0,0,0.4)]">
+            <CircularGallery 
+              items={ncertBooks} 
+              bend={3} 
+              textColor={actualTheme === 'dark' ? '#ffffff' : '#1e293b'} 
+              borderRadius={0.06} 
+              scrollEase={0.04}
+              scrollSpeed={2.5}
+            />
           </div>
+        </div>
+      </section>
+
+      {/* Immersive ScrollStack App Features Section */}
+      <section id="app-features-stack" className="py-28 lg:py-40 relative z-10 overflow-visible bg-gradient-to-b from-transparent via-slate-50/50 to-transparent dark:via-slate-950/20">
+        <div className="max-w-7xl mx-auto px-6 mb-16 text-center">
+          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: "easeOut" }} viewport={{ once: true }} className="space-y-4">
+            <h2 className="text-[10px] font-black text-primary tracking-[0.5em] uppercase">Ecosystem Walkthrough</h2>
+            <h1 className="text-5xl sm:text-7xl font-black text-gray-900 dark:text-white tracking-tighter">
+              Explore the <span className="bg-gradient-to-r from-primary via-primary/90 to-primary bg-clip-text text-transparent">ORIGIN Stack.</span>
+            </h1>
+            <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto font-medium">
+              A comprehensive walkthrough of specialized tools built for extreme student performance and complete teacher batch control.
+            </p>
+          </motion.div>
+        </div>
+
+        <div className="w-full px-[5%] sm:px-[5%] lg:px-[5%]">
+          <ScrollStack 
+            useWindowScroll={true} 
+            itemDistance={140} 
+            itemScale={0.02}
+            itemStackDistance={0} 
+            stackPosition="10%"
+            baseScale={0.92}
+            blurAmount={1}
+          >
+            {appFeatures.map((feat, idx) => {
+              const isBotEmotional = feat.image === '/images/app-features/Origin-bot-emotional.png';
+              
+              if (isBotEmotional) {
+                return (
+                  <ScrollStackItem 
+                    key={idx} 
+                    itemClassName="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-border/50 dark:border-white/5 shadow-2xl p-3 sm:p-5 flex flex-col items-center justify-center"
+                  >
+                    {/* Full card image to show text clearly */}
+                    <div className="w-full h-full rounded-[30px] overflow-hidden bg-gray-50/30 dark:bg-white/[0.01] flex items-center justify-center relative p-1 shadow-inner group">
+                      <img 
+                        src={feat.image} 
+                        alt={feat.title} 
+                        style={{ transform: 'translate3d(0, 0, 0)', backfaceVisibility: 'hidden' }}
+                        className="w-full h-full object-contain rounded-2xl shadow-sm transition-transform duration-500 will-change-transform" 
+                      />
+                    </div>
+                  </ScrollStackItem>
+                );
+              }
+
+              return (
+                <ScrollStackItem 
+                  key={idx} 
+                  itemClassName="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-border/50 dark:border-white/5 shadow-2xl flex flex-col gap-4 items-center p-4 sm:p-6"
+                >
+                  {/* Image Block (Top) */}
+                  <div className="w-full flex-[2] min-h-0 rounded-2xl overflow-hidden border border-border/40 dark:border-white/5 bg-gray-50/30 dark:bg-white/[0.01] flex items-center justify-center relative p-2 shadow-inner group">
+                    <img 
+                      src={feat.image} 
+                      alt={feat.title} 
+                      style={{ transform: 'translate3d(0, 0, 0)', backfaceVisibility: 'hidden' }}
+                      className="max-w-full max-h-full object-contain rounded-xl shadow-md group-hover:scale-[1.01] transition-transform duration-500 will-change-transform" 
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/[0.02] via-transparent to-transparent pointer-events-none" />
+                  </div>
+
+                  {/* Text/Explanation Block (Below) */}
+                  <div className="w-full flex-[0] shrink-0 space-y-2.5 text-left">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-[9px] font-black uppercase tracking-widest">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                      {feat.category}
+                    </div>
+                    
+                    <h3 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight leading-none">
+                      {feat.title}
+                    </h3>
+                    
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 leading-relaxed font-medium">
+                      {feat.description}
+                    </p>
+                    
+                    <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
+                      <span>Target:</span>
+                      <span className="text-gray-800 dark:text-gray-200 border-b border-primary/30 pb-0.5">
+                        {feat.audience}
+                      </span>
+                    </div>
+                  </div>
+                </ScrollStackItem>
+              );
+            })}
+          </ScrollStack>
         </div>
       </section>
 
@@ -732,7 +933,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
                 </p>
               </div>
               <Button onClick={handleBeginJourney} className="bg-primary hover:opacity-90 text-primary-foreground rounded-full px-14 py-8 text-2xl font-black shadow-2xl shadow-primary/30 transition-all duration-300 hover:scale-105 group">
-                START YOUR JOURNEY
+                Try Origin Now
                 <Zap className="w-7 h-7 ml-3 group-hover:rotate-12 transition-transform" />
               </Button>
               <p className="text-lg sm:text-xl text-gray-500 dark:text-gray-400 font-black tracking-tight uppercase">

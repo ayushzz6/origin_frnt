@@ -203,9 +203,8 @@ export default function EvilEye({
     const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
 
     function onMouseMove(e: MouseEvent) {
-      const rect = container.getBoundingClientRect();
-      mouse.tx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.ty = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+      mouse.tx = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.ty = -((e.clientY / window.innerHeight) * 2 - 1);
     }
 
     function onMouseLeave() {
@@ -213,8 +212,8 @@ export default function EvilEye({
       mouse.ty = 0;
     }
 
-    container.addEventListener('mousemove', onMouseMove);
-    container.addEventListener('mouseleave', onMouseLeave);
+    window.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseleave', onMouseLeave);
 
     const geometry = new Triangle(gl);
     const program = new Program(gl, {
@@ -252,8 +251,8 @@ export default function EvilEye({
 
     function update(time: number) {
       animationFrameId = requestAnimationFrame(update);
-      mouse.x += (mouse.tx - mouse.x) * 0.05;
-      mouse.y += (mouse.ty - mouse.y) * 0.05;
+      mouse.x += (mouse.tx - mouse.x) * 0.25;
+      mouse.y += (mouse.ty - mouse.y) * 0.25;
       program.uniforms.uMouse.value = [mouse.x, mouse.y];
       program.uniforms.uTime.value = time * 0.001;
       renderer.render({ scene: mesh });
@@ -263,8 +262,8 @@ export default function EvilEye({
     return () => {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', resize);
-      container.removeEventListener('mousemove', onMouseMove);
-      container.removeEventListener('mouseleave', onMouseLeave);
+      window.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseleave', onMouseLeave);
       container.removeChild(gl.canvas);
       gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
