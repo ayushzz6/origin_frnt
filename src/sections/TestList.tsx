@@ -35,7 +35,7 @@ interface TestListProps {
   onStartTest: (test: TestPreview) => void;
   onViewAnalysis: (test: TestPreview) => void;
   onBack: () => void;
-  user: User;
+  user?: User | null;
   /** Pre-loaded by the Server Component — skips the initial client-side fetch */
   initialTests?: TestPreview[];
 }
@@ -182,7 +182,7 @@ export default function TestList({ onStartTest, onViewAnalysis, onBack, user, in
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400">
                 <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span className="text-[10px] sm:text-sm font-bold truncate max-w-[60px] sm:max-w-none">{user.streak || 0}d streak</span>
+                <span className="text-[10px] sm:text-sm font-bold truncate max-w-[60px] sm:max-w-none">{user?.streak || 0}d streak</span>
               </div>
             </div>
           </div>
@@ -261,7 +261,7 @@ export default function TestList({ onStartTest, onViewAnalysis, onBack, user, in
                         Tests curated for your primary subjects
                       </p>
                     </div>
-                    {user.subjects && user.subjects.length > 0 && (
+                    {user?.subjects && user.subjects.length > 0 && (
                       <div className="flex flex-wrap gap-2">
                         {user.subjects.map(sub => (
                           <Badge key={sub} className="bg-white/20 hover:bg-white/30 text-white border-0 font-bold uppercase text-[10px]">
@@ -277,7 +277,7 @@ export default function TestList({ onStartTest, onViewAnalysis, onBack, user, in
                   {standardTests
                     .filter(t => !t.attempted)
                     .filter(t => {
-                      if (user.subjects && user.subjects.length > 0) {
+                      if (user?.subjects && user.subjects.length > 0) {
                         return user.subjects.some(sub =>
                           t.subject.toLowerCase() === sub.toLowerCase() || t.subject === 'mixed'
                         );
@@ -610,7 +610,7 @@ interface TestCardProps {
   test: TestPreview;
   onStart: () => void;
   onViewAnalysis: () => void;
-  user: User;
+  user?: User | null;
   getSubjectIcon: (subject: string) => React.ReactNode;
   getSubjectColor: (subject: string) => string;
   getDifficultyColor: (difficulty: string) => string;
