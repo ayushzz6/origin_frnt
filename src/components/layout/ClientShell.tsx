@@ -267,7 +267,10 @@ function ClientShellInner({ children }: { children: React.ReactNode }) {
               mounted && showNavbar ? 'pt-[92px]' : ''
             )}
           >
-            <div className="flex-1 flex flex-col relative w-full max-w-full h-full min-h-0">
+            <div className={cn(
+              "flex-1 flex flex-col relative w-full max-w-full min-h-0",
+              isFullViewportApp ? "h-full" : "h-auto"
+            )}>
               {children}
             </div>
           </main>
