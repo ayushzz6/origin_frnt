@@ -28,6 +28,7 @@
   --radius: 0.75rem;
 
   --font-display: var(--font-display);
+  --font-heading: var(--font-heading);
   --font-sans: var(--font-body);
 
   --color-origin-blue: #2563eb;
@@ -38,7 +39,8 @@
 
 :root {
   --font-display: 'Instrument Serif', serif;
-  --font-body: 'Inter', sans-serif;
+  --font-heading: 'HelveticaNowDisplay-Medium', 'Helvetica Neue', Arial, sans-serif;
+  --font-body: 'HelveticaNowDisplayW01-Rg', 'Helvetica Neue', Arial, sans-serif;
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;
   --card: 0 0% 100%;
