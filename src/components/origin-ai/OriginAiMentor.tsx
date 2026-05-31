@@ -811,7 +811,7 @@ export default function OriginAiMentor({
                               : 'Ask Origin AI anything about your studies...'
                       }
                       className={cn(
-                        'flex-1 resize-none rounded-3xl border border-slate-800 bg-muted/40 px-4 text-sm text-foreground outline-none transition focus:border-primary/40 focus:bg-muted/60 disabled:opacity-50',
+                        'flex-1 resize-none rounded-3xl border border-muted dark:border-slate-800 bg-muted/40 px-4 text-sm text-foreground outline-none transition focus:border-primary/40 focus:bg-muted/60 disabled:opacity-50',
                         compact ? 'min-h-[48px] max-h-24 py-3 leading-6' : 'min-h-[56px] py-3',
                       )}
                     />
@@ -840,7 +840,7 @@ export default function OriginAiMentor({
                         'rounded-3xl text-foreground transition-colors',
                         isVoiceActive
                           ? 'border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400'
-                          : 'border border-slate-800 bg-muted/40 hover:bg-muted/80',
+                          : 'border border-muted dark:border-slate-800 bg-muted/40 hover:bg-muted/80',
                         compact ? 'h-12 w-12 shrink-0 px-0 py-0' : 'h-auto px-4 py-3',
                         isVoiceQuotaReached && !isVoiceActive && 'opacity-50 cursor-not-allowed'
                       )}
@@ -894,7 +894,7 @@ export default function OriginAiMentor({
         {!compact && snapshot ? (
           <aside className="border-t border-border/40 px-5 py-5 xl:border-t-0 xl:border-l xl:border-border/40">
             <div className="space-y-5">
-              <div className="rounded-[28px] border border-slate-800 bg-muted/30 p-4 shadow-sm">
+              <div className="rounded-[28px] border border-muted dark:border-slate-800 bg-muted/30 p-4 shadow-sm">
                 <div className="text-[10px] font-semibold uppercase tracking-[0.3em] text-blue-500">
                   Mentor Memory
                 </div>
