@@ -102,8 +102,17 @@ function ClientShellInner({ children }: { children: React.ReactNode }) {
 
     (window as any).lenis = lenis;
 
+    // Observe size changes of the content element to resize Lenis automatically
+    const resizeObserver = new ResizeObserver(() => {
+      lenis.resize();
+    });
+    if (mainElement.firstElementChild) {
+      resizeObserver.observe(mainElement.firstElementChild);
+    }
+
     return () => {
       cancelAnimationFrame(rafId);
+      resizeObserver.disconnect();
       lenis.destroy();
       delete (window as any).lenis;
     };
