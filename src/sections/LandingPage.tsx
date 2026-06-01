@@ -796,10 +796,10 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
               return (
                 <ScrollStackItem 
                   key={idx} 
-                  itemClassName="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-border/50 dark:border-white/5 shadow-2xl flex flex-col gap-4 items-center p-4 sm:p-6"
+                  itemClassName="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-border/50 dark:border-white/5 shadow-2xl flex flex-col gap-2.5 sm:gap-4 items-center p-3 sm:p-6"
                 >
                   {/* Image Block (Top) */}
-                  <div className="w-full flex-[2] min-h-0 rounded-2xl overflow-hidden border border-border/40 dark:border-white/5 bg-gray-50/30 dark:bg-white/[0.01] flex items-center justify-center relative p-2 shadow-inner group">
+                  <div className="w-full h-[40vh] sm:h-auto sm:flex-[2] min-h-0 rounded-2xl overflow-hidden border border-border/40 dark:border-white/5 bg-gray-50/30 dark:bg-white/[0.01] flex items-center justify-center relative p-2 shadow-inner group">
                     <img 
                       src={feat.image} 
                       alt={feat.title} 
@@ -810,7 +810,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
                   </div>
 
                   {/* Text/Explanation Block (Below) */}
-                  <div className="w-full flex-[0] shrink-0 space-y-2.5 text-left">
+                  <div className="w-full flex-[0] shrink-0 space-y-2 text-left">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-[9px] font-black uppercase tracking-widest">
                       <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                       {feat.category}

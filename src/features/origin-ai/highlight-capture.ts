@@ -187,16 +187,8 @@ function handleSelectionChange() {
   const lightText = selection?.toString().trim() || null;
   
   if (!lightText) {
-    if (currentHighlight || currentHighlightRect) {
-      // Save the highlight before clearing so auto-ask flows can still read it
-      if (currentHighlight) {
-        lastValidHighlight = currentHighlight;
-        lastValidHighlightTs = Date.now();
-      }
-      currentHighlight = null;
-      currentHighlightRect = null;
-      emitChange();
-    }
+    // DO NOT clear currentHighlight here when the selection becomes empty.
+    // Taps outside the selection/origin area will be handled by handleGlobalClick.
     return;
   }
 
@@ -204,11 +196,7 @@ function handleSelectionChange() {
   const anchorNode = selection?.anchorNode;
   const anchorElement = anchorNode instanceof Element ? anchorNode : anchorNode?.parentElement ?? null;
   if (anchorElement?.closest('[data-origin-ai-root="true"]')) {
-    if (currentHighlight || currentHighlightRect) {
-      currentHighlight = null;
-      currentHighlightRect = null;
-      emitChange();
-    }
+    clearHighlightedText();
     return;
   }
 
@@ -217,6 +205,18 @@ function handleSelectionChange() {
   if (lightText !== currentHighlight) {
     currentHighlight = lightText;
     currentHighlightRect = getSelectionRect(selection);
+    
+    // Update CSS Highlight API
+    if (typeof CSS !== 'undefined' && (CSS as any).highlights && typeof window !== 'undefined' && (window as any).Highlight && selection && selection.rangeCount > 0) {
+      try {
+        const range = selection.getRangeAt(0).cloneRange();
+        const highlight = new (window as any).Highlight(range);
+        (CSS as any).highlights.set("origin-ai-selection", highlight);
+      } catch (e) {
+        console.error("Failed to set CSS highlight", e);
+      }
+    }
+    
     emitChange();
   }
 
@@ -225,12 +225,25 @@ function handleSelectionChange() {
   if (heavyExtractionTimeout) clearTimeout(heavyExtractionTimeout);
   
   heavyExtractionTimeout = setTimeout(() => {
-    // Only perform heavy extraction if we still have a selection and mouse is up
+    // Only perform rich extraction if we still have a selection and mouse is up
     if (!isMouseDown) {
-      const richText = extractSelectionText(window.getSelection());
+      const richSelection = window.getSelection();
+      const richText = extractSelectionText(richSelection);
       if (richText && richText !== currentHighlight) {
         currentHighlight = richText;
-        currentHighlightRect = getSelectionRect(window.getSelection());
+        currentHighlightRect = getSelectionRect(richSelection);
+        
+        // Update CSS Highlight API with rich range
+        if (typeof CSS !== 'undefined' && (CSS as any).highlights && typeof window !== 'undefined' && (window as any).Highlight && richSelection && richSelection.rangeCount > 0) {
+          try {
+            const range = richSelection.getRangeAt(0).cloneRange();
+            const highlight = new (window as any).Highlight(range);
+            (CSS as any).highlights.set("origin-ai-selection", highlight);
+          } catch (e) {
+            console.error("Failed to set CSS highlight", e);
+          }
+        }
+        
         emitChange();
       }
     }
@@ -247,6 +260,24 @@ function handleMouseUp() {
   handleSelectionChange();
 }
 
+function handleGlobalClick(event: MouseEvent) {
+  const target = event.target as Element | null;
+  
+  // If clicked inside the origin area, do not clear
+  if (target?.closest('[data-origin-ai-root="true"]')) {
+    return;
+  }
+
+  // Check if browser currently has a selection (during mouse click release)
+  const selection = window.getSelection();
+  const selectedText = selection?.toString().trim() || "";
+
+  // If there is no selection, clear the highlight
+  if (!selectedText) {
+    clearHighlightedText();
+  }
+}
+
 let isListening = false;
 
 export function startHighlightCapture(): void {
@@ -255,6 +286,7 @@ export function startHighlightCapture(): void {
   document.addEventListener('selectionchange', handleSelectionChange);
   window.addEventListener('mousedown', handleMouseDown);
   window.addEventListener('mouseup', handleMouseUp);
+  window.addEventListener('click', handleGlobalClick);
 }
 
 export function stopHighlightCapture(): void {
@@ -263,12 +295,18 @@ export function stopHighlightCapture(): void {
   document.removeEventListener('selectionchange', handleSelectionChange);
   window.removeEventListener('mousedown', handleMouseDown);
   window.removeEventListener('mouseup', handleMouseUp);
+  window.removeEventListener('click', handleGlobalClick);
   clearHighlightedText();
 }
 
 export function clearHighlightedText(): void {
   currentHighlight = null;
   currentHighlightRect = null;
+  if (typeof CSS !== 'undefined' && (CSS as any).highlights) {
+    try {
+      (CSS as any).highlights.delete("origin-ai-selection");
+    } catch (_) {}
+  }
   emitChange();
 }
 

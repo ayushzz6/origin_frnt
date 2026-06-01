@@ -332,10 +332,6 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
     scrollToBottom();
   }, [activeSession?.messages, isTyping]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [activeSession?.messages, isTyping]);
-
   const handleSendMessage = async (overrideText?: string) => {
     const currentMessage = overrideText ?? message;
     // Use the time-buffered highlight: even if the browser cleared the
@@ -656,7 +652,7 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
   };
 
   return (
-    <div className="h-screen w-full bg-background text-foreground flex flex-col font-sans relative overflow-hidden transition-colors duration-300">
+    <div className="h-full min-h-0 w-full bg-background text-foreground flex flex-col font-sans relative overflow-hidden transition-colors duration-300">
       {/* Background Decor */}
       <div className="absolute inset-0 z-0 pointer-events-none opacity-40"
         style={{
@@ -901,7 +897,7 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
                 </div>
 
                 {/* Fixed Bottom Input Bar */}
-                <div className="p-4 border-t border-slate-800 bg-slate-900/50 backdrop-blur-xl">
+                <div className="p-4 border-t border-blue-500/10 dark:border-slate-800 bg-background/95 dark:bg-slate-900/90 backdrop-blur-xl">
                   <div className="max-w-4xl mx-auto">
                     {/* Status indicators */}
                     <AnimatePresence>
@@ -943,7 +939,7 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
                         </button>
                       </div>
                     ) : null}
-                    <div className={`bg-card/80 backdrop-blur-2xl border ${isRecording ? 'border-red-500/40 shadow-red-500/10' : 'border-border/60 shadow-2xl'} rounded-xl sm:rounded-[28px] p-1 sm:p-2 flex items-end gap-1 sm:gap-2 transition-all`}>
+                    <div className={`bg-card/80 backdrop-blur-2xl border ${isRecording ? 'border-red-500/40 shadow-red-500/10' : 'border-primary/20 dark:border-border/60 shadow-2xl'} rounded-xl sm:rounded-[28px] p-1 sm:p-2 flex items-end gap-1 sm:gap-2 transition-all`}>
                       {!isRecording ? (
                         <>
                           <button
@@ -1173,7 +1169,7 @@ function SelectionView({ onCreate, onUpload, sessions, onSelectSession, lastSess
 
   return (
     <div className="w-full max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-12 overflow-y-auto custom-scrollbar">
-      <div className="relative p-5 sm:p-10 rounded-[24px] sm:rounded-[40px] bg-gradient-to-br from-blue-600/10 to-indigo-600/5 border border-slate-800 mb-6 sm:mb-12 overflow-hidden group shadow-xl">
+      <div className="relative p-5 sm:p-10 rounded-[24px] sm:rounded-[40px] bg-gradient-to-br from-blue-600/10 to-indigo-600/5 border border-muted dark:border-slate-800 mb-6 sm:mb-12 overflow-hidden group shadow-xl">
         <Sparkles className="absolute top-4 sm:top-6 right-6 sm:right-8 w-6 h-6 sm:w-12 sm:h-12 text-blue-500/10 group-hover:rotate-12 transition-transform duration-700" />
         <h2 className="text-xl sm:text-4xl font-bold text-foreground mb-2 sm:mb-4 leading-tight">Master your subjects<br />with AI precision.</h2>
         <p className="text-muted-foreground text-xs sm:text-lg max-w-xl mb-4 sm:mb-8 leading-relaxed">Stuck on a problem at 2 AM? Get step-by-step guidance and conceptual deep-dives instantly.</p>
@@ -1213,7 +1209,7 @@ function SelectionView({ onCreate, onUpload, sessions, onSelectSession, lastSess
                     onCreate(`${topic.name} Doubt Session`, topic.subjectKey as SubjectKey);
                   }
                 }}
-                className="p-4 sm:p-6 rounded-[20px] sm:rounded-[28px] bg-card/40 border border-slate-800 hover:border-blue-500/30 transition-all group flex items-center gap-4 sm:gap-6 shadow-sm hover:shadow-md"
+                className="p-4 sm:p-6 rounded-[20px] sm:rounded-[28px] bg-card/40 border border-muted hover:border-blue-500/30 dark:border-slate-800 transition-all group flex items-center gap-4 sm:gap-6 shadow-sm hover:shadow-md"
               >
                 <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-muted border border-border/50 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
                   <topic.icon className={`w-5 h-5 sm:w-7 sm:h-7 ${topic.color}`} />
@@ -1238,7 +1234,7 @@ function SelectionView({ onCreate, onUpload, sessions, onSelectSession, lastSess
                   e.preventDefault();
                   handleStartEdit(e, s);
                 }}
-                className="w-full p-4 sm:p-5 rounded-2xl sm:rounded-[28px] bg-card/30 border border-slate-800 hover:bg-card/50 transition-all text-left flex items-center justify-between group cursor-pointer shadow-sm hover:shadow-md"
+                className="w-full p-4 sm:p-5 rounded-2xl sm:rounded-[28px] bg-card/30 border border-muted hover:bg-card/50 dark:border-slate-800 transition-all text-left flex items-center justify-between group cursor-pointer shadow-sm hover:shadow-md"
                 role="button"
                 tabIndex={0}
               >
@@ -1592,8 +1588,8 @@ function ImageUploadModal({ onClose, onUpload }: { onClose: () => void, onUpload
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-[#020617]/90 backdrop-blur-md" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-[#0A1128] border border-white/10 rounded-[32px] p-8 shadow-2xl overflow-hidden">
+      <div className="absolute inset-0 bg-background/90 backdrop-blur-md" onClick={onClose} />
+      <div className="relative w-full max-w-lg bg-card border border-border/40 rounded-[32px] p-8 shadow-2xl overflow-hidden">
         <div className="flex justify-between items-center mb-8">
           <h3 className="text-xl font-bold text-foreground dark:text-white">Visual Problem Solver</h3>
           <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full"><X className="w-5 h-5 text-slate-400" /></button>
