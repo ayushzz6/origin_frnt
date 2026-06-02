@@ -1,3 +1,5 @@
+import type { Subject } from '@/lib/entitlements';
+
 export interface User {
   id: string;
   name: string;
@@ -12,6 +14,9 @@ export interface User {
   joinedAt: Date;
   isPremium: boolean;
   premiumExpiry?: Date;
+  /** Subjects the user is currently entitled to (Phase 13). Derived at read
+   * time from active subscriptions; empty/absent means free tier. */
+  entitledSubjects?: Subject[];
   isOnboarded: boolean;
   selectedCourse?: string;
   isDropper: boolean;

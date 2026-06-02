@@ -10,6 +10,7 @@ import { cookies } from "next/headers";
 import { cache } from "react";
 
 import { getAuthenticatedUser } from "@/server/authz";
+import { withEntitledSubjects } from "@/server/entitlements";
 import { readStoreAsync } from "@/server/store";
 import { serializeUser } from "@/server/users";
 import type { StoredUser } from "@/server/store";
@@ -41,5 +42,7 @@ export async function getServerFrontendUser(): Promise<User | null> {
 
   const store = await readStoreAsync();
   const payload = serializeUser(store, stored.id);
-  return (payload as unknown as User) ?? null;
+  if (!payload) return null;
+  const enriched = await withEntitledSubjects(payload, stored.id);
+  return (enriched as unknown as User) ?? null;
 }

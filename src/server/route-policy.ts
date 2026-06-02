@@ -18,6 +18,10 @@ export const PUBLIC_API_PATHS = [
   // handler), not a bearer token, so this path is excluded from the
   // INTERNAL_CRON_TOKEN policy applied to /api/internal/*.
   "/api/internal/observability/drain",
+  // Premium subscriptions webhook — Razorpay signs the body with an HMAC
+  // (verified in handler via x-razorpay-signature); there is no session
+  // cookie or bearer token, so it is public at the edge.
+  "/api/subscriptions/webhook",
 ] as const;
 
 export const INTERNAL_API_PREFIXES = ["/api/internal"] as const;
@@ -34,6 +38,7 @@ export const AUTHENTICATED_API_PREFIXES = [
   "/api/study-materials",
   "/api/admin",
   "/api/marketplace",
+  "/api/subscriptions",
 ] as const;
 
 export const MEMBERSHIP_API_PREFIXES = ["/api/study-rooms/[id]"] as const;

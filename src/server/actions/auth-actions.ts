@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { handleGoogleLogin, handleLogin, handleRegister, handleRefresh, serializeUser, handleLoginWithOtp } from '@/server/users';
 import { readStoreAsync, withStoreAsync } from '@/server/store';
 import { getServerUser } from '@/lib/auth-server';
+import { withEntitledSubjects } from '@/server/entitlements';
 import {
   ACCESS_COOKIE_NAME,
   ACCESS_FINGERPRINT_COOKIE_NAME,
@@ -228,7 +229,9 @@ export async function refreshUserAction(): Promise<User | null> {
   if (!stored) return null;
   const store = await readStoreAsync();
   const payload = serializeUser(store, stored.id);
-  return (payload as unknown as User) ?? null;
+  if (!payload) return null;
+  const enriched = await withEntitledSubjects(payload, stored.id);
+  return (enriched as unknown as User) ?? null;
 }
 
 export async function logoutAction(): Promise<void> {

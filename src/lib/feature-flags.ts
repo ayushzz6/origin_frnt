@@ -27,7 +27,8 @@ type FlagKey =
   | "ogcodePublishing"
   | "documentImport"
   | "adminControlCenter"
-  | "paidEnrollment";
+  | "paidEnrollment"
+  | "premiumSubscriptions";
 
 type FlagSpec = {
   envSuffix: string;
@@ -49,6 +50,9 @@ const FLAG_SPECS: Record<FlagKey, FlagSpec> = {
   documentImport:    { envSuffix: "DOCUMENT_IMPORT",     defaultDev: true,  defaultProd: true },
   adminControlCenter:{ envSuffix: "ADMIN_CONTROL",       defaultDev: true,  defaultProd: true },
   paidEnrollment:    { envSuffix: "PAID_ENROLLMENT",     defaultDev: true,  defaultProd: true },
+  // Phase 13 — Free vs Premium per-subject subscriptions. Ships DARK: off in
+  // dev and prod until explicitly enabled with TEACHER_LAUNCH_PREMIUM_SUBSCRIPTIONS=1.
+  premiumSubscriptions: { envSuffix: "PREMIUM_SUBSCRIPTIONS", defaultDev: false, defaultProd: false },
 };
 
 function parseFlag(raw: string | undefined): boolean | null {
