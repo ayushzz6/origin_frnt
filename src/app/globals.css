@@ -89,7 +89,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground antialiased selection:bg-primary/20 transition-colors duration-500;
+    @apply bg-background text-foreground antialiased transition-colors duration-500;
     font-family: var(--font-body), system-ui, sans-serif;
   }
 }
@@ -409,11 +409,6 @@ main {
   backface-visibility: visible !important;
 }
 
-/* Global premium text selection styling */
-::selection {
-  background-color: rgba(244, 63, 94, 0.25);
-  color: inherit;
-}
 
 /* Improve KaTeX formula selection accuracy and clickability */
 .katex-mathml {

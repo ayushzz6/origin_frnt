@@ -581,7 +581,7 @@ export default function Profile({
             </TabsContent>
 
             <TabsContent value="settings" className="mt-8">
-              <Card className="border-0 shadow-xl bg-card dark:bg-slate-900/60 backdrop-blur-xl ring-1 ring-slate-100 dark:ring-white/5">
+              <Card className="border border-border shadow-xl bg-card">
                 <CardContent className="p-6">
                   <div className="space-y-3">
                     {[
@@ -628,6 +628,20 @@ export default function Profile({
               </Card>
             </TabsContent>
           </Tabs>
+
+          {/* Policy Links & Copyright Footer */}
+          <div className="mt-12 text-center text-[11px] text-muted-foreground border-t border-border/45 pt-6">
+            <p className="mb-2">© 2026 SUPERGOAT TECHNOLOGIES PRIVATE LIMITED. All rights reserved.</p>
+            <div className="flex justify-center gap-4 flex-wrap">
+              <a href="/terms-and-conditions" className="underline hover:text-foreground transition-colors">Terms and Conditions</a>
+              <span className="text-border">•</span>
+              <a href="/privacy-policy" className="underline hover:text-foreground transition-colors">Privacy Policy</a>
+              <span className="text-border">•</span>
+              <a href="/childrens-policy" className="underline hover:text-foreground transition-colors">Children's Safety Policy</a>
+              <span className="text-border">•</span>
+              <a href="/faq" className="underline hover:text-foreground transition-colors">FAQ</a>
+            </div>
+          </div>
         </main>
       </div>
     </div>

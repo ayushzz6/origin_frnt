@@ -56,7 +56,8 @@ const EMPTY_STREAK: StreakData = {
   weeklyData: [false, false, false, false, false, false, false],
 };
 
-const PUBLIC_PATHS = ['/', '/auth', '/role-selection'];
+const GUEST_ONLY_PATHS = ['/', '/auth', '/role-selection'];
+const SHARED_PUBLIC_PATHS = ['/terms-and-conditions', '/privacy-policy', '/childrens-policy', '/faq'];
 
 function normalizeRole(role: User['role'] | undefined): 'student' | 'teacher' | 'admin' | null {
   return role === 'student' || role === 'teacher' || role === 'admin' ? role : null;
@@ -307,16 +308,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
 
     // Normalize path for robust matching (remove trailing slash except for root)
     const normalizedPath = pathname === '/' ? '/' : pathname.replace(/\/+$/, '');
-    const isPublicPath = PUBLIC_PATHS.some(p => normalizedPath === p);
+    const isGuestOnlyPath = GUEST_ONLY_PATHS.some(p => normalizedPath === p);
+    const isSharedPublicPath = SHARED_PUBLIC_PATHS.some(p => normalizedPath === p);
 
     // 1. Unauthenticated users: redirect away from protected pages
-    if (!user && !isPublicPath && !normalizedPath.startsWith('/admin')) {
+    if (!user && !isGuestOnlyPath && !isSharedPublicPath && !normalizedPath.startsWith('/admin')) {
       window.location.href = '/';
       return;
     }
 
     // 2. Authenticated users: redirect away from guest pages
-    if (user && isPublicPath) {
+    if (user && isGuestOnlyPath) {
       if (user.role === 'student' && !user.isOnboarded) {
         router.push('/onboarding');
       } else if (user.role === 'admin') {

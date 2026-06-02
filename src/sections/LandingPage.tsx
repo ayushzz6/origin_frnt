@@ -948,8 +948,17 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
       <footer className="py-10 relative z-10 border-t border-border/50 dark:border-white/10 bg-background/50 dark:bg-card/30 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center md:items-end justify-between gap-8">
           <div className="flex flex-col items-center md:items-start gap-2">
-            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em]">© O3 Origin</span>
-            <img src="/origin-new.jpg" alt="ORIGIN" className="h-12 w-auto dark:brightness-110" />
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em]">© 2026 SUPERGOAT TECHNOLOGIES PRIVATE LIMITED</span>
+            <div className="flex flex-wrap gap-4 text-xs text-muted-foreground mt-2">
+              <a href="/terms-and-conditions" className="hover:text-foreground hover:underline transition-colors">Terms & Conditions</a>
+              <span>•</span>
+              <a href="/privacy-policy" className="hover:text-foreground hover:underline transition-colors">Privacy Policy</a>
+              <span>•</span>
+              <a href="/childrens-policy" className="hover:text-foreground hover:underline transition-colors">Children's Safety Policy</a>
+              <span>•</span>
+              <a href="/faq" className="hover:text-foreground hover:underline transition-colors">FAQ</a>
+            </div>
+            <img src="/origin-new.jpg" alt="ORIGIN" className="h-12 w-auto dark:brightness-110 mt-3" />
           </div>
           <div className="flex flex-col items-center md:items-end gap-4">
             <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em]">Connect With Us</span>
