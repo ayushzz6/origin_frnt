@@ -17,266 +17,259 @@ type SelectionListener = (selection: HighlightSelection) => void;
 
 let currentHighlight: string | null = null;
 let currentHighlightRect: HighlightRect | null = null;
-// When the browser clears the selection (e.g. clicking a button), we keep the
-// last valid highlight for a short window so auto-ask flows can still read it.
+// The locked Range is captured on mouseup and held for CSS Highlight API persistence.
+// We keep it as a live Range (not re-cloned) so the browser tracks DOM position updates.
+let lockedRange: Range | null = null;
+
 let lastValidHighlight: string | null = null;
 let lastValidHighlightTs: number = 0;
-const HIGHLIGHT_RETAIN_MS = 3_000; // keep for 3 seconds after deselection
+const HIGHLIGHT_RETAIN_MS = 3_000;
 const listeners = new Set<Listener>();
 const selectionListeners = new Set<SelectionListener>();
 
-// Selection state tracking
 let isMouseDown = false;
 let heavyExtractionTimeout: NodeJS.Timeout | null = null;
 
-function emitChange() {
-  listeners.forEach((listener) => listener(currentHighlight));
-  const selection = {
-    text: currentHighlight,
-    rect: currentHighlightRect,
-  };
-  selectionListeners.forEach((listener) => listener(selection));
+// ─── CSS Highlight API helpers ──────────────────────────────────────────────
+
+function isCSSHighlightSupported(): boolean {
+  return (
+    typeof CSS !== 'undefined' &&
+    !!(CSS as unknown as Record<string, unknown>).highlights &&
+    typeof window !== 'undefined' &&
+    !!(window as unknown as Record<string, unknown>).Highlight
+  );
 }
+
+function applyCSShighlight(range?: Range | null): void {
+  if (!isCSSHighlightSupported()) return;
+  const r = range ?? lockedRange;
+  if (!r) return;
+
+  // If the range's container was removed from the DOM (React replaced the node),
+  // the highlight would render nothing. Skip silently.
+  try {
+    if (!document.contains(r.startContainer)) return;
+    const hl = new (window as unknown as { Highlight: new (...ranges: Range[]) => unknown }).Highlight(r);
+    (CSS as unknown as { highlights: { set(name: string, hl: unknown): void } }).highlights.set('origin-ai-selection', hl);
+  } catch (_) {}
+}
+
+function removeCSShighlight(): void {
+  if (!isCSSHighlightSupported()) return;
+  try {
+    (CSS as unknown as { highlights: { delete(name: string): void } }).highlights.delete('origin-ai-selection');
+  } catch (_) {}
+}
+
+// ─── Core emit ──────────────────────────────────────────────────────────────
+
+function emitChange() {
+  listeners.forEach((l) => l(currentHighlight));
+  selectionListeners.forEach((l) => l({ text: currentHighlight, rect: currentHighlightRect }));
+
+  // React re-renders triggered by emitChange may replace DOM nodes, invalidating
+  // the lockedRange's startContainer. Re-apply after the paint so the highlight
+  // survives the reconciliation.
+  if (currentHighlight && lockedRange) {
+    requestAnimationFrame(() => {
+      if (currentHighlight && lockedRange) applyCSShighlight();
+    });
+  }
+}
+
+// ─── Geometry ───────────────────────────────────────────────────────────────
 
 function getSelectionRect(selection: Selection | null): HighlightRect | null {
-  if (!selection || selection.rangeCount === 0) {
-    return null;
-  }
-
+  if (!selection || selection.rangeCount === 0) return null;
   const rect = selection.getRangeAt(0).getBoundingClientRect();
-  if (rect.width === 0 && rect.height === 0) {
-    return null;
-  }
-
-  return {
-    top: rect.top,
-    left: rect.left,
-    width: rect.width,
-    height: rect.height,
-  };
+  if (rect.width === 0 && rect.height === 0) return null;
+  return { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
 }
+
+// ─── Text extraction ─────────────────────────────────────────────────────────
 
 export function extractSelectionText(selection: Selection | null): string | null {
   if (!selection || selection.rangeCount === 0) return null;
 
-  // If we are currently dragging, we perform a LIGHTWEIGHT extraction to avoid
-  // triggering layout recalcs that disrupt the browser's selection engine.
-  if (isMouseDown) {
-    return selection.toString().trim() || null;
-  }
+  if (isMouseDown) return selection.toString().trim() || null;
 
   let extractedText = '';
-  
+
   for (let i = 0; i < selection.rangeCount; i++) {
     const range = selection.getRangeAt(i);
     const frag = range.cloneContents();
     const div = document.createElement('div');
     div.appendChild(frag);
 
-    // Process KaTeX nodes bottom-up to handle nested math correctly
     const katexNodes = Array.from(div.querySelectorAll('.katex'));
-    // Sort by depth (deepest first) to ensure we don't replace a parent before its children
     katexNodes.sort((a, b) => b.querySelectorAll('*').length - a.querySelectorAll('*').length);
 
     katexNodes.forEach((node) => {
-      // Check if node is still connected to our working div
       if (!div.contains(node)) return;
-
       const annotation = node.querySelector('annotation[encoding="application/x-tex"]');
       const mathElement = node.querySelector('math');
       const ariaLabel = node.getAttribute('aria-label');
-      
-      // Attempt to find the best LaTeX source
       const tex = (annotation?.textContent || mathElement?.getAttribute('alttext') || ariaLabel || '').trim();
-      
-      // If the TeX source looks like it might be visual junk (contains symbols like √ or scripts incorrectly)
-      // we try to clean it or skip it to avoid corruption like "$./$(...)"
+
       if (tex && !tex.includes('$./')) {
         const isDisplay = node.classList.contains('katex-display') || !!node.querySelector('.katex-display');
         const delimiter = isDisplay ? '$$' : '$';
-        
-        // Replace the entire KaTeX block with the clean TeX string
-        const textNode = document.createTextNode(`${delimiter}${tex}${delimiter}`);
-        node.replaceWith(textNode);
+        node.replaceWith(document.createTextNode(`${delimiter}${tex}${delimiter}`));
       } else {
-        // If no reliable TeX found, strip all visual noise to prevent corrupted innerText
-        node.querySelectorAll('.katex-html, .katex-mathml').forEach(n => n.remove());
-        // If it's a root .katex node and we cleared its guts, remove it entirely
-        if (node.classList.contains('katex') && !node.textContent?.trim()) {
-          node.remove();
-        }
+        node.querySelectorAll('.katex-html, .katex-mathml').forEach((n) => n.remove());
+        if (node.classList.contains('katex') && !node.textContent?.trim()) node.remove();
       }
     });
 
-    // Cleanup orphaned KaTeX fragments (common in partial selections)
-    const orphanedJunk = div.querySelectorAll(
-      '.katex-html, .katex-mathml, .katex-display, .vlist, .strut, .base, .mord, .msupsub'
-    );
-    orphanedJunk.forEach(n => n.remove());
+    div.querySelectorAll('.katex-html, .katex-mathml, .katex-display, .vlist, .strut, .base, .mord, .msupsub').forEach((n) => n.remove());
 
-    div.style.position = 'fixed';
-    div.style.left = '-9999px';
-    div.style.top = '0';
-    div.style.visibility = 'hidden';
-    div.style.whiteSpace = 'pre-wrap';
+    div.style.cssText = 'position:fixed;left:-9999px;top:0;visibility:hidden;white-space:pre-wrap';
     document.body.appendChild(div);
-    
-    // innerText respects display:none and gives us a clean text representation
     extractedText += div.innerText;
     document.body.removeChild(div);
   }
-  
+
   return wrapUnwrappedMath(extractedText.trim()) || null;
 }
 
-/**
- * Heuristic to wrap common LaTeX-like patterns in $ delimiters if they aren't already.
- * This handles raw text selections from textareas or restricted PDF text layers.
- */
 export function wrapUnwrappedMath(text: string): string {
-  if (!text) return text;
-  
-  // Only apply if the text doesn't already have $ delimiters (simple heuristic)
-  if (text.includes('$')) return text;
+  if (!text || text.includes('$')) return text;
 
-  // Common LaTeX commands and patterns that strongly imply math
   const mathCommands = [
     '\\\\frac', '\\\\sqrt', '\\\\sum', '\\\\int', '\\\\alpha', '\\\\beta', '\\\\gamma',
     '\\\\delta', '\\\\theta', '\\\\lambda', '\\\\pi', '\\\\sigma', '\\\\omega',
     '\\\\infty', '\\\\partial', '\\\\nabla', '\\\\times', '\\\\div', '\\\\pm',
     '\\\\le', '\\\\ge', '\\\\ne', '\\\\approx', '\\\\equiv', '\\\\forall', '\\\\exists',
-    '\\\\cos', '\\\\sin', '\\\\tan', '\\\\log', '\\\\ln'
+    '\\\\cos', '\\\\sin', '\\\\tan', '\\\\log', '\\\\ln',
   ];
-
-  // Specific patterns like cos^-1, i+j, A=B+C, x^2
   const mathPatterns = [
-    /[a-zA-Z0-9]\^[0-9\-+]/,         // superscripts: x^2, e^-1
-    /[a-zA-Z0-9]_[0-9]/,            // subscripts: x_1
-    /[ijk]\s*[+-]\s*[ijk]/,         // vectors: i+j, j+k
-    /[a-zA-Z]\s*=\s*[a-zA-Z0-9+-]/,  // assignments: A=B+C
-    /(sin|cos|tan)\^?-?[0-9]?/      // trig functions: cos^-1, sinx
+    /[a-zA-Z0-9]\^[0-9\-+]/,
+    /[a-zA-Z0-9]_[0-9]/,
+    /[ijk]\s*[+-]\s*[ijk]/,
+    /[a-zA-Z]\s*=\s*[a-zA-Z0-9+-]/,
+    /(sin|cos|tan)\^?-?[0-9]?/,
   ];
 
   const cmdRegex = new RegExp(`(${mathCommands.join('|')})`, 'i');
-  const hasMathCommand = cmdRegex.test(text);
-  const hasMathPattern = mathPatterns.some(pattern => pattern.test(text));
-  
-  if (hasMathCommand || hasMathPattern) {
-    // If the text has a lot of spaces and doesn't look like pure math, 
-    // it's likely a paragraph mixed with math. We shouldn't wrap the whole thing.
-    // Let the AI or the markdown parser handle the inner math.
-    const spaceCount = (text.match(/ /g) || []).length;
-    if (spaceCount > 5 || text.length > 100) {
-       return text; // It's a paragraph, don't wrap the whole thing.
-    }
-    
-    // If it's a multi-line block or very long, use $$
-    if (text.includes('\n')) {
-      return `$$\n${text}\n$$`;
-    }
-    return `$${text}$`;
-  }
+  if (!cmdRegex.test(text) && !mathPatterns.some((p) => p.test(text))) return text;
 
-  return text;
+  const spaces = (text.match(/ /g) || []).length;
+  if (spaces > 5 || text.length > 100) return text;
+  return text.includes('\n') ? `$$\n${text}\n$$` : `$${text}$`;
 }
+
+// ─── Selection change handler ─────────────────────────────────────────────────
 
 function handleSelectionChange() {
   const selection = window.getSelection();
-  
-  // Phase 1: Immediate lightweight update
   const lightText = selection?.toString().trim() || null;
-  
+
   if (!lightText) {
-    // DO NOT clear currentHighlight here when the selection becomes empty.
-    // Taps outside the selection/origin area will be handled by handleGlobalClick.
+    // Selection became empty (e.g., cursor moved to a text field).
+    // Do NOT clear currentHighlight here — let handleGlobalClick decide.
     return;
   }
 
-  // Check if we are inside an ignored root
+  // Selections that originate inside the Origin AI panel are not page context.
   const anchorNode = selection?.anchorNode;
-  const anchorElement = anchorNode instanceof Element ? anchorNode : anchorNode?.parentElement ?? null;
-  if (anchorElement?.closest('[data-origin-ai-root="true"]')) {
+  const anchorEl = anchorNode instanceof Element ? anchorNode : anchorNode?.parentElement ?? null;
+  if (anchorEl?.closest('[data-origin-ai-root="true"]')) {
     clearHighlightedText();
     return;
   }
 
-  // Update immediately with light text if it's new (Phase 1)
-  // This gives the user feedback that selection is working without causing lag.
+  // Phase 1: lightweight update — show text in the pill immediately.
+  // We intentionally do NOT update the CSS Highlight API here to avoid
+  // flicker during drag. The browser's native selection handles the visual.
   if (lightText !== currentHighlight) {
     currentHighlight = lightText;
     currentHighlightRect = getSelectionRect(selection);
-    
-    // Update CSS Highlight API
-    if (typeof CSS !== 'undefined' && (CSS as any).highlights && typeof window !== 'undefined' && (window as any).Highlight && selection && selection.rangeCount > 0) {
-      try {
-        const range = selection.getRangeAt(0).cloneRange();
-        const highlight = new (window as any).Highlight(range);
-        (CSS as any).highlights.set("origin-ai-selection", highlight);
-      } catch (e) {
-        console.error("Failed to set CSS highlight", e);
-      }
-    }
-    
     emitChange();
   }
 
-  // Phase 2: Rich extraction (KaTeX handling)
-  // We debounce this to avoid DOM mutations during active dragging.
+  // Phase 2: rich KaTeX extraction, debounced to avoid DOM mutations during drag.
   if (heavyExtractionTimeout) clearTimeout(heavyExtractionTimeout);
-  
   heavyExtractionTimeout = setTimeout(() => {
-    // Only perform rich extraction if we still have a selection and mouse is up
-    if (!isMouseDown) {
-      const richSelection = window.getSelection();
-      const richText = extractSelectionText(richSelection);
-      if (richText && richText !== currentHighlight) {
-        currentHighlight = richText;
-        currentHighlightRect = getSelectionRect(richSelection);
-        
-        // Update CSS Highlight API with rich range
-        if (typeof CSS !== 'undefined' && (CSS as any).highlights && typeof window !== 'undefined' && (window as any).Highlight && richSelection && richSelection.rangeCount > 0) {
-          try {
-            const range = richSelection.getRangeAt(0).cloneRange();
-            const highlight = new (window as any).Highlight(range);
-            (CSS as any).highlights.set("origin-ai-selection", highlight);
-          } catch (e) {
-            console.error("Failed to set CSS highlight", e);
-          }
-        }
-        
-        emitChange();
-      }
+    if (isMouseDown) return;
+    const richSel = window.getSelection();
+    const richText = extractSelectionText(richSel);
+    if (richText && richText !== currentHighlight) {
+      currentHighlight = richText;
+      currentHighlightRect = getSelectionRect(richSel);
+      emitChange();
     }
   }, 200);
 }
 
-// Global mouse listeners to track drag state
-function handleMouseDown() { 
-  isMouseDown = true; 
+// ─── Mouse lifecycle ──────────────────────────────────────────────────────────
+
+function handleMouseDown() {
+  isMouseDown = true;
 }
-function handleMouseUp() { 
+
+function handleMouseUp() {
   isMouseDown = false;
-  // Trigger a re-evaluation on mouse up to finalize the rich extraction
+
+  const selection = window.getSelection();
+  const selectedText = selection?.toString().trim();
+
+  if (selectedText && selection && selection.rangeCount > 0) {
+    // Lock in a live Range. We do NOT clone it here so the browser continues
+    // tracking the text position even if the surrounding DOM shifts slightly.
+    lockedRange = selection.getRangeAt(0);
+    applyCSShighlight(lockedRange);
+  }
+
+  // Trigger rich extraction for the finalised selection.
   handleSelectionChange();
+}
+
+// ─── Click handler — clear only on genuine "blank area" clicks ───────────────
+
+/**
+ * Returns true only for a click on a truly empty area of the page — not on
+ * text, interactive elements, or the Origin AI panel.
+ */
+function isBlankSpace(target: Element | null): boolean {
+  if (!target) return true;
+
+  // Never clear inside Origin AI, sidebars, dialogs, or tutorial overlays.
+  if (
+    target.closest('[data-origin-ai-root="true"]') ||
+    target.closest('aside') ||
+    target.closest('[role="dialog"]') ||
+    target.closest('#tutorial-overlay')
+  ) return false;
+
+  // Never clear when clicking interactive elements.
+  if (target.closest('button, a, input, textarea, select, [role="button"], [contenteditable="true"]')) return false;
+
+  // Never clear when clicking known text/content elements.
+  if (target.closest('p, span, h1, h2, h3, h4, h5, h6, li, a, code, pre, strong, em, b, i, sub, sup, blockquote, td, th, label')) return false;
+
+  // Never clear if the element itself (or any descendant) has readable text.
+  if (target.textContent?.trim().length) return false;
+
+  return true;
 }
 
 function handleGlobalClick(event: MouseEvent) {
   const target = event.target as Element | null;
-  
-  // If clicked inside the origin area, do not clear
-  if (target?.closest('[data-origin-ai-root="true"]')) {
-    return;
-  }
 
-  // Check if browser currently has a selection (during mouse click release)
+  if (target?.closest('[data-origin-ai-root="true"]')) return;
+
   const selection = window.getSelection();
-  const selectedText = selection?.toString().trim() || "";
+  const selectedText = selection?.toString().trim() || '';
 
-  // If there is no selection, clear the highlight
-  if (!selectedText) {
-    clearHighlightedText();
-  }
+  // Keep the highlight if the user still has an active selection (e.g., end of drag).
+  if (selectedText) return;
+
+  // Clear only when the click lands on a genuinely blank area.
+  if (isBlankSpace(target)) clearHighlightedText();
 }
+
+// ─── Listener registration ────────────────────────────────────────────────────
 
 let isListening = false;
 
@@ -299,14 +292,13 @@ export function stopHighlightCapture(): void {
   clearHighlightedText();
 }
 
+// ─── Public API ───────────────────────────────────────────────────────────────
+
 export function clearHighlightedText(): void {
   currentHighlight = null;
   currentHighlightRect = null;
-  if (typeof CSS !== 'undefined' && (CSS as any).highlights) {
-    try {
-      (CSS as any).highlights.delete("origin-ai-selection");
-    } catch (_) {}
-  }
+  lockedRange = null;
+  removeCSShighlight();
   emitChange();
 }
 
@@ -320,10 +312,6 @@ export function getHighlightedText(): string | null {
   return currentHighlight;
 }
 
-/**
- * Snapshot the current highlighted text so it survives the browser clearing
- * the selection. Also copies to lastValidHighlight as a fallback.
- */
 export function snapshotHighlightedText(): void {
   if (currentHighlight) {
     lastValidHighlight = currentHighlight;
@@ -331,20 +319,11 @@ export function snapshotHighlightedText(): void {
   }
 }
 
-/**
- * Retrieve the highlighted text, falling back to the last valid highlight
- * if the browser already cleared the selection (within a 3-second window).
- * Consumes the buffer on read to prevent stale reuse.
- */
 export function getPendingHighlightedText(): string | null {
-  // Prefer current live highlight
-  if (currentHighlight) {
-    return currentHighlight;
-  }
-  // Fall back to the time-buffered last valid highlight
-  if (lastValidHighlight && (Date.now() - lastValidHighlightTs) < HIGHLIGHT_RETAIN_MS) {
+  if (currentHighlight) return currentHighlight;
+  if (lastValidHighlight && Date.now() - lastValidHighlightTs < HIGHLIGHT_RETAIN_MS) {
     const text = lastValidHighlight;
-    lastValidHighlight = null; // consume
+    lastValidHighlight = null;
     return text;
   }
   lastValidHighlight = null;
@@ -352,10 +331,7 @@ export function getPendingHighlightedText(): string | null {
 }
 
 export function getHighlightedSelection(): HighlightSelection {
-  return {
-    text: currentHighlight,
-    rect: currentHighlightRect,
-  };
+  return { text: currentHighlight, rect: currentHighlightRect };
 }
 
 export function useHighlightedText(): string | null {
@@ -363,15 +339,9 @@ export function useHighlightedText(): string | null {
 
   React.useEffect(() => {
     startHighlightCapture();
-
-    const handler = (newText: string | null) => {
-      setText(newText);
-    };
-
+    const handler = (newText: string | null) => setText(newText);
     listeners.add(handler);
-    return () => {
-      listeners.delete(handler);
-    };
+    return () => { listeners.delete(handler); };
   }, []);
 
   return text;
@@ -385,15 +355,9 @@ export function useHighlightedSelection(): HighlightSelection {
 
   React.useEffect(() => {
     startHighlightCapture();
-
-    const handler = (nextSelection: HighlightSelection) => {
-      setSelection(nextSelection);
-    };
-
+    const handler = (next: HighlightSelection) => setSelection(next);
     selectionListeners.add(handler);
-    return () => {
-      selectionListeners.delete(handler);
-    };
+    return () => { selectionListeners.delete(handler); };
   }, []);
 
   return selection;

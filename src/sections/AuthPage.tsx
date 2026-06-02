@@ -500,8 +500,12 @@ export default function AuthPage({
                     </div>
                   )}
 
-                  <p className="mt-6 text-center text-sm text-muted-foreground">
-                    By using ORIGIN, you agree to our commitment to your privacy and success
+                  <p className="mt-6 text-center text-[11px] text-muted-foreground leading-relaxed">
+                    © 2026 SUPERGOAT TECHNOLOGIES PRIVATE LIMITED. By using ORIGIN, you agree to our{' '}
+                    <a href="/terms-and-conditions" className="underline hover:text-foreground transition-colors">Terms and Conditions</a>,{' '}
+                    <a href="/privacy-policy" className="underline hover:text-foreground transition-colors">Privacy Policy</a>, and{' '}
+                    <a href="/childrens-policy" className="underline hover:text-foreground transition-colors">Children's Safety Policy</a>.
+                    For help, read our <a href="/faq" className="underline hover:text-foreground transition-colors">FAQ</a>.
                   </p>
                 </div>
               </CardContent>

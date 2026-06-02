@@ -54,8 +54,9 @@ function ClientShellInner({ children }: { children: React.ReactNode }) {
   
   const isTestsPath = pathname === '/tests' || pathname.startsWith('/tests/');
   const isStudyRoomTestPath = /^\/study-rooms\/[^/]+\/test/.test(pathname);
+  const isResultPath = pathname.endsWith('/result');
   const isSpecialPath = pathname.startsWith('/tests/') || pathname.startsWith('/ogcode/') || isStudyRoomTestPath;
-  const isFullViewportApp = pathname === '/doubt-solver' || pathname.startsWith('/tests/') || pathname.startsWith('/ogcode/') || isStudyRoomTestPath;
+  const isFullViewportApp = pathname === '/doubt-solver' || (pathname.startsWith('/tests/') && !isResultPath) || pathname.startsWith('/ogcode/') || isStudyRoomTestPath;
   const shouldHideOriginAi = isTestsPath || isStudyRoomTestPath;
 
   const { resolvedTheme, setTheme } = useTheme();
@@ -190,8 +191,9 @@ function ClientShellInner({ children }: { children: React.ReactNode }) {
     <TutorialProvider>
       <style dangerouslySetInnerHTML={{ __html: `
         ::highlight(origin-ai-selection) {
-          background-color: rgba(244, 63, 94, 0.35) !important;
-          color: inherit !important;
+          background-color: rgba(244, 63, 94, 0.28);
+          color: inherit;
+          text-decoration: none;
         }
       `}} />
       <div id="tutorial-welcome" className={cn(
