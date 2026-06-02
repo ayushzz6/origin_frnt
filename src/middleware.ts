@@ -26,6 +26,9 @@ const CSRF_EXEMPT_API_PATHS = new Set([
   // Phase 13 drain receiver: signed by Vercel's drain HMAC, not a
   // session cookie, so the CSRF check would always fail.
   "/api/internal/observability/drain",
+  // Razorpay subscriptions webhook: signed by Razorpay's HMAC, not a
+  // session cookie, so the CSRF check would always fail.
+  "/api/subscriptions/webhook",
 ]);
 
 function requestIdFor(request: NextRequest): string {

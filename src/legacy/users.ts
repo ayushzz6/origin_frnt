@@ -17,6 +17,7 @@ import {
   updateUserStreak,
 } from "@/server/gamification";
 import { badRequest, created, noContent, notFound, ok, serviceUnavailable, unauthorized } from "@/server/http";
+import { withEntitledSubjects } from "@/server/entitlements";
 import type { AppStore, StoredTask, StoredUser } from "@/server/store";
 import { createId, readStoreAsync, withStoreAsync, withStoredUserDefaults } from "@/server/store";
 
@@ -128,7 +129,9 @@ async function serializeDbUser(user: StoredUser) {
   } else {
     store.users.push({ ...user, password: user.password });
   }
-  return serializeUser(store, user.id);
+  const payload = serializeUser(store, user.id);
+  if (!payload) return payload;
+  return withEntitledSubjects(payload, user.id);
 }
 
 export type UserStatsSnapshot = {
@@ -686,7 +689,7 @@ async function handleMeGet(request: Request) {
   if (!serialized) {
     return notFound("User not found.");
   }
-  return ok(serialized);
+  return ok(await withEntitledSubjects(serialized, user.id));
 }
 
 async function handleMePatch(request: Request, payload: UserPayload) {
