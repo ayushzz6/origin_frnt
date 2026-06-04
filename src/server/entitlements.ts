@@ -19,7 +19,7 @@ import { isFeatureEnabled } from "@/lib/feature-flags";
 import { dbUpdateUser } from "@/server/db-users";
 import type { StoredUser } from "@/legacy/store";
 import { ensureSubscriptionsSchema } from "@/server/subscriptions/subscriptions-schema";
-import { ALL_SUBJECTS, isSubject, type Subject } from "@/lib/entitlements";
+import { ALL_SUBJECTS, hasAnyPremium, isSubject, type Subject } from "@/lib/entitlements";
 
 export * from "@/lib/entitlements";
 
@@ -80,6 +80,45 @@ export async function withEntitledSubjects<T extends Record<string, unknown>>(
   userId: string,
 ): Promise<T & { entitledSubjects: Subject[] }> {
   return { ...payload, entitledSubjects: await getEntitledSubjects(userId) };
+}
+
+/**
+ * RSC page gate: should a free student be redirected to /premium? True only
+ * when the feature is enabled, the caller is a student, and they own no
+ * subject. Teachers/admins and the dark state are never redirected.
+ */
+export function shouldRedirectFreeStudent(
+  user: { role?: string | null; entitledSubjects?: ReadonlyArray<string> | null } | null | undefined,
+): boolean {
+  if (!user || user.role !== "student") return false;
+  if (!isFeatureEnabled("premiumSubscriptions")) return false;
+  return !hasAnyPremium(user);
+}
+
+export type StudentGate = {
+  /** True when premium gating actually applies (flag on AND the user is a student). */
+  enforced: boolean;
+  /** Subjects the student is entitled to (empty when free or not enforced). */
+  subjects: Subject[];
+  /** True when the student owns any subject — unlocks the global features. */
+  anyPremium: boolean;
+};
+
+/**
+ * Resolves how premium gating applies to a request. When the flag is off or the
+ * caller is not a student, `enforced` is false and callers must leave access
+ * fully open (today's behaviour). Otherwise it carries the entitled subjects so
+ * server-side content filters can scope lists to what the student owns.
+ */
+export async function getStudentGate(
+  userId: string,
+  role: string | null | undefined,
+): Promise<StudentGate> {
+  if (role !== "student" || !isFeatureEnabled("premiumSubscriptions")) {
+    return { enforced: false, subjects: [], anyPremium: true };
+  }
+  const subjects = await getEntitledSubjects(userId);
+  return { enforced: true, subjects, anyPremium: subjects.length > 0 };
 }
 
 async function revalidateUserCache(userId: string): Promise<void> {

@@ -38,6 +38,9 @@ import {
 import { getRequestId, REQUEST_ID_HEADER } from "@/lib/request-id";
 import { aiLimiter, voiceLimiter, generalLimiter, checkRateLimit } from "@/lib/rate-limit";
 import { readRequiredServiceToken, ServiceAuthConfigurationError } from "@/server/service-auth";
+import { getAuthContext } from "@/server/authz";
+import { isFeatureEnabled } from "@/lib/feature-flags";
+import { getEntitledSubjects } from "@/server/entitlements";
 
 export const maxDuration = 120;
 
@@ -329,6 +332,23 @@ async function resolveProxyUser(request: NextRequest): Promise<StoredUser | null
   return withStoreAsync(async (store) => requireUserFromRequest(store, request));
 }
 
+/**
+ * Origin AI + AI Explainer are global-unlock premium features (Phase 1.4): a
+ * student who owns ANY subject gets full access. This is the single BFF
+ * chokepoint — a free student is refused here before any proxy / in-app
+ * fallback runs. No-op when the feature is dark or the caller is not a student.
+ */
+async function enforceOriginAiPremium(request: NextRequest): Promise<Response | null> {
+  if (!isFeatureEnabled("premiumSubscriptions")) return null;
+  const ctx = await getAuthContext(request);
+  if (!ctx || ctx.role !== "student") return null;
+  const entitled = await getEntitledSubjects(ctx.userId);
+  if (entitled.length === 0) {
+    return forbidden("Origin AI is a premium feature. Subscribe to any subject to unlock it.");
+  }
+  return null;
+}
+
 function userIdentifier(request: NextRequest): string {
   return (
     request.headers.get("x-origin-user-id") ??
@@ -401,6 +421,9 @@ async function proxyJsonResponse(proxyResp: Response): Promise<unknown> {
 
 export async function GET(request: NextRequest, context: RouteContext) {
   const slug = await resolveSlug(context);
+
+  const premiumBlock = await enforceOriginAiPremium(request);
+  if (premiumBlock) return premiumBlock;
 
   // GET /origin-ai/chapters?subject=math — list NCERT chapters for a subject
   if (slug.length === 1 && slug[0] === "chapters") {
@@ -575,6 +598,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
 export async function POST(request: NextRequest, context: RouteContext) {
   const slug = await resolveSlug(context);
+
+  const premiumBlock = await enforceOriginAiPremium(request);
+  if (premiumBlock) return premiumBlock;
+
   const uid = userIdentifier(request);
 
   const isVoice = slug[0] === "voice";

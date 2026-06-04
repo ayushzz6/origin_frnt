@@ -8,6 +8,8 @@ declare global {
 
 type CatalogFilters = {
   subject?: string | null;
+  /** Premium entitlement allow-list (Phase 1.4): restrict to these subjects. */
+  subjects?: string[] | null;
   difficulty?: string | null;
   type?: string | null;
   search?: string | null;
@@ -236,6 +238,14 @@ function buildFilterClause(filters: CatalogFilters) {
   if (filters.subject) {
     values.push(normalizeSubject(filters.subject));
     clauses.push(`subject = $${values.length}`);
+  }
+
+  const subjects = (filters.subjects ?? [])
+    .map((entry) => normalizeSubject(String(entry ?? "")))
+    .filter(Boolean);
+  if (subjects.length) {
+    values.push(subjects);
+    clauses.push(`subject = ANY($${values.length}::text[])`);
   }
 
   if (filters.difficulty) {
