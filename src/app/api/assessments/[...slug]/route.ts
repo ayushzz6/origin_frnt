@@ -33,7 +33,7 @@ import {
   type UpdateOgcodeLocationPayload,
   updateOgcodeLocation,
 } from "@/server/assessments";
-import { badRequest, created, getSlugSegments, methodNotAllowed, notFound, ok, parseJsonBody, unauthorized } from "@/server/http";
+import { badRequest, created, forbidden, getSlugSegments, methodNotAllowed, notFound, ok, parseJsonBody, unauthorized } from "@/server/http";
 import { readStoreAsync, withStoreAsync } from "@/server/store";
 
 function revalidateUserProgress(userId: string) {
@@ -206,6 +206,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
       return ok(await getFocusAreas(store, user));
     }
   } catch (error) {
+    if ((error as { status?: number })?.status === 403) {
+      return forbidden(error instanceof Error ? error.message : "Forbidden.");
+    }
     return notFound(error instanceof Error ? error.message : "Not found.");
   }
 
@@ -308,6 +311,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
   } catch (error) {
     if (error instanceof Error && error.message.includes("not provided")) {
       return unauthorized(error.message);
+    }
+    if ((error as { status?: number })?.status === 403) {
+      return forbidden(error instanceof Error ? error.message : "Forbidden.");
     }
     return badRequest(error instanceof Error ? error.message : "Invalid request.");
   }

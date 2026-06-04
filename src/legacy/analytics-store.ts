@@ -73,6 +73,15 @@ CREATE TABLE IF NOT EXISTS analytics.test_results (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Phase 14: cohort context for teacher-assigned submissions (same physical Neon
+-- DB as app.* / assessment.*, so these mirror the assignment without an FK). They
+-- let Phase-8 / 2E cohort analytics populate idempotently per attempt.
+ALTER TABLE analytics.test_results ADD COLUMN IF NOT EXISTS workspace_id TEXT;
+ALTER TABLE analytics.test_results ADD COLUMN IF NOT EXISTS batch_id TEXT;
+ALTER TABLE analytics.test_results ADD COLUMN IF NOT EXISTS assignment_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_test_results_cohort
+  ON analytics.test_results (workspace_id, batch_id, created_at DESC);
+
 CREATE TABLE IF NOT EXISTS analytics.test_topic_analytics (
   id BIGSERIAL PRIMARY KEY,
   test_result_id TEXT NOT NULL REFERENCES analytics.test_results(id) ON DELETE CASCADE,
@@ -340,6 +349,10 @@ export type PersistTestAnalysisInput = {
   degradedReason?: string | null;
   analysisStatus?: "pending" | "complete" | "failed";
   analysisError?: string | null;
+  // Phase 14 — cohort tags for teacher-assigned submissions (null for self tests).
+  workspaceId?: string | null;
+  batchId?: string | null;
+  assignmentId?: string | null;
 };
 
 export type PersistDppAttemptInput = {
@@ -676,10 +689,12 @@ export async function persistTestAnalysisResult(input: PersistTestAnalysisInput)
          id, user_id, test_id, title, subject, chapter, difficulty, question_count,
          time_taken_seconds, score, percentage, correct_answers, wrong_answers, unattempted,
          total_marks, subject_stats, answers, summary, recommendations, analytics_context,
-         weak_topics, strong_topics, ai_analysis, is_malpractice, analysis_status, analysis_error, created_at
+         weak_topics, strong_topics, ai_analysis, is_malpractice, analysis_status, analysis_error, created_at,
+         workspace_id, batch_id, assignment_id
        ) VALUES (
          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,
-         $16::jsonb,$17::jsonb,$18,$19::jsonb,$20::jsonb,$21::jsonb,$22::jsonb,$23::jsonb,$24,$25,$26,$27
+         $16::jsonb,$17::jsonb,$18,$19::jsonb,$20::jsonb,$21::jsonb,$22::jsonb,$23::jsonb,$24,$25,$26,$27,
+         $28,$29,$30
        )
        ON CONFLICT (id) DO UPDATE SET
          title = EXCLUDED.title,
@@ -704,7 +719,10 @@ export async function persistTestAnalysisResult(input: PersistTestAnalysisInput)
          ai_analysis = EXCLUDED.ai_analysis,
          is_malpractice = EXCLUDED.is_malpractice,
          analysis_status = EXCLUDED.analysis_status,
-         analysis_error = EXCLUDED.analysis_error`,
+         analysis_error = EXCLUDED.analysis_error,
+         workspace_id = EXCLUDED.workspace_id,
+         batch_id = EXCLUDED.batch_id,
+         assignment_id = EXCLUDED.assignment_id`,
       [
         resultId,
         input.userId,
@@ -733,6 +751,9 @@ export async function persistTestAnalysisResult(input: PersistTestAnalysisInput)
         analysisStatus,
         input.analysisError ?? null,
         createdAt,
+        input.workspaceId ?? null,
+        input.batchId ?? null,
+        input.assignmentId ?? null,
       ],
     );
 

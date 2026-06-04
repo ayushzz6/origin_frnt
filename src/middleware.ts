@@ -29,6 +29,8 @@ const CSRF_EXEMPT_API_PATHS = new Set([
   // Razorpay subscriptions webhook: signed by Razorpay's HMAC, not a
   // session cookie, so the CSRF check would always fail.
   "/api/subscriptions/webhook",
+  // Connect (Flow-2 batch tuition) webhook: same Razorpay HMAC model.
+  "/api/connect/webhook",
 ]);
 
 function requestIdFor(request: NextRequest): string {

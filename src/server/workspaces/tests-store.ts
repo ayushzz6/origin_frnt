@@ -389,6 +389,118 @@ export async function getStudentAssignment(
   return result.rows[0] ? rowToAssignment(result.rows[0]) : null;
 }
 
+// ─── Phase 14: teacher tests → student visibility ─────────────────────────────
+
+/** A teacher-assigned test surfaced to an enrolled student, with cohort context. */
+export type AssignedTestForStudent = {
+  test: AssessmentTest;
+  assignmentId: string;
+  workspaceId: string | null;
+  batchId: string | null;
+  windowEndsAt: string | null;
+  /** Ordered ogcode-bank question ids backing the test (used to render/grade it). */
+  ogcodeQuestionIds: string[];
+};
+
+const ASSIGNED_TEST_WHERE = `
+  t.status IN ('published', 'live')
+  AND a.status IN ('assigned', 'open')
+  AND (bm.student_id IS NOT NULL OR a.student_id = $1)
+`;
+
+/**
+ * Teacher tests visible to a student: published/live tests with an open assignment
+ * the student can reach, either via active batch membership OR a direct student
+ * assignment. This membership join IS the server-side gate — never trust the list.
+ */
+export async function listAssignedTestPreviewsForStudent(studentId: string): Promise<
+  Array<{
+    id: string;
+    title: string;
+    description: string | null;
+    subject: string;
+    chapter: string | null;
+    difficulty: string;
+    durationMinutes: number;
+    totalQuestions: number;
+    workspaceId: string | null;
+    batchId: string | null;
+    assignmentId: string;
+    windowEndsAt: string | null;
+  }>
+> {
+  await ensureAssessmentSchema();
+  const result = await pool().query(
+    `SELECT DISTINCT ON (t.id)
+            t.id, t.title, t.description, t.subject, t.chapter, t.difficulty,
+            t.duration_minutes, t.total_questions, t.workspace_id,
+            a.id AS assignment_id, a.batch_id, a.scheduled_end_at
+       FROM assessment.test_assignments a
+       INNER JOIN assessment.tests t ON t.id = a.test_id
+       LEFT JOIN app.batch_members bm
+         ON bm.batch_id = a.batch_id AND bm.status = 'active' AND bm.student_id = $1
+      WHERE ${ASSIGNED_TEST_WHERE}
+      ORDER BY t.id, a.scheduled_start_at DESC NULLS LAST`,
+    [studentId],
+  );
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    title: row.title as string,
+    description: (row.description as string | null) ?? null,
+    subject: row.subject as string,
+    chapter: (row.chapter as string | null) ?? null,
+    difficulty: row.difficulty as string,
+    durationMinutes: Number(row.duration_minutes) || 0,
+    totalQuestions: Number(row.total_questions) || 0,
+    workspaceId: (row.workspace_id as string | null) ?? null,
+    batchId: (row.batch_id as string | null) ?? null,
+    assignmentId: row.assignment_id as string,
+    windowEndsAt: row.scheduled_end_at ? new Date(row.scheduled_end_at as string).toISOString() : null,
+  }));
+}
+
+/**
+ * Resolves a single teacher-assigned test for a student WITH the same membership
+ * gate as the list — returns null when the test is not assigned/reachable. Callers
+ * use null + the test's existence to decide between 403 (exists, not a member) and
+ * 404 (unknown id). Includes the ordered ogcode question ids backing the test.
+ */
+export async function getAssignedTestForStudent(
+  studentId: string,
+  testId: string,
+): Promise<AssignedTestForStudent | null> {
+  await ensureAssessmentSchema();
+  const result = await pool().query(
+    `SELECT DISTINCT ON (t.id) t.*, a.id AS assignment_id, a.batch_id AS assignment_batch_id,
+            a.scheduled_end_at
+       FROM assessment.test_assignments a
+       INNER JOIN assessment.tests t ON t.id = a.test_id
+       LEFT JOIN app.batch_members bm
+         ON bm.batch_id = a.batch_id AND bm.status = 'active' AND bm.student_id = $1
+      WHERE t.id = $2 AND ${ASSIGNED_TEST_WHERE}
+      ORDER BY t.id, a.scheduled_start_at DESC NULLS LAST`,
+    [studentId, testId],
+  );
+  const row = result.rows[0];
+  if (!row) return null;
+
+  const questionsResult = await pool().query(
+    `SELECT ogcode_question_id
+       FROM assessment.test_questions
+      WHERE test_id = $1 AND source_bank = 'ogcode' AND ogcode_question_id IS NOT NULL
+      ORDER BY position ASC`,
+    [testId],
+  );
+  return {
+    test: rowToTest(row),
+    assignmentId: row.assignment_id as string,
+    workspaceId: (row.workspace_id as string | null) ?? null,
+    batchId: (row.assignment_batch_id as string | null) ?? null,
+    windowEndsAt: row.scheduled_end_at ? new Date(row.scheduled_end_at as string).toISOString() : null,
+    ogcodeQuestionIds: questionsResult.rows.map((q) => q.ogcode_question_id as string),
+  };
+}
+
 // ─── Test Attempts ──────────────────────────────────────────────────────────
 
 export async function startAttempt(input: {
