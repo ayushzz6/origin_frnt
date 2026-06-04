@@ -22,6 +22,9 @@ export const PUBLIC_API_PATHS = [
   // (verified in handler via x-razorpay-signature); there is no session
   // cookie or bearer token, so it is public at the edge.
   "/api/subscriptions/webhook",
+  // Connect (Flow-2 batch tuition) webhook — same Razorpay HMAC model as the
+  // subscriptions webhook; public at the edge, verified in the handler.
+  "/api/connect/webhook",
 ] as const;
 
 export const INTERNAL_API_PREFIXES = ["/api/internal"] as const;
@@ -39,6 +42,7 @@ export const AUTHENTICATED_API_PREFIXES = [
   "/api/admin",
   "/api/marketplace",
   "/api/subscriptions",
+  "/api/connect",
 ] as const;
 
 export const MEMBERSHIP_API_PREFIXES = ["/api/study-rooms/[id]"] as const;
@@ -75,6 +79,7 @@ export const AUTHENTICATED_APP_PREFIXES = [
   "/books",
   "/teacher",
   "/marketplace",
+  "/connect",
 ] as const;
 
 export const ROLE_APP_PREFIXES = [

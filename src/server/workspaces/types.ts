@@ -641,6 +641,9 @@ export type EnrollmentOrderStatus =
   | "refunded"
   | "cancelled";
 
+/** How a Phase-14 offering is billed when enrolled in-app (Flow 2). */
+export type OfferingBillingPeriod = "monthly" | "one_time";
+
 export type WorkspaceOffering = {
   id: string;
   workspaceId: string;
@@ -654,6 +657,39 @@ export type WorkspaceOffering = {
   status: OfferingStatus;
   metadata: Record<string, unknown>;
   createdAt: string;
+  /** Phase 14: Razorpay plan id, created at publish time for recurring offerings. */
+  razorpayPlanId?: string | null;
+  /** Phase 14: monthly recurring (Flow 2 batch tuition) vs legacy one-time. */
+  billingPeriod?: OfferingBillingPeriod;
+};
+
+/** commerce.enrollment_subscriptions — Phase 14 recurring batch tuition. */
+export type EnrollmentSubscriptionStatus =
+  | "created"
+  | "authenticated"
+  | "active"
+  | "pending"
+  | "halted"
+  | "cancelled"
+  | "completed"
+  | "expired";
+
+export type EnrollmentSubscription = {
+  id: string;
+  offeringId: string;
+  workspaceId: string;
+  studentId: string;
+  /** Snapshot of the offering's target batch at checkout time. */
+  targetBatchId: string | null;
+  razorpayPlanId: string | null;
+  razorpaySubscriptionId: string | null;
+  status: EnrollmentSubscriptionStatus;
+  amountMinor: number;
+  currentPeriodEnd: string | null;
+  shortUrl: string | null;
+  enrollmentId: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type EnrollmentOrder = {

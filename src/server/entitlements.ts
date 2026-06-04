@@ -19,6 +19,7 @@ import { isFeatureEnabled } from "@/lib/feature-flags";
 import { dbUpdateUser } from "@/server/db-users";
 import type { StoredUser } from "@/legacy/store";
 import { ensureSubscriptionsSchema } from "@/server/subscriptions/subscriptions-schema";
+import { getActiveSubjectGrantRows } from "@/server/connect/subject-grants-store";
 import { ALL_SUBJECTS, hasAnyPremium, isSubject, type Subject } from "@/lib/entitlements";
 
 export * from "@/lib/entitlements";
@@ -46,27 +47,63 @@ const ENTITLED_CLAUSE = `(
       AND current_period_end IS NOT NULL AND current_period_end > NOW())
 )`;
 
-/**
- * The subjects a user is currently entitled to: active subscriptions whose
- * billing period has not lapsed. Returns canonical-order, deduped subjects.
- * Falls back to `[]` when Postgres is not configured (local/dev without DB).
- */
-export async function getEntitledSubjects(userId: string): Promise<Subject[]> {
-  if (!userId || !isUserPostgresConfigured()) return [];
-  // While the feature ships dark, keep this off the hot path entirely — no DB
-  // round-trip on every user serialization and no premature schema creation.
-  // Gating (Phase 1.4) keeps access open in that state regardless.
-  if (!isFeatureEnabled("premiumSubscriptions")) return [];
+/** A subject + its expiry (NULL = never), as resolved from one entitlement source. */
+type EntitlementRow = { subject: Subject; expiresAt: string | null };
+
+function toIso(value: Date | string | null | undefined): string | null {
+  if (!value) return null;
+  return value instanceof Date ? value.toISOString() : String(value);
+}
+
+/** Active, non-lapsed Razorpay subject subscriptions (standalone + Flow-2 add-ons). */
+async function getSubscriptionEntitlementRows(userId: string): Promise<EntitlementRow[]> {
   await ensureSubscriptionsSchema();
   const p = pool();
   if (!p) return [];
-  const res = await p.query<{ subject: string }>(
-    `SELECT DISTINCT subject
+  const res = await p.query<{ subject: string; current_period_end: Date | string | null }>(
+    `SELECT subject, current_period_end
        FROM subscriptions.user_subscriptions
       WHERE user_id = $1 AND ${ENTITLED_CLAUSE}`,
     [userId],
   );
-  const owned = new Set(res.rows.map((r) => r.subject).filter(isSubject));
+  return res.rows
+    .filter((r) => isSubject(r.subject))
+    .map((r) => ({ subject: r.subject as Subject, expiresAt: toIso(r.current_period_end) }));
+}
+
+/**
+ * The UNION of every live entitlement for a user — Phase 14 (section C):
+ *   (a) active subscriptions.user_subscriptions (standalone + Flow-2 add-ons), and
+ *   (b) active entitlements.subject_grants (Flow-1 teacher_code + admin_comp).
+ * Both queries run in parallel; rows are merged (deduped downstream per subject).
+ * No feature-flag gate — the recompute path must see grants even while the flags
+ * ship dark (e.g. the cutover backfill in production). The flag gate lives in the
+ * hot read path (getEntitledSubjects) only.
+ */
+async function getActiveEntitlementRows(userId: string): Promise<EntitlementRow[]> {
+  if (!userId || !isUserPostgresConfigured()) return [];
+  const [subscriptions, grants] = await Promise.all([
+    getSubscriptionEntitlementRows(userId),
+    getActiveSubjectGrantRows(userId),
+  ]);
+  return [...subscriptions, ...grants];
+}
+
+/**
+ * The subjects a user is currently entitled to: the UNION of active subscriptions
+ * and active subject grants whose access has not lapsed. Returns canonical-order,
+ * deduped subjects. Falls back to `[]` when Postgres is not configured.
+ */
+export async function getEntitledSubjects(userId: string): Promise<Subject[]> {
+  if (!userId || !isUserPostgresConfigured()) return [];
+  // While BOTH premium surfaces ship dark, keep this off the hot path entirely —
+  // no DB round-trip on every user serialization and no premature schema creation.
+  // Gating (getStudentGate) keeps access open in that state regardless.
+  if (!isFeatureEnabled("premiumSubscriptions") && !isFeatureEnabled("teacherConnect")) {
+    return [];
+  }
+  const rows = await getActiveEntitlementRows(userId);
+  const owned = new Set(rows.map((r) => r.subject));
   return ALL_SUBJECTS.filter((s) => owned.has(s));
 }
 
@@ -136,30 +173,33 @@ async function revalidateUserCache(userId: string): Promise<void> {
 
 /**
  * Recomputes the denormalised origin_users.is_premium / premium_expiry mirrors
- * from the authoritative subscription rows, then revalidates the user/auth
- * caches so RSC + useAuth() pick up the new entitlement. Called after every
- * subscription state transition (webhook), and from the reconciliation cron.
+ * from the authoritative entitlement UNION (subscriptions + subject grants), then
+ * revalidates the user/auth caches so RSC + useAuth() pick up the new entitlement.
+ * Called after every subscription/connect webhook transition, after grant/revoke,
+ * during the cutover backfill, and from the reconciliation cron. No feature-flag
+ * gate — the mirror must stay correct even while the surfaces ship dark.
  *
- * `is_premium` = active subject count > 0; `premium_expiry` = MAX period end.
+ * `is_premium` = distinct entitled subject count > 0. `premium_expiry` = NULL when
+ * any active entitlement never expires (e.g. an admin_comp grant), otherwise the
+ * latest finite expiry across the union.
  */
 export async function recomputeUserPremiumFlags(userId: string): Promise<void> {
   if (!userId || !isUserPostgresConfigured()) return;
-  await ensureSubscriptionsSchema();
-  const p = pool();
-  if (!p) return;
-  const res = await p.query<{ subject_count: number; premium_expiry: Date | string | null }>(
-    `SELECT COUNT(DISTINCT subject)::int AS subject_count,
-            MAX(current_period_end)      AS premium_expiry
-       FROM subscriptions.user_subscriptions
-      WHERE user_id = $1 AND ${ENTITLED_CLAUSE}`,
-    [userId],
-  );
-  const row = res.rows[0];
-  const isPremium = (row?.subject_count ?? 0) > 0;
-  const expiry = row?.premium_expiry ?? null;
-  const premiumExpiry = expiry
-    ? (expiry instanceof Date ? expiry.toISOString() : String(expiry))
-    : null;
+  const rows = await getActiveEntitlementRows(userId);
+  const subjects = new Set(rows.map((r) => r.subject));
+  const isPremium = subjects.size > 0;
+
+  let premiumExpiry: string | null = null;
+  if (isPremium) {
+    const hasNeverExpires = rows.some((r) => r.expiresAt === null);
+    if (!hasNeverExpires) {
+      const latestMs = rows
+        .map((r) => Date.parse(r.expiresAt as string))
+        .filter((ms) => Number.isFinite(ms))
+        .reduce((max, ms) => (ms > max ? ms : max), Number.NEGATIVE_INFINITY);
+      premiumExpiry = Number.isFinite(latestMs) ? new Date(latestMs).toISOString() : null;
+    }
+  }
 
   await dbUpdateUser(userId, { isPremium, premiumExpiry } as Partial<StoredUser>);
   await revalidateUserCache(userId);

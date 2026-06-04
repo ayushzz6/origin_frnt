@@ -19,9 +19,10 @@
  */
 
 import { AuthzError } from "@/server/authz";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 
 import { recordAuditEvent } from "./audit";
-import { addStudentsToBatches } from "./batches";
+import { addStudentsToBatches, getBatch } from "./batches";
 import {
   createEnrollmentOrder as storeCreateEnrollmentOrder,
   createOffering as storeCreateOffering,
@@ -148,6 +149,26 @@ export async function updateOfferingService(input: {
     requestId: input.requestId,
   });
 
+  // Phase 14: publishing a recurring offering creates its Razorpay plan in the
+  // background so checkout never pays the plan-creation cost. Dark unless
+  // teacherConnect is on; a queue hiccup here must never block the publish.
+  if (
+    updated &&
+    input.patch.status === "active" &&
+    isFeatureEnabled("teacherConnect") &&
+    (updated.billingPeriod ?? "monthly") === "monthly" &&
+    !updated.razorpayPlanId
+  ) {
+    try {
+      const { enqueueOfferingPlanCreation } = await import(
+        "@/server/connect/enrollment-subscription-service"
+      );
+      await enqueueOfferingPlanCreation(updated.workspaceId, updated.id);
+    } catch (error) {
+      console.error("[marketplace] offering plan enqueue failed", error);
+    }
+  }
+
   return updated;
 }
 
@@ -263,6 +284,14 @@ export async function markOrderPaidService(input: {
   const offering = await getOffering(input.workspaceId, order.offeringId);
   if (!offering) throw new AuthzError(404, "Offering not found.");
 
+  // Phase 14 back-port: only assign to the target batch when it still exists and
+  // is active (closes the Phase-12 gap where a paid order could be routed to a
+  // deleted/archived batch). The enrollment status mirrors whether we can assign.
+  const targetBatch = offering.targetBatchId
+    ? await getBatch(input.workspaceId, offering.targetBatchId)
+    : null;
+  const canAssignBatch = Boolean(targetBatch && targetBatch.status === "active");
+
   // Create or revive enrollment row first so we have its id to link.
   // enrollStudent() upserts on (workspace_id, student_id) and revives a
   // previously-left enrollment back to 'unassigned' so the batch
@@ -271,7 +300,7 @@ export async function markOrderPaidService(input: {
     workspaceId: input.workspaceId,
     studentId: order.studentId,
     source: "paid_app",
-    initialStatus: offering.targetBatchId ? "active" : "unassigned",
+    initialStatus: canAssignBatch ? "active" : "unassigned",
   });
 
   const updated = await updateOrderStatus(input.orderId, input.workspaceId, "paid", {
@@ -281,8 +310,8 @@ export async function markOrderPaidService(input: {
   });
   if (!updated) throw new Error("Failed to mark order paid.");
 
-  // Assign to batch if the offering targets one.
-  if (offering.targetBatchId) {
+  // Assign to batch only when it is a live target.
+  if (canAssignBatch && offering.targetBatchId) {
     await addStudentsToBatches({
       workspaceId: input.workspaceId,
       batchIds: [offering.targetBatchId],

@@ -28,7 +28,8 @@ type FlagKey =
   | "documentImport"
   | "adminControlCenter"
   | "paidEnrollment"
-  | "premiumSubscriptions";
+  | "premiumSubscriptions"
+  | "teacherConnect";
 
 type FlagSpec = {
   envSuffix: string;
@@ -53,6 +54,10 @@ const FLAG_SPECS: Record<FlagKey, FlagSpec> = {
   // Phase 13 — Free vs Premium per-subject subscriptions. Ships DARK: off in
   // dev and prod until explicitly enabled with TEACHER_LAUNCH_PREMIUM_SUBSCRIPTIONS=1.
   premiumSubscriptions: { envSuffix: "PREMIUM_SUBSCRIPTIONS", defaultDev: false, defaultProd: false },
+  // Phase 14 — Student ↔ teacher connection (collaborations, /connect, both
+  // enrollment flows, teacher tests/rooms → student, teacher analytics). Ships
+  // DARK: off in dev and prod until enabled with TEACHER_LAUNCH_TEACHER_CONNECT=1.
+  teacherConnect: { envSuffix: "TEACHER_CONNECT", defaultDev: false, defaultProd: false },
 };
 
 function parseFlag(raw: string | undefined): boolean | null {

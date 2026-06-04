@@ -37,6 +37,11 @@ function rowToOffering(row: Record<string, unknown>): WorkspaceOffering {
     status: row.status as OfferingStatus,
     metadata: (row.metadata as Record<string, unknown>) ?? {},
     createdAt: new Date(row.created_at as string).toISOString(),
+    // Phase 14 columns — absent (undefined) until the enrollment-subscriptions
+    // migration adds them; coalesce so Phase-12 reads stay valid.
+    razorpayPlanId: (row.razorpay_plan_id as string | null) ?? null,
+    billingPeriod:
+      (row.billing_period as "monthly" | "one_time" | null | undefined) ?? "monthly",
   };
 }
 

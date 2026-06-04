@@ -84,6 +84,13 @@ import { createId } from "@/server/store";
 import { isOgcodePostgresConfigured, getOgcodePostgresPool } from "@/server/postgres";
 import { getStudentGate, type StudentGate } from "@/server/entitlements";
 import { FREE_SAMPLE_POOL_SIZE, normalizeSubject as canonicalSubject } from "@/lib/entitlements";
+import { isFeatureEnabled } from "@/lib/feature-flags";
+import {
+  getAssignedTestForStudent,
+  getTestById as getTeacherTestById,
+  listAssignedTestPreviewsForStudent,
+  type AssignedTestForStudent,
+} from "@/server/workspaces/tests-store";
 import {
   getOptionDisplayOrder,
   presentOptions,
@@ -2824,10 +2831,93 @@ export async function listTestPreviews(store: AppStore, user: StoredUser) {
     for (const test of [...persistedSerialized, ...seeded]) {
       deduped.set(test.id, test);
     }
-    return gateList([...deduped.values()]);
+    return withAssignedTeacherTests(user.id, gateList([...deduped.values()]));
   } catch {
-    return gateList(seeded);
+    return withAssignedTeacherTests(user.id, gateList(seeded));
   }
+}
+
+/**
+ * Phase 14: merge teacher-assigned tests (3rd source) into the student's test
+ * list. Teacher-assigned tests BYPASS the premium gate (enrollment is the
+ * entitlement) and WIN the dedupe over any same-id self/custom entry. Additive
+ * and best-effort — a failure here never drops the student's own tests.
+ */
+async function withAssignedTeacherTests(
+  userId: string,
+  base: Array<{ id: string }>,
+): Promise<unknown[]> {
+  if (!isFeatureEnabled("teacherConnect")) return base;
+  try {
+    const assigned = await listAssignedTestPreviewsForStudent(userId);
+    if (assigned.length === 0) return base;
+    const byId = new Map<string, unknown>();
+    for (const test of base) byId.set(test.id, test);
+    for (const a of assigned) {
+      byId.set(a.id, {
+        id: a.id,
+        title: a.title,
+        description: a.description ?? "",
+        subject: a.subject,
+        chapter: a.chapter ?? undefined,
+        difficulty: a.difficulty,
+        duration: a.durationMinutes,
+        totalQuestions: a.totalQuestions,
+        isPremium: false,
+        is_premium: false,
+        isCustom: false,
+        is_custom: false,
+        attempted: false,
+        attemptCount: 0,
+        attempt_count: 0,
+        allScores: [],
+        all_scores: [],
+        createdByTeacher: true,
+        assignmentId: a.assignmentId,
+        workspaceId: a.workspaceId ?? undefined,
+        source: "teacher_assigned",
+        windowEndsAt: a.windowEndsAt,
+      });
+    }
+    return [...byId.values()];
+  } catch {
+    return base;
+  }
+}
+
+/** Build a synthetic persisted-custom-test record from a teacher-assigned test so
+ * the existing detail/grade machinery can render and grade it (ogcode bank). */
+function assignedTeacherTestToRecord(
+  userId: string,
+  assigned: AssignedTestForStudent,
+): PersistedCustomTestRecord {
+  const questionIds = assigned.ogcodeQuestionIds;
+  return {
+    id: assigned.test.id,
+    userId,
+    title: assigned.test.title,
+    description: assigned.test.description ?? "",
+    subject: assigned.test.subject,
+    chapter: assigned.test.chapter ?? null,
+    difficulty: assigned.test.difficulty,
+    durationMinutes: assigned.test.durationMinutes,
+    questionCount: questionIds.length || assigned.test.totalQuestions,
+    questionIds,
+    focusTopics: [],
+    generationSummary: "",
+    recommendedTimePerQuestionSeconds: 120,
+    createdAt: assigned.test.createdAt,
+    attemptCount: 0,
+    averageScore: null,
+    allScores: [],
+  };
+}
+
+/** A 403-tagged error: a teacher test exists but the student is not a member. */
+function teacherTestForbiddenError(): Error {
+  const err = new Error("You are not enrolled in the batch for this test.");
+  (err as { status?: number }).status = 403;
+  return err;
 }
 
 export async function getTestDetail(store: AppStore, user: StoredUser, testId: string) {
@@ -2837,10 +2927,21 @@ export async function getTestDetail(store: AppStore, user: StoredUser, testId: s
   }
 
   const persisted = await getPersistedCustomTest(testId, user.id);
-  if (!persisted) {
-    throw new Error(`Test ${testId} was not found.`);
+  if (persisted) {
+    return serializePersistedCustomTest(store, user.id, persisted);
   }
-  return serializePersistedCustomTest(store, user.id, persisted);
+
+  // Phase 14: teacher-assigned test — membership re-verified server-side.
+  if (isFeatureEnabled("teacherConnect")) {
+    const assigned = await getAssignedTestForStudent(user.id, testId);
+    if (assigned) {
+      return serializePersistedCustomTest(store, user.id, assignedTeacherTestToRecord(user.id, assigned));
+    }
+    const teacherTest = await getTeacherTestById(testId);
+    if (teacherTest) throw teacherTestForbiddenError();
+  }
+
+  throw new Error(`Test ${testId} was not found.`);
 }
 
 export async function getRoomTestDetail(store: AppStore, user: StoredUser, testId: string) {
@@ -2925,10 +3026,29 @@ export async function submitTest(
   options: { allowRoomParticipant?: boolean; sourceType?: AssessmentSourceType; roomId?: string | null } = {},
 ) {
   const seededTest = store.tests.find((entry) => entry.id === testId);
-  const persistedTest = seededTest
+  let persistedTest = seededTest
     ? null
     : (await getPersistedCustomTest(testId, user.id)) ??
       (options.allowRoomParticipant ? await getPersistedCustomTestById(testId) : null);
+
+  // Phase 14: teacher-assigned test — membership re-verified server-side, then
+  // routed through the same persisted path with cohort tags carried to analytics.
+  let teacherCohort: { workspaceId: string | null; batchId: string | null; assignmentId: string } | null = null;
+  if (!seededTest && !persistedTest && isFeatureEnabled("teacherConnect")) {
+    const assigned = await getAssignedTestForStudent(user.id, testId);
+    if (assigned) {
+      persistedTest = assignedTeacherTestToRecord(user.id, assigned);
+      teacherCohort = {
+        workspaceId: assigned.workspaceId,
+        batchId: assigned.batchId,
+        assignmentId: assigned.assignmentId,
+      };
+    } else {
+      const teacherTest = await getTeacherTestById(testId);
+      if (teacherTest) throw teacherTestForbiddenError();
+    }
+  }
+
   if (!seededTest && !persistedTest) {
     throw new Error(`Test ${testId} was not found.`);
   }
@@ -3048,6 +3168,10 @@ export async function submitTest(
     degradedReason: resolution.degradedReason,
     analysisStatus: "pending",
     analysisError: null,
+    // Phase 14: cohort tags for teacher-assigned submissions (null for self tests).
+    workspaceId: teacherCohort?.workspaceId ?? null,
+    batchId: teacherCohort?.batchId ?? null,
+    assignmentId: teacherCohort?.assignmentId ?? null,
   };
   const analysisRequest: AnalyticsTestAnalysisRequest = {
     user_id: user.id,

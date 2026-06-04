@@ -95,3 +95,21 @@ export function createPaymentIntentId(): string {
 export function createPublicInstituteId(): string {
   return createPrefixedId("pinst");
 }
+
+// ─── Phase 14: teacher connection ──────────────────────────────────────────────
+
+export function createCollaborationId(): string {
+  return createPrefixedId("collab");
+}
+
+export function createSubjectGrantId(): string {
+  return createPrefixedId("grant");
+}
+
+export function createEnrollmentSubscriptionId(): string {
+  return createPrefixedId("esub");
+}
+
+export function createConnectJobId(): string {
+  return createPrefixedId("cjob");
+}

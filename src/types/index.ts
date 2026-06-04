@@ -87,6 +87,12 @@ export interface TestPreview {
   score?: number;
   attemptCount?: number;
   allScores?: number[];
+  // Phase 14 — teacher-assigned tests surfaced to enrolled students.
+  createdByTeacher?: boolean;
+  assignmentId?: string;
+  workspaceId?: string;
+  source?: "self" | "teacher_assigned";
+  windowEndsAt?: string | null;
 }
 
 export interface Question {
