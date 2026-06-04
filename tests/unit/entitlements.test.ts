@@ -17,6 +17,19 @@ import {
   normalizeSubject,
 } from "../../src/lib/entitlements";
 import { verifyRazorpayWebhookSignature } from "../../src/server/payments/razorpay-client";
+import { getStudentGate, shouldRedirectFreeStudent } from "../../src/server/entitlements";
+
+function withFlag(value: string | undefined, fn: () => void) {
+  const before = process.env.TEACHER_LAUNCH_PREMIUM_SUBSCRIPTIONS;
+  if (value === undefined) delete process.env.TEACHER_LAUNCH_PREMIUM_SUBSCRIPTIONS;
+  else process.env.TEACHER_LAUNCH_PREMIUM_SUBSCRIPTIONS = value;
+  try {
+    fn();
+  } finally {
+    if (before === undefined) delete process.env.TEACHER_LAUNCH_PREMIUM_SUBSCRIPTIONS;
+    else process.env.TEACHER_LAUNCH_PREMIUM_SUBSCRIPTIONS = before;
+  }
+}
 
 const freeUser = { entitledSubjects: [] as string[] };
 const physicsUser = { entitledSubjects: ["physics"] };
@@ -80,6 +93,31 @@ test("verifyRazorpayWebhookSignature accepts a valid HMAC and rejects tampering"
     if (before === undefined) delete process.env.RAZORPAY_WEBHOOK_SECRET;
     else process.env.RAZORPAY_WEBHOOK_SECRET = before;
   }
+});
+
+test("shouldRedirectFreeStudent fires only for free students with the flag on", () => {
+  withFlag("1", () => {
+    assert.equal(shouldRedirectFreeStudent({ role: "student", entitledSubjects: [] }), true);
+    assert.equal(shouldRedirectFreeStudent({ role: "student", entitledSubjects: ["physics"] }), false);
+    assert.equal(shouldRedirectFreeStudent({ role: "teacher", entitledSubjects: [] }), false);
+    assert.equal(shouldRedirectFreeStudent(null), false);
+  });
+  withFlag("0", () => {
+    assert.equal(shouldRedirectFreeStudent({ role: "student", entitledSubjects: [] }), false);
+  });
+});
+
+test("getStudentGate is unenforced when the flag is off or the caller is not a student", async () => {
+  let gate = await new Promise<Awaited<ReturnType<typeof getStudentGate>>>((resolve) => {
+    withFlag("0", () => void getStudentGate("u1", "student").then(resolve));
+  });
+  assert.equal(gate.enforced, false);
+  assert.equal(gate.anyPremium, true);
+
+  gate = await new Promise<Awaited<ReturnType<typeof getStudentGate>>>((resolve) => {
+    withFlag("1", () => void getStudentGate("u1", "teacher").then(resolve));
+  });
+  assert.equal(gate.enforced, false);
 });
 
 test("verifyRazorpayWebhookSignature returns false when secret is unset", () => {

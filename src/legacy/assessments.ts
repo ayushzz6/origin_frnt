@@ -82,6 +82,8 @@ import type {
 } from "@/server/store";
 import { createId } from "@/server/store";
 import { isOgcodePostgresConfigured, getOgcodePostgresPool } from "@/server/postgres";
+import { getStudentGate, type StudentGate } from "@/server/entitlements";
+import { FREE_SAMPLE_POOL_SIZE, normalizeSubject as canonicalSubject } from "@/lib/entitlements";
 import {
   getOptionDisplayOrder,
   presentOptions,
@@ -292,6 +294,29 @@ function withDegradedPayload<T extends Record<string, unknown>>(payload: T, reas
 
 function normalizeSubject(subject: string): string {
   return subject.toLowerCase();
+}
+
+/**
+ * Phase 1.4 — whether a subject-tagged item is visible to a (possibly free)
+ * student under their entitlement gate. `mixed`/unknown subjects show for any
+ * premium; the four billable subjects require the matching entitlement. When
+ * gating is not enforced (flag off / non-student) everything is visible.
+ */
+function subjectVisibleUnderGate(subjectRaw: string | null | undefined, gate: StudentGate): boolean {
+  if (!gate.enforced) return true;
+  if (!gate.anyPremium) return false;
+  const raw = String(subjectRaw ?? "").trim().toLowerCase();
+  if (!raw || raw === "mixed" || raw === "all") return true;
+  const canonical = canonicalSubject(raw);
+  if (!canonical) return true;
+  return gate.subjects.includes(canonical);
+}
+
+/** Throw a 403 — used to refuse access to content outside a student's entitlement. */
+function throwEntitlementForbidden(message: string): never {
+  const err = new Error(message);
+  (err as { status?: number }).status = 403;
+  throw err;
 }
 
 function normalizeDifficulty(difficulty: string): DifficultyLevel {
@@ -2774,6 +2799,11 @@ export async function listTests(store: AppStore, user: StoredUser) {
 }
 
 export async function listTestPreviews(store: AppStore, user: StoredUser) {
+  const gate = await getStudentGate(user.id, user.role);
+  // Free students get no tests; premium students get their entitled subjects.
+  const gateList = <T extends { subject?: string }>(tests: T[]): T[] =>
+    gate.enforced ? tests.filter((test) => subjectVisibleUnderGate(test.subject, gate)) : tests;
+
   const seeded = listTestPreviewsFallback(store, user);
   try {
     const persisted = await listPersistedCustomTests(user.id);
@@ -2794,9 +2824,9 @@ export async function listTestPreviews(store: AppStore, user: StoredUser) {
     for (const test of [...persistedSerialized, ...seeded]) {
       deduped.set(test.id, test);
     }
-    return [...deduped.values()];
+    return gateList([...deduped.values()]);
   } catch {
-    return seeded;
+    return gateList(seeded);
   }
 }
 
@@ -3157,7 +3187,7 @@ export async function listGeneratedDpps(store: AppStore, user: StoredUser) {
     ),
   ]);
 
-  return plans.map((plan) =>
+  const serialized = plans.map((plan) =>
     serializePersistedDppPlanWithLookup(
       store,
       user.id,
@@ -3166,6 +3196,12 @@ export async function listGeneratedDpps(store: AppStore, user: StoredUser) {
       questionLookup,
     ),
   );
+
+  // Free students get no DPPs; premium students get their entitled subjects.
+  const gate = await getStudentGate(user.id, user.role);
+  return gate.enforced
+    ? serialized.filter((dpp) => subjectVisibleUnderGate(dpp.subject, gate))
+    : serialized;
 }
 
 export async function getGeneratedDppDetail(store: AppStore, user: StoredUser, dppId: string) {
@@ -3176,6 +3212,10 @@ export async function getGeneratedDppDetail(store: AppStore, user: StoredUser, d
   const plan = await getDppPlanDetail(user.id, dppId);
   if (!plan) {
     throw new Error(`DPP ${dppId} was not found.`);
+  }
+  const gate = await getStudentGate(user.id, user.role);
+  if (gate.enforced && !subjectVisibleUnderGate(plan.subject, gate)) {
+    throwEntitlementForbidden("This DPP requires a subscription to its subject.");
   }
   const latestAttempt = await getLatestDppAttemptForPlan(user.id, dppId);
   return serializePersistedDppPlan(store, user.id, plan, latestAttempt);
@@ -3254,6 +3294,10 @@ export async function submitGeneratedDpp(
   const plan = await getDppPlanDetail(user.id, dppId);
   if (!plan) {
     throw new Error(`DPP ${dppId} was not found.`);
+  }
+  const submitGate = await getStudentGate(user.id, user.role);
+  if (submitGate.enforced && !subjectVisibleUnderGate(plan.subject, submitGate)) {
+    throwEntitlementForbidden("This DPP requires a subscription to its subject.");
   }
 
   const submittedAnswers = payload.answers ?? [];
@@ -3454,10 +3498,33 @@ export async function listOgcodeQuestionPage(
   user: StoredUser,
   filters: OgcodeQuestionListFilters,
 ): Promise<OgcodeQuestionPage> {
-  const limit = clampOgcodePageSize(filters.limit);
+  const requestedLimit = clampOgcodePageSize(filters.limit);
   const offset = Math.max(0, Math.trunc(filters.offset ?? 0));
   const chapters = normalizeOgcodeChaptersFilter(filters.chapters);
   const status = normalizeOgcodeStatusFilter(filters.status);
+
+  // Phase 1.4 entitlement gate. Free → fixed 500-question mixed sample pool;
+  // premium → full bank scoped to entitled subjects.
+  const gate = await getStudentGate(user.id, user.role);
+  const isFree = gate.enforced && !gate.anyPremium;
+  const isPremium = gate.enforced && gate.anyPremium;
+  const emptyPage = (total: number): OgcodeQuestionPage => ({
+    items: [],
+    total,
+    limit: requestedLimit,
+    offset,
+    hasMore: false,
+  });
+
+  // Premium request for an unentitled subject returns nothing.
+  if (isPremium && filters.subject) {
+    const requested = canonicalSubject(filters.subject);
+    if (requested && !gate.subjects.includes(requested)) return emptyPage(0);
+  }
+  // Free pool is capped at the first FREE_SAMPLE_POOL_SIZE questions.
+  if (isFree && offset >= FREE_SAMPLE_POOL_SIZE) return emptyPage(FREE_SAMPLE_POOL_SIZE);
+  const limit = isFree ? Math.min(requestedLimit, FREE_SAMPLE_POOL_SIZE - offset) : requestedLimit;
+
   const attemptState = await buildOgcodeAttemptState(store, user.id);
 
   const localQuestionsById = new Map<string, StoredQuestion>();
@@ -3465,6 +3532,8 @@ export async function listOgcodeQuestionPage(
   store.questions.forEach((question) => {
     localQuestionsById.set(question.id, question);
     if (matchesLocalOgcodeQuestion(question, { ...filters, chapters, status }, attemptState)) {
+      // Premium: hide local questions outside the entitled subjects.
+      if (isPremium && !subjectVisibleUnderGate(question.subject, gate)) return;
       localIds.push(question.id);
     }
   });
@@ -3485,6 +3554,8 @@ export async function listOgcodeQuestionPage(
   const remotePage = remainingLimit && !(status === "solved" && solvedCatalogIds.length === 0)
     ? await listOgcodeCatalogQuestionPage({
         subject: filters.subject,
+        // Premium with no specific subject → restrict to entitled subjects.
+        subjects: isPremium ? gate.subjects : null,
         difficulty: filters.difficulty,
         type: filters.type,
         search: filters.search,
@@ -3504,7 +3575,10 @@ export async function listOgcodeQuestionPage(
     ...remotePage.items.map((question) => serializeOgcodeQuestionPreview(question, attemptState)),
   ];
 
-  const total = localOnlyIds.length + remotePage.total;
+  // Free pool: clamp the reported total to the sample-pool size.
+  const total = isFree
+    ? Math.min(localOnlyIds.length + remotePage.total, FREE_SAMPLE_POOL_SIZE)
+    : localOnlyIds.length + remotePage.total;
 
   return {
     items,
@@ -3521,13 +3595,18 @@ export async function listOgcodeQuestions(
   filters: { subject?: string | null; difficulty?: string | null; type?: string | null },
 ) {
   const questions = await getOgcodeQuestionBank(store);
-  return questions
-    .filter((question) => {
-      const matchesSubject = !filters.subject || question.subject === normalizeSubject(filters.subject);
-      const matchesDifficulty = !filters.difficulty || question.difficulty === normalizeDifficulty(filters.difficulty);
-      const matchesType = !filters.type || question.questionType === filters.type;
-      return matchesSubject && matchesDifficulty && matchesType;
-    })
+  const gate = await getStudentGate(user.id, user.role);
+  const filtered = questions.filter((question) => {
+    const matchesSubject = !filters.subject || question.subject === normalizeSubject(filters.subject);
+    const matchesDifficulty = !filters.difficulty || question.difficulty === normalizeDifficulty(filters.difficulty);
+    const matchesType = !filters.type || question.questionType === filters.type;
+    if (!(matchesSubject && matchesDifficulty && matchesType)) return false;
+    // Premium: only entitled subjects; free: everything (clamped to the pool below).
+    if (gate.enforced && gate.anyPremium && !subjectVisibleUnderGate(question.subject, gate)) return false;
+    return true;
+  });
+  const scoped = gate.enforced && !gate.anyPremium ? filtered.slice(0, FREE_SAMPLE_POOL_SIZE) : filtered;
+  return scoped
     .map((question) =>
       serializeQuestion(store, user.id, question, {
         includeCorrectFields: false,
