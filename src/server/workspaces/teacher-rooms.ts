@@ -137,6 +137,55 @@ export async function listTeacherRooms(
   });
 }
 
+/** Phase 14 (F.5): a live teacher room a student is eligible to join via batch membership. */
+export type JoinableRoomForStudent = {
+  id: string;
+  name: string;
+  status: "lobby" | "in_test" | "finished" | "closed";
+  workspaceId: string | null;
+  workspaceName: string | null;
+  batchId: string | null;
+  batchName: string | null;
+  createdAt: string;
+};
+
+/**
+ * Phase 14 (F.5): live teacher rooms a student can join because they are an active
+ * member of the room's batch. Surfaced in /connect → "My institutes". The join
+ * itself is gated again server-side (see the connect membership-gated join). Reads
+ * app.batch_members from the rooms pool — valid under the same-physical-DB invariant
+ * the teacher_room→batch FK already relies on (AGENTS.md).
+ */
+export async function listJoinableRoomsForStudent(studentId: string): Promise<JoinableRoomForStudent[]> {
+  return withClient(async (client) => {
+    const result = await client.query(
+      `SELECT r.id, r.name, r.status, r.workspace_id, r.batch_id, r.created_at,
+              b.name AS batch_name, w.display_name AS workspace_name
+         FROM rooms.rooms r
+         JOIN app.batch_members bm
+           ON bm.batch_id = r.batch_id AND bm.student_id = $1 AND bm.status = 'active'
+         LEFT JOIN app.batches b ON b.id = r.batch_id
+         LEFT JOIN app.teacher_workspaces w ON w.id = r.workspace_id
+        WHERE r.room_kind = 'teacher_room'
+          AND r.status IN ('lobby', 'in_test')
+          AND r.batch_id IS NOT NULL
+        ORDER BY r.created_at DESC
+        LIMIT 30`,
+      [studentId],
+    );
+    return result.rows.map((row) => ({
+      id: row.id as string,
+      name: row.name as string,
+      status: row.status as JoinableRoomForStudent["status"],
+      workspaceId: (row.workspace_id as string | null) ?? null,
+      workspaceName: (row.workspace_name as string | null) ?? null,
+      batchId: (row.batch_id as string | null) ?? null,
+      batchName: (row.batch_name as string | null) ?? null,
+      createdAt: new Date(row.created_at as string).toISOString(),
+    }));
+  });
+}
+
 export async function updateTeacherRoom(
   workspaceId: string,
   roomId: string,

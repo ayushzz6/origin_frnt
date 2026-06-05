@@ -87,6 +87,36 @@ export async function createConnectCheckout(input: {
   return (await res.json()) as ConnectCheckoutResponse;
 }
 
+export type ConnectRoom = {
+  id: string;
+  name: string;
+  status: "lobby" | "in_test" | "finished" | "closed";
+  workspaceId: string | null;
+  workspaceName: string | null;
+  batchId: string | null;
+  batchName: string | null;
+  createdAt: string;
+};
+
+/** Phase 14 (F.5): live teacher rooms the student can join from "My institutes". */
+export async function listConnectRooms(): Promise<ConnectRoom[]> {
+  const res = await fetch("/api/connect/rooms", { method: "GET", credentials: "include" });
+  if (!res.ok) throw new Error(await parseError(res));
+  const data = (await res.json()) as { rooms?: ConnectRoom[] };
+  return data.rooms ?? [];
+}
+
+/** Phase 14 (F.3): membership-gated join — returns the joined room id. */
+export async function joinConnectRoom(roomId: string): Promise<{ roomId: string }> {
+  const res = await fetch(`/api/connect/rooms/${encodeURIComponent(roomId)}/join`, {
+    method: "POST",
+    credentials: "include",
+    headers: { ...csrfHeaders() },
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  return (await res.json()) as { roomId: string };
+}
+
 export async function listConnectCollaborators(params?: {
   subject?: string;
   city?: string;

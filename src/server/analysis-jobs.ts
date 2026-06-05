@@ -300,10 +300,31 @@ async function processTestAnalysisJob(job: AnalysisJobRow): Promise<Record<strin
     analysisError: null,
   });
 
+  // Phase 14 (2E): when this submission carries cohort context (a teacher-assigned
+  // test or a teacher room), populate the teacher cohort analytics in the
+  // background. Best-effort + flag-gated + dynamically imported so it never blocks
+  // or fails the student's own analysis, and adds zero cost while shipping dark.
+  await maybePopulateCohortAnalytics(payload);
+
   return {
     resultId: payload.resultId,
     dppPlanCount: response.dpp_plans.length,
   };
+}
+
+async function maybePopulateCohortAnalytics(payload: TestAnalysisJobPayload): Promise<void> {
+  const { workspaceId, batchId } = payload.persistInput;
+  if (!workspaceId || !batchId) return;
+  try {
+    const { isFeatureEnabled } = await import("@/lib/feature-flags");
+    if (!isFeatureEnabled("teacherConnect")) return;
+    const { populateCohortAnalytics } = await import("@/server/workspaces/cohort-analytics");
+    const snapshotType = payload.request.source_type === "room_test" ? "room_result" : "test_result";
+    await populateCohortAnalytics(payload.resultId, snapshotType);
+  } catch (error) {
+    metric("origin.cohort_analytics.populate_failed", { kind: "test" });
+    console.warn("[analysis-jobs] cohort analytics population skipped:", error);
+  }
 }
 
 async function processDppAnalysisJob(job: AnalysisJobRow): Promise<Record<string, unknown>> {

@@ -8,8 +8,9 @@
  */
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Radio } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,13 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/context/AuthContext';
 import { getEntitledSubjects } from '@/lib/entitlements';
-import { listConnectCollaborators, type ConnectCollaborator } from '@/features/connect/client';
+import {
+  joinConnectRoom,
+  listConnectCollaborators,
+  listConnectRooms,
+  type ConnectCollaborator,
+  type ConnectRoom,
+} from '@/features/connect/client';
 
 import { ConnectRedeemPanel } from './ConnectRedeemPanel';
 
@@ -111,37 +118,104 @@ function BrowsePanel() {
   );
 }
 
-function MyInstitutesPanel() {
-  const { user } = useAuth();
-  const subjects = getEntitledSubjects(user);
+function JoinableRoomsPanel() {
+  const router = useRouter();
+  const [rooms, setRooms] = useState<ConnectRoom[] | null>(null);
+  const [joiningId, setJoiningId] = useState<string | null>(null);
 
-  if (subjects.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Nothing unlocked yet</CardTitle>
-          <CardDescription>
-            Redeem an institute code or enroll in a batch to unlock Origin subjects.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    );
+  useEffect(() => {
+    let cancelled = false;
+    listConnectRooms()
+      .then((rows) => {
+        if (!cancelled) setRooms(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setRooms([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handleJoin(roomId: string) {
+    setJoiningId(roomId);
+    try {
+      const { roomId: joined } = await joinConnectRoom(roomId);
+      router.push(`/study-rooms/${joined}/lobby`);
+    } catch {
+      setJoiningId(null);
+    }
   }
+
+  // Nothing to show (no live rooms or not loaded yet) → render nothing so the panel
+  // stays clean for students without an active institute room.
+  if (!rooms || rooms.length === 0) return null;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Your unlocked subjects</CardTitle>
-        <CardDescription>Subjects active across your connected institutes and plans.</CardDescription>
+        <CardTitle className="flex items-center gap-2">
+          <Radio className="h-4 w-4 text-primary" /> Live institute rooms
+        </CardTitle>
+        <CardDescription>Test rooms your teachers have opened for your batches.</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-wrap gap-2">
-        {subjects.map((s) => (
-          <Badge key={s} variant="secondary" className="capitalize">
-            {s}
-          </Badge>
+      <CardContent className="space-y-3">
+        {rooms.map((room) => (
+          <div
+            key={room.id}
+            className="flex items-center justify-between gap-3 rounded-lg border p-3"
+          >
+            <div className="min-w-0">
+              <p className="truncate font-medium">{room.name}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {[room.workspaceName, room.batchName].filter(Boolean).join(' · ') || 'Institute room'}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {room.status === 'in_test' ? <Badge variant="destructive">Live</Badge> : <Badge>Lobby</Badge>}
+              <Button size="sm" disabled={joiningId === room.id} onClick={() => handleJoin(room.id)}>
+                {joiningId === room.id ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Join'}
+              </Button>
+            </div>
+          </div>
         ))}
       </CardContent>
     </Card>
+  );
+}
+
+function MyInstitutesPanel() {
+  const { user } = useAuth();
+  const subjects = getEntitledSubjects(user);
+
+  return (
+    <div className="space-y-4">
+      {subjects.length === 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Nothing unlocked yet</CardTitle>
+            <CardDescription>
+              Redeem an institute code or enroll in a batch to unlock Origin subjects.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Your unlocked subjects</CardTitle>
+            <CardDescription>Subjects active across your connected institutes and plans.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            {subjects.map((s) => (
+              <Badge key={s} variant="secondary" className="capitalize">
+                {s}
+              </Badge>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+      <JoinableRoomsPanel />
+    </div>
   );
 }
 

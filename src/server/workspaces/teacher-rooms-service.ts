@@ -4,6 +4,7 @@
  */
 
 import { AuthzError } from "@/server/authz";
+import { startRoomTest } from "@/server/study-rooms";
 
 import { recordAuditEvent } from "./audit";
 import {
@@ -102,6 +103,45 @@ export async function configureRoomTest(input: {
   });
 
   return updated;
+}
+
+/**
+ * Phase 14 (F.2): teacher starts a configured room test. Reuses the legacy room
+ * engine's {@link startRoomTest} (which now resolves a teacher_test_id from
+ * assessment.tests as well as a custom_test_id), gated by workspace ownership of
+ * the room. The actor must be the room admin participant — createTeacherRoom seeds
+ * the creator as admin, so the room creator can start it.
+ */
+export async function startTeacherRoomTest(input: {
+  actorUserId: string;
+  workspaceId: string;
+  roomId: string;
+  requestId?: string | null;
+}): Promise<{
+  room: TeacherRoomSummary;
+  event: Awaited<ReturnType<typeof startRoomTest>>;
+}> {
+  const room = await getTeacherRoomById(input.workspaceId, input.roomId);
+  if (!room) throw new AuthzError(404, "Room not found.");
+  if (!room.teacherTestId) {
+    throw new AuthzError(400, "Configure a test before starting the room.");
+  }
+
+  // startRoomTest enforces admin-participant + lobby state and flips status → in_test.
+  const event = await startRoomTest(input.roomId, input.actorUserId);
+  const updated = (await getTeacherRoomById(input.workspaceId, input.roomId)) ?? room;
+
+  await recordAuditEvent({
+    actorUserId: input.actorUserId,
+    workspaceId: input.workspaceId,
+    entityType: "teacher_room",
+    entityId: input.roomId,
+    action: "room.test_started",
+    after: updated,
+    requestId: input.requestId,
+  });
+
+  return { room: updated, event };
 }
 
 export async function closeTeacherRoom(input: {
