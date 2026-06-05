@@ -346,3 +346,91 @@ export async function getLeaderboardSnapshot(
   );
   return result.rows[0] ? rowToLeaderboardSnapshot(result.rows[0]) : null;
 }
+
+// ─── Phase 14 (2E): batch leaderboard compute ─────────────────────────────────
+
+/** One ranked student in a batch leaderboard snapshot's `entries`. */
+export type BatchLeaderboardEntry = {
+  rank: number;
+  studentId: string;
+  displayName: string;
+  /** Trailing-window mean test percentage — the PRIMARY ranking metric. */
+  meanPercentage: number;
+  attempts: number;
+  /** Cumulative raw marks over the window — backs the secondary "platform rank". */
+  totalScore: number;
+  /** Secondary ranking by cumulative score (proxy for OG-code platform points). */
+  platformRank: number;
+};
+
+/**
+ * Phase 14 (2E): rank a batch's active students by **trailing-30-day mean test
+ * percentage** (min-2-attempts floor; tie-break by attempt count). A secondary
+ * "platform rank" orders by cumulative raw score — a self-contained proxy for OG
+ * Code platform points (true ogcode-points integration is deferred: those points
+ * live in an opaque app.user_scores JSONB blob, see PLAN 2E reconciliation).
+ *
+ * Reads analytics.test_results on the USER pool — valid under the same-physical-DB
+ * invariant (assertCohortAnalyticsDbInvariant guards the caller). NO new compute:
+ * this only aggregates submissions already tagged with workspace_id/batch_id.
+ */
+export async function computeBatchLeaderboard(
+  workspaceId: string,
+  batchId: string,
+  options: { windowDays?: number; minAttempts?: number } = {},
+): Promise<BatchLeaderboardEntry[]> {
+  await ensureAnalyticsSchema();
+  const windowDays = options.windowDays ?? 30;
+  const minAttempts = options.minAttempts ?? 2;
+
+  const result = await pool().query(
+    `WITH members AS (
+       SELECT student_id FROM app.batch_members
+        WHERE workspace_id = $1 AND batch_id = $2 AND status = 'active'
+     ),
+     agg AS (
+       SELECT tr.user_id,
+              AVG(tr.percentage)::float8 AS mean_pct,
+              SUM(tr.score)::float8       AS total_score,
+              COUNT(*)::int               AS attempts
+         FROM analytics.test_results tr
+         JOIN members m ON m.student_id = tr.user_id
+        WHERE tr.workspace_id = $1 AND tr.batch_id = $2
+          AND tr.created_at >= NOW() - make_interval(days => $3::int)
+          AND tr.is_malpractice = FALSE
+        GROUP BY tr.user_id
+     )
+     SELECT a.user_id, COALESCE(u.name, 'Student') AS display_name,
+            a.mean_pct, a.total_score, a.attempts
+       FROM agg a
+       LEFT JOIN origin_users u ON u.id = a.user_id
+      WHERE a.attempts >= $4`,
+    [workspaceId, batchId, windowDays, minAttempts],
+  );
+
+  const rows = result.rows.map((row) => ({
+    studentId: row.user_id as string,
+    displayName: row.display_name as string,
+    meanPercentage: Math.round((Number(row.mean_pct) || 0) * 100) / 100,
+    totalScore: Math.round((Number(row.total_score) || 0) * 100) / 100,
+    attempts: Number(row.attempts) || 0,
+  }));
+
+  // Secondary platform rank by cumulative score (desc).
+  const platformOrder = [...rows].sort((a, b) => b.totalScore - a.totalScore);
+  const platformRankById = new Map<string, number>();
+  platformOrder.forEach((r, i) => platformRankById.set(r.studentId, i + 1));
+
+  // Primary rank by mean percentage (desc), tie-break by attempts (desc).
+  return rows
+    .sort((a, b) => b.meanPercentage - a.meanPercentage || b.attempts - a.attempts)
+    .map((r, i) => ({
+      rank: i + 1,
+      studentId: r.studentId,
+      displayName: r.displayName,
+      meanPercentage: r.meanPercentage,
+      attempts: r.attempts,
+      totalScore: r.totalScore,
+      platformRank: platformRankById.get(r.studentId) ?? i + 1,
+    }));
+}

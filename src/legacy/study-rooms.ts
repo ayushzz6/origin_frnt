@@ -30,6 +30,7 @@ import { createId, type AppStore, type StoredUser } from "@/server/store";
 
 export type RoomStatus = "lobby" | "in_test" | "finished" | "closed";
 export type ParticipantRole = "admin" | "participant";
+export type RoomKind = "student_room" | "teacher_room";
 
 export type RoomSummary = {
   id: string;
@@ -44,7 +45,27 @@ export type RoomSummary = {
   max_participants: number;
   created_at: string;
   updated_at: string;
+  // Phase 14 (teacher rooms): a teacher_room is backed by an assessment.tests id
+  // (`teacher_test_id`) instead of an analytics.custom_tests id, and carries the
+  // cohort context (`workspace_id`/`batch_id`) used to tag room submissions.
+  teacher_test_id: string | null;
+  workspace_id: string | null;
+  batch_id: string | null;
+  room_kind: RoomKind;
 };
+
+/**
+ * The test id backing a room's run: a student room uses `custom_test_id`
+ * (analytics.custom_tests); a teacher room uses `teacher_test_id`
+ * (assessment.tests). Exactly one is set once a test is configured.
+ */
+export function effectiveRoomTestId(room: RoomSummary): string | null {
+  return room.custom_test_id ?? room.teacher_test_id ?? null;
+}
+
+function isTeacherRoom(room: RoomSummary): boolean {
+  return room.room_kind === "teacher_room" || (!room.custom_test_id && Boolean(room.teacher_test_id));
+}
 
 export type RoomState = {
   room: RoomSummary;
@@ -119,6 +140,10 @@ function mapRoom(row: any): RoomSummary {
     max_participants: row.max_participants,
     created_at: toIso(row.created_at) ?? new Date().toISOString(),
     updated_at: toIso(row.updated_at) ?? new Date().toISOString(),
+    teacher_test_id: row.teacher_test_id ?? null,
+    workspace_id: row.workspace_id ?? null,
+    batch_id: row.batch_id ?? null,
+    room_kind: (row.room_kind as RoomKind) ?? "student_room",
   };
 }
 
@@ -184,6 +209,18 @@ async function getRoomOrThrow(client: PoolClient, roomId: string, lock = false):
     throw new StudyRoomError(404, "Study room was not found.");
   }
   return mapRoom(result.rows[0]);
+}
+
+/**
+ * Phase 14: fetch a room summary WITHOUT requiring membership — used by the
+ * connect membership-gated join, which decides eligibility from batch membership
+ * (app.batch_members) rather than an existing room participant row.
+ */
+export async function getRoomSummaryById(roomId: string): Promise<RoomSummary | null> {
+  return withClient(async (client) => {
+    const result = await client.query(`SELECT * FROM rooms.rooms WHERE id = $1`, [roomId]);
+    return result.rows[0] ? mapRoom(result.rows[0]) : null;
+  });
 }
 
 export async function listRoomsForUser(userId: string): Promise<RoomSummary[]> {
@@ -837,10 +874,11 @@ export async function startRoomTest(roomId: string, userId: string) {
       throw new StudyRoomError(403, "Only the room admin can start the test.");
     }
 
+    const configuredTestId = effectiveRoomTestId(room);
     if (room.status !== "lobby") {
-      if (room.status === "in_test" && room.custom_test_id && room.started_at && room.duration_seconds) {
+      if (room.status === "in_test" && configuredTestId && room.started_at && room.duration_seconds) {
         return {
-          custom_test_id: room.custom_test_id,
+          custom_test_id: configuredTestId,
           started_at: room.started_at,
           duration_seconds: room.duration_seconds,
           server_emit_ts: Date.now(),
@@ -848,7 +886,7 @@ export async function startRoomTest(roomId: string, userId: string) {
       }
       throw new StudyRoomError(423, "This room has already left the lobby.");
     }
-    if (!room.custom_test_id) {
+    if (!configuredTestId) {
       throw new StudyRoomError(400, "Configure a test before starting.");
     }
 
@@ -862,15 +900,20 @@ export async function startRoomTest(roomId: string, userId: string) {
       throw new StudyRoomError(400, "A room needs at least one active participant.");
     }
 
-    const testResult = await client.query(
-      `SELECT duration_minutes FROM analytics.custom_tests WHERE id = $1`,
-      [room.custom_test_id],
-    );
-    if (!testResult.rows[0]) {
+    // Phase 14: a teacher room resolves its duration from assessment.tests (USER
+    // schema, same physical Neon DB as the rooms pool — see AGENTS.md), a student
+    // room from analytics.custom_tests. The cross-schema read is valid only under
+    // the same-physical-DB invariant, which the rooms→assessment FK already asserts.
+    const durationMinutes = room.custom_test_id
+      ? (await client.query(`SELECT duration_minutes FROM analytics.custom_tests WHERE id = $1`, [room.custom_test_id]))
+          .rows[0]?.duration_minutes
+      : (await client.query(`SELECT duration_minutes FROM assessment.tests WHERE id = $1`, [room.teacher_test_id]))
+          .rows[0]?.duration_minutes;
+    if (durationMinutes === undefined) {
       throw new StudyRoomError(404, "Configured test was not found.");
     }
 
-    const durationSeconds = Math.max(60, Number(testResult.rows[0].duration_minutes ?? 1) * 60);
+    const durationSeconds = Math.max(60, Number(durationMinutes ?? 1) * 60);
     const updated = await client.query(
       `UPDATE rooms.rooms
        SET status = 'in_test',
@@ -883,7 +926,7 @@ export async function startRoomTest(roomId: string, userId: string) {
     );
     const started = mapRoom(updated.rows[0]);
     return {
-      custom_test_id: started.custom_test_id!,
+      custom_test_id: effectiveRoomTestId(started)!,
       started_at: started.started_at!,
       duration_seconds: started.duration_seconds!,
       server_emit_ts: Date.now(),
@@ -893,10 +936,11 @@ export async function startRoomTest(roomId: string, userId: string) {
 
 export async function getRoomTestForUser(store: AppStore, user: StoredUser, roomId: string) {
   const state = await getRoomState(roomId, user.id);
-  if (!state.room.custom_test_id || state.room.status === "lobby" || state.room.status === "closed") {
+  const testId = effectiveRoomTestId(state.room);
+  if (!testId || state.room.status === "lobby" || state.room.status === "closed") {
     throw new StudyRoomError(404, "Room test is not available yet.");
   }
-  const test = await getRoomTestDetail(store, user, state.room.custom_test_id);
+  const test = await getRoomTestDetail(store, user, testId);
   return { room: state.room, test };
 }
 
@@ -981,14 +1025,21 @@ export async function submitRoomTest(
   payload: TestSubmissionPayload,
 ) {
   const state = await getRoomState(roomId, user.id);
-  if (state.room.status !== "in_test" || !state.room.custom_test_id) {
+  const testId = effectiveRoomTestId(state.room);
+  if (state.room.status !== "in_test" || !testId) {
     throw new StudyRoomError(423, "Room test is not active.");
   }
 
-  const result = await submitTest(store, user, state.room.custom_test_id, payload, {
+  const result = await submitTest(store, user, testId, payload, {
     allowRoomParticipant: true,
     sourceType: "room_test",
     roomId,
+    // Phase 14: teacher-room submissions carry the room's cohort so analytics.test_results
+    // is tagged (workspace_id/batch_id) and Phase-2E cohort population fires. Null for
+    // student rooms (no workspace) → resolved as a normal custom test, no cohort tag.
+    roomCohort: isTeacherRoom(state.room)
+      ? { workspaceId: state.room.workspace_id, batchId: state.room.batch_id }
+      : null,
   });
   const testResultId = (result as { id?: string }).id ?? null;
   const finish = await finishRoomParticipant(roomId, user.id, {

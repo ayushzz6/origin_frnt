@@ -501,6 +501,37 @@ export async function getAssignedTestForStudent(
   };
 }
 
+/**
+ * Phase 14 (rooms): resolve a teacher test (assessment.tests) for use inside a
+ * study room. Unlike {@link getAssignedTestForStudent} there is NO assignment /
+ * batch-membership gate here — room participation is the entitlement, enforced by
+ * the caller (the room engine re-checks membership). Returns the test plus its
+ * ordered ogcode-bank question ids, or null if the test does not exist. Shaped as
+ * an AssignedTestForStudent so the legacy taker can reuse `assignedTeacherTestToRecord`.
+ */
+export async function getTeacherTestForRoom(testId: string): Promise<AssignedTestForStudent | null> {
+  await ensureAssessmentSchema();
+  const testResult = await pool().query(`SELECT * FROM assessment.tests WHERE id = $1`, [testId]);
+  const row = testResult.rows[0];
+  if (!row) return null;
+
+  const questionsResult = await pool().query(
+    `SELECT ogcode_question_id
+       FROM assessment.test_questions
+      WHERE test_id = $1 AND source_bank = 'ogcode' AND ogcode_question_id IS NOT NULL
+      ORDER BY position ASC`,
+    [testId],
+  );
+  return {
+    test: rowToTest(row),
+    assignmentId: "",
+    workspaceId: (row.workspace_id as string | null) ?? null,
+    batchId: null,
+    windowEndsAt: null,
+    ogcodeQuestionIds: questionsResult.rows.map((q) => q.ogcode_question_id as string),
+  };
+}
+
 // ─── Test Attempts ──────────────────────────────────────────────────────────
 
 export async function startAttempt(input: {

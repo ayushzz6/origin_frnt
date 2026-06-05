@@ -87,6 +87,7 @@ import { FREE_SAMPLE_POOL_SIZE, normalizeSubject as canonicalSubject } from "@/l
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import {
   getAssignedTestForStudent,
+  getTeacherTestForRoom,
   getTestById as getTeacherTestById,
   listAssignedTestPreviewsForStudent,
   type AssignedTestForStudent,
@@ -2951,10 +2952,22 @@ export async function getRoomTestDetail(store: AppStore, user: StoredUser, testI
   }
 
   const persisted = await getPersistedCustomTestById(testId);
-  if (!persisted) {
-    throw new Error(`Test ${testId} was not found.`);
+  if (persisted) {
+    return serializePersistedCustomTest(store, user.id, persisted);
   }
-  return serializePersistedCustomTest(store, user.id, persisted);
+
+  // Phase 14: a teacher room is backed by an assessment.tests id rather than a
+  // persisted custom test. Resolve it over the ogcode bank (same synthetic-record
+  // machinery as teacher-assigned tests); room membership is the gate (checked by
+  // the room engine), so no assignment lookup here.
+  if (isFeatureEnabled("teacherConnect")) {
+    const roomTeacherTest = await getTeacherTestForRoom(testId);
+    if (roomTeacherTest) {
+      return serializePersistedCustomTest(store, user.id, assignedTeacherTestToRecord(user.id, roomTeacherTest));
+    }
+  }
+
+  throw new Error(`Test ${testId} was not found.`);
 }
 
 export async function createCustomTest(
@@ -3023,7 +3036,15 @@ export async function submitTest(
   user: StoredUser,
   testId: string,
   payload: TestSubmissionPayload,
-  options: { allowRoomParticipant?: boolean; sourceType?: AssessmentSourceType; roomId?: string | null } = {},
+  options: {
+    allowRoomParticipant?: boolean;
+    sourceType?: AssessmentSourceType;
+    roomId?: string | null;
+    // Phase 14: present for teacher-room submissions — the room's cohort, used to
+    // tag analytics.test_results so Phase-2E cohort population fires. The room
+    // engine has already verified membership, so no assignment gate is applied.
+    roomCohort?: { workspaceId: string | null; batchId: string | null } | null;
+  } = {},
 ) {
   const seededTest = store.tests.find((entry) => entry.id === testId);
   let persistedTest = seededTest
@@ -3033,7 +3054,24 @@ export async function submitTest(
 
   // Phase 14: teacher-assigned test — membership re-verified server-side, then
   // routed through the same persisted path with cohort tags carried to analytics.
-  let teacherCohort: { workspaceId: string | null; batchId: string | null; assignmentId: string } | null = null;
+  let teacherCohort: { workspaceId: string | null; batchId: string | null; assignmentId: string | null } | null = null;
+
+  // Phase 14 (rooms): a teacher_room submission resolves the assessment.tests id
+  // backing the room (no assignment — room membership is the entitlement) and tags
+  // the result with the ROOM's cohort. Runs before the assignment branch so a room
+  // test isn't mistaken for an unassigned test and 403'd.
+  if (!seededTest && !persistedTest && options.allowRoomParticipant && options.roomCohort && isFeatureEnabled("teacherConnect")) {
+    const roomTeacherTest = await getTeacherTestForRoom(testId);
+    if (roomTeacherTest) {
+      persistedTest = assignedTeacherTestToRecord(user.id, roomTeacherTest);
+      teacherCohort = {
+        workspaceId: options.roomCohort.workspaceId,
+        batchId: options.roomCohort.batchId,
+        assignmentId: null,
+      };
+    }
+  }
+
   if (!seededTest && !persistedTest && isFeatureEnabled("teacherConnect")) {
     const assigned = await getAssignedTestForStudent(user.id, testId);
     if (assigned) {
