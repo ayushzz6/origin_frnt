@@ -400,6 +400,7 @@ export type ViewState =
   | 'pomodoro'
   | 'study-corner'
   | 'explore'
+  | 'connect'
   | 'tasks-goals'
   | 'prestige-milestones';
 

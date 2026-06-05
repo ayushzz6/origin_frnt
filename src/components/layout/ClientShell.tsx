@@ -34,6 +34,7 @@ const ROUTES: Record<string, string> = {
   'dpp': '/dpp',
   'tasks-goals': '/tasks',
   'explore': '/explore',
+  'connect': '/connect',
   'profile': '/profile',
   'premium': '/premium',
   'study-corner': '/study-corner',
@@ -47,7 +48,7 @@ function resolveRoute(view: string) {
   return ROUTES[view] || `/${view}`;
 }
 
-function ClientShellInner({ children }: { children: React.ReactNode }) {
+function ClientShellInner({ children, connectEnabled }: { children: React.ReactNode; connectEnabled?: boolean }) {
   const { user, logout, isNavigationLocked } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
@@ -216,6 +217,7 @@ function ClientShellInner({ children }: { children: React.ReactNode }) {
               onLogout={logout}
               theme={currentTheme as "dark" | "light" | "system"}
               setTheme={setTheme}
+              connectEnabled={connectEnabled}
             />
           )}
           <main 
@@ -264,11 +266,11 @@ function ClientShellInner({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function ClientShell({ children }: { children: React.ReactNode }) {
+export default function ClientShell({ children, connectEnabled }: { children: React.ReactNode; connectEnabled?: boolean }) {
   return (
     <LayoutProvider>
       <TimeTrackerProvider>
-        <ClientShellInner>{children}</ClientShellInner>
+        <ClientShellInner connectEnabled={connectEnabled}>{children}</ClientShellInner>
       </TimeTrackerProvider>
     </LayoutProvider>
   );

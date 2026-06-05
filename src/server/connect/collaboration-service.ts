@@ -25,6 +25,18 @@ import {
 
 const TEACHER_ADMIN_ROLES = new Set(["owner", "admin"]);
 
+/**
+ * Auto-approve toggle. **Default OFF** (manual admin approval — what the
+ * phase14-collaboration test expects). Set `CONNECT_AUTO_APPROVE=1` to make a
+ * teacher's request go live immediately with no admin login. Reversible by
+ * unsetting the env; the admin panel can still pause/terminate. See
+ * PREMIUM_AND_TEACHER_CONNECTION_PLAN.md Phase 2F.4.
+ */
+function isConnectAutoApproveEnabled(): boolean {
+  const raw = process.env.CONNECT_AUTO_APPROVE?.trim().toLowerCase();
+  return raw === "1" || raw === "true" || raw === "on" || raw === "yes";
+}
+
 /** True iff the workspace is a live collaborator (status active + institute + active workspace). */
 export async function isActiveCollaborator(workspaceId: string): Promise<boolean> {
   return isActiveCollaboration(workspaceId);
@@ -70,6 +82,22 @@ export async function requestCollaboration(input: {
       entityId: collaboration.id,
       action: "collaboration.requested",
       after: collaboration,
+      requestId: input.requestId,
+    });
+  }
+
+  // Auto-approve (launch default in prod via CONNECT_AUTO_APPROVE=1): take the
+  // request live immediately with both enrollment flows enabled — no admin login
+  // required. Reversible by unsetting the env; the admin panel can still
+  // pause/terminate. Only acts on a freshly-`pending` row so it never reopens a
+  // paused/terminated lifecycle.
+  if (collaboration.status === "pending" && isConnectAutoApproveEnabled()) {
+    return setCollaborationStatusService({
+      workspaceId: input.workspaceId,
+      status: "active",
+      adminUserId: input.actorUserId,
+      flow1Enabled: true,
+      flow2Enabled: true,
       requestId: input.requestId,
     });
   }
