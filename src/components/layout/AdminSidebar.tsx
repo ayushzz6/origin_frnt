@@ -15,7 +15,8 @@ import {
     Zap,
     ShieldCheck,
     Siren,
-    FileText
+    FileText,
+    Building2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
@@ -32,6 +33,8 @@ const navItems = [
     { id: 'content', label: 'Content & LMS', icon: BookOpen, path: '/admin/content' },
     { id: 'financials', label: 'Financials', icon: CreditCard, path: '/admin/financials' },
     { id: 'monitoring', label: 'Classroom Audit', icon: Activity, path: '/admin/monitoring' },
+    // Phase 2F.3 — teacher/institute collaboration approvals (404s when teacherConnect is off).
+    { id: 'collaborations', label: 'Collaborations', icon: Building2, path: '/admin/collaborations' },
     { id: 'analytics', label: 'Global Analytics', icon: BarChart3, path: '/admin/analytics' },
     { id: 'marketing', label: 'Broadcast Center', icon: Zap, path: '/admin/marketing' },
     // Audit fix R-5 (A-15): /admin/incidents and /admin/audit-events

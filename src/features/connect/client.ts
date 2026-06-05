@@ -133,3 +133,75 @@ export async function listConnectCollaborators(params?: {
   const data = (await res.json()) as { collaborators?: ConnectCollaborator[] };
   return data.collaborators ?? [];
 }
+
+// ---------------------------------------------------------------------------
+// Collaboration lifecycle (teacher request + admin approval) — Phase 2F.
+// ---------------------------------------------------------------------------
+
+export type CollaborationStatus = "pending" | "active" | "paused" | "terminated" | "rejected";
+
+export type Collaboration = {
+  id: string;
+  workspaceId: string;
+  status: CollaborationStatus;
+  commissionBps: number;
+  flow1Enabled: boolean;
+  flow2Enabled: boolean;
+  approvedAt: string | null;
+  createdAt: string;
+};
+
+export type AdminCollaboration = Collaboration & {
+  workspaceDisplayName: string;
+  workspaceType: string;
+  workspaceStatus: string;
+};
+
+/** Teacher: current collaboration for an institute workspace (null = never requested). */
+export async function getMyCollaboration(workspaceId: string): Promise<Collaboration | null> {
+  const res = await fetch(
+    `/api/teacher/workspaces/${encodeURIComponent(workspaceId)}/collaboration`,
+    { method: "GET", credentials: "include" },
+  );
+  if (!res.ok) throw new Error(await parseError(res));
+  const data = (await res.json()) as { collaboration?: Collaboration | null };
+  return data.collaboration ?? null;
+}
+
+/** Teacher: request a collaboration (auto-approved in prod when CONNECT_AUTO_APPROVE=1). */
+export async function requestMyCollaboration(workspaceId: string): Promise<Collaboration> {
+  const res = await fetch(
+    `/api/teacher/workspaces/${encodeURIComponent(workspaceId)}/collaboration`,
+    { method: "POST", credentials: "include", headers: { ...csrfHeaders() } },
+  );
+  if (!res.ok) throw new Error(await parseError(res));
+  const data = (await res.json()) as { collaboration: Collaboration };
+  return data.collaboration;
+}
+
+/** Admin: list every collaboration (optionally filtered by status). */
+export async function listAdminCollaborations(status = "all"): Promise<AdminCollaboration[]> {
+  const res = await fetch(`/api/admin/collaborations?status=${encodeURIComponent(status)}`, {
+    method: "GET",
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  const data = (await res.json()) as { collaborations?: AdminCollaboration[] };
+  return data.collaborations ?? [];
+}
+
+/** Admin: transition a collaboration's lifecycle (approve = active). */
+export async function setAdminCollaborationStatus(input: {
+  workspaceId: string;
+  status: CollaborationStatus;
+}): Promise<AdminCollaboration> {
+  const res = await fetch("/api/admin/collaborations", {
+    method: "POST",
+    credentials: "include",
+    headers: { "content-type": "application/json", ...csrfHeaders() },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  const data = (await res.json()) as { collaboration: AdminCollaboration };
+  return data.collaboration;
+}

@@ -9,6 +9,7 @@ import ClientShell from "@/components/layout/ClientShell";
 import { QuotaProvider } from "@/context/QuotaContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { getCanonicalSiteUrl } from "@/lib/site-url";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 
 const siteUrl = getCanonicalSiteUrl();
 
@@ -50,6 +51,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Env-only read (no request cookies) — safe in the root layout. Gates the
+  // student "Connect" nav entry so it mirrors the server `teacherConnect` gate.
+  const connectEnabled = isFeatureEnabled("teacherConnect");
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -67,7 +71,7 @@ export default function RootLayout({
             <AuthProvider initialUser={null}>
               <NotificationProvider>
                 <QuotaProvider>
-                  <ClientShell>{children}</ClientShell>
+                  <ClientShell connectEnabled={connectEnabled}>{children}</ClientShell>
                 </QuotaProvider>
               </NotificationProvider>
             </AuthProvider>

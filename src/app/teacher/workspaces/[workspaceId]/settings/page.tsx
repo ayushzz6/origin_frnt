@@ -1,8 +1,11 @@
 export const dynamic = "force-dynamic";
 
 import { WorkspaceSettingsHighFidelity } from "@/components/teacher/WorkspaceSettingsHighFidelity";
+import { CollaborationRequestCard } from "@/components/teacher/CollaborationRequestCard";
 import { loadWorkspaceForRender } from "@/server/workspaces/server-loader";
 import { listCodesForWorkspace, listMembers } from "@/server/workspaces/store";
+import { getCollaboration } from "@/server/connect/collaboration-service";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 
 type Props = {
   params: Promise<{ workspaceId: string }>;
@@ -15,9 +18,14 @@ export default async function WorkspaceSettingsPage({ params }: Props) {
     isPlatformAdmin ||
     membership?.role === "owner" ||
     membership?.role === "admin";
-    
+
   const codes = canEdit ? await listCodesForWorkspace(workspaceId) : [];
   const members = await listMembers(workspaceId);
+
+  // Phase 2F.2 — institute owners/admins can request an Origin collaboration.
+  const showCollaboration =
+    isFeatureEnabled("teacherConnect") && workspace.workspaceType === "institute" && canEdit;
+  const collaboration = showCollaboration ? await getCollaboration(workspaceId) : null;
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -27,8 +35,12 @@ export default async function WorkspaceSettingsPage({ params }: Props) {
           Manage workspace settings, co-teachers permissions, and OGCode publications.
         </p>
       </div>
-      
-      <WorkspaceSettingsHighFidelity 
+
+      {showCollaboration && (
+        <CollaborationRequestCard workspaceId={workspaceId} initial={collaboration} />
+      )}
+
+      <WorkspaceSettingsHighFidelity
         workspace={workspace} 
         initialCodes={codes} 
         initialMembers={members} 

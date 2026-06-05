@@ -19,6 +19,7 @@ import {
     LayoutGrid,
     ListTodo,
     BookOpen,
+    Building2,
     FileText,
     Target,
     ChevronRight,
@@ -40,9 +41,10 @@ interface NavbarProps {
     onLogout: () => void;
     theme: "dark" | "light" | "system";
     setTheme: (theme: "dark" | "light" | "system") => void;
+    connectEnabled?: boolean;
 }
 
-export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLogout, theme, setTheme }: NavbarProps) {
+export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLogout, theme, setTheme, connectEnabled }: NavbarProps) {
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [showExploreMenu, setShowExploreMenu] = useState(false);
     const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -90,6 +92,9 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
         { label: 'DPP', icon: Target, view: 'dpp' as ViewState },
         { label: 'Goals', icon: ListTodo, view: 'tasks-goals' as ViewState },
         { label: 'Explore', icon: LayoutGrid, view: 'explore' as ViewState },
+        // Phase 2F — student entry to the teacher/institute connection hub.
+        // Shown only when teacherConnect is enabled (mirrors the server gate).
+        ...(connectEnabled ? [{ label: 'Connect', icon: Building2, view: 'connect' as ViewState }] : []),
     ];
 
     return (
