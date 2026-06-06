@@ -26,6 +26,7 @@ import {
 import { OfferingEditor } from "@/components/teacher/marketplace/OfferingEditor";
 import { OfferingRowActions } from "@/components/teacher/marketplace/OfferingRowActions";
 import { listOfferingsService } from "@/server/workspaces/marketplace-service";
+import { listBatches } from "@/server/workspaces/batches";
 import { loadWorkspaceForRender } from "@/server/workspaces/server-loader";
 
 type Props = {
@@ -44,6 +45,10 @@ export default async function TeacherOfferingsPage({ params }: Props) {
   const offerings = canManage
     ? await listOfferingsService(workspaceId, userId, { status: "all" })
     : [];
+  // Batches power the "auto-assign batch" dropdown + the offering-list name lookup.
+  const batches = canManage ? await listBatches(workspaceId, { status: "all" }) : [];
+  const batchOptions = batches.map((b) => ({ id: b.id, name: b.name, status: b.status }));
+  const batchNameById = new Map(batches.map((b) => [b.id, b.name]));
 
   return (
     <div className="container mx-auto space-y-6 py-6">
@@ -65,7 +70,7 @@ export default async function TeacherOfferingsPage({ params }: Props) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <OfferingEditor workspaceId={workspaceId} />
+            <OfferingEditor workspaceId={workspaceId} batches={batchOptions} />
           </CardContent>
         </Card>
       ) : (
@@ -107,8 +112,10 @@ export default async function TeacherOfferingsPage({ params }: Props) {
                     <TableCell>
                       {o.currency} {(o.priceMinor / 100).toFixed(2)}
                     </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {o.targetBatchId ?? "—"}
+                    <TableCell className="text-xs">
+                      {o.targetBatchId
+                        ? (batchNameById.get(o.targetBatchId) ?? o.targetBatchId)
+                        : "—"}
                     </TableCell>
                     <TableCell>
                       <Badge
