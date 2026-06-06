@@ -16,11 +16,17 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { csrfHeaders } from "@/lib/csrf";
 
+type BatchOption = { id: string; name: string; status: string };
+
 type Props = {
   workspaceId: string;
+  batches: BatchOption[];
 };
 
-export function OfferingEditor({ workspaceId }: Props) {
+/** Sentinel for the "no auto-assign" choice (Radix Select forbids empty-string values). */
+const NO_BATCH = "__none__";
+
+export function OfferingEditor({ workspaceId, batches }: Props) {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -136,13 +142,33 @@ export function OfferingEditor({ workspaceId }: Props) {
           </Select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="batch">Auto-assign batch ID (optional)</Label>
-          <Input
-            id="batch"
-            value={targetBatchId}
-            onChange={(e) => setTargetBatchId(e.target.value)}
-            placeholder="batch_..."
-          />
+          <Label htmlFor="batch">Auto-assign batch (optional)</Label>
+          {batches.length === 0 ? (
+            <Input
+              id="batch"
+              value=""
+              disabled
+              placeholder="No batches yet — create one in the Batches tab"
+            />
+          ) : (
+            <Select
+              value={targetBatchId || NO_BATCH}
+              onValueChange={(v) => setTargetBatchId(v === NO_BATCH ? "" : v)}
+            >
+              <SelectTrigger id="batch">
+                <SelectValue placeholder="No auto-assign" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_BATCH}>No auto-assign</SelectItem>
+                {batches.map((b) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    {b.name}
+                    {b.status !== "active" ? ` (${b.status})` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="status">Status</Label>
