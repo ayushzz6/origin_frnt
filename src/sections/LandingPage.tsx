@@ -723,24 +723,16 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
 
         {/* Hero Section – cinematic and vertically centered */}
         <section ref={heroRef} className="relative z-10 flex flex-col items-center justify-center text-center px-6 flex-grow max-w-7xl mx-auto w-full py-8 sm:py-12">
-          <SplitText
-            tag="h1"
-            text="Where dreams rise through the silence."
-            className="text-3xl xs:text-4xl sm:text-7xl md:text-8xl leading-[0.95] tracking-[-2.46px] max-w-7xl font-normal text-foreground"
-            delay={80}
-            duration={0.8}
-            ease="power3.out"
-            splitType="words"
-            from={{ opacity: 0, y: 50, rotateX: 40 }}
-            to={{ opacity: 1, y: 0, rotateX: 0 }}
-            threshold={0.1}
-            rootMargin="-50px"
-            textAlign="center"
-          />
-          
-          <p className="text-slate-200 dark:text-slate-200 text-base sm:text-lg max-w-2xl mt-6 sm:mt-8 leading-relaxed animate-fade-rise-delay drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]">
-            We're designing tools for deep thinkers, bold creators, and quiet rebels. Amid the chaos, we build digital spaces for sharp focus and inspired work.
-          </p>
+          <div className="w-full max-w-[1076px] flex flex-col">
+            <motion.img
+              src="/Origin-Name.png"
+              alt="Origin"
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
+              className="w-full h-[240px] sm:h-[300px] object-contain drop-shadow-[0_4px_24px_rgba(0,102,255,0.25)]"
+            />
+          </div>
 
           <motion.button
             onClick={handleBeginJourney}
@@ -749,7 +741,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             transition={{ delay: 0.6, duration: 0.6, ease: 'easeOut' }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.97 }}
-            className="relative mt-8 sm:mt-12 cursor-pointer group"
+            className="relative mt-12 cursor-pointer group"
           >
             {/* Pulsing ring */}
             <span className="absolute inset-0 rounded-full bg-primary/40 animate-ping opacity-60 group-hover:opacity-0 transition-opacity" />
