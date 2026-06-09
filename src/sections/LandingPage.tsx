@@ -628,9 +628,8 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
       {/* Ambient floating particles – z:0, behind everything */}
       {mounted && <ParticleBackground visible={mounted} />}
 
-      {/* 3D logo background – always rendered; dark mode uses additive blending (glow),
-          light mode uses normal blending so particles are visible on bright backgrounds */}
-      {mounted && <OriginLogoBackground isDark={actualTheme === 'dark'} />}
+      {/* 3D logo background – dark mode only; additive blending glow */}
+      {mounted && actualTheme === 'dark' && <OriginLogoBackground />}
 
       {/* Fixed Navbar – outside the hero motion.div so CSS fixed works across all sections */}
       <div className="fixed top-0 left-0 right-0 z-50 pointer-events-none">

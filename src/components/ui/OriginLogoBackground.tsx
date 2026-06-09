@@ -62,20 +62,9 @@ function parsePLYVertices(text: string): THREE.BufferGeometry {
   return geo;
 }
 
-export default function OriginLogoBackground({ isDark = true }: { isDark?: boolean }) {
+export default function OriginLogoBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [opacity, setOpacity] = useState(0);
-  const matRef = useRef<THREE.ShaderMaterial | null>(null);
-  const isDarkRef = useRef(isDark);
-
-  // Swap blending when theme toggles — no PLY reload needed
-  useEffect(() => {
-    isDarkRef.current = isDark;
-    const mat = matRef.current;
-    if (!mat) return;
-    mat.blending = isDark ? THREE.AdditiveBlending : THREE.NormalBlending;
-    mat.needsUpdate = true;
-  }, [isDark]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -165,12 +154,10 @@ export default function OriginLogoBackground({ isDark = true }: { isDark?: boole
               gl_FragColor = vec4(vColor, a * 0.92);
             }
           `,
-          blending:    isDarkRef.current ? THREE.AdditiveBlending : THREE.NormalBlending,
+          blending:    THREE.AdditiveBlending,
           transparent: true,
           depthWrite:  false,
         });
-
-        matRef.current = mat;
         points = new THREE.Points(geo, mat);
         scene.add(points);
         setOpacity(1); // fade in once geometry is ready
