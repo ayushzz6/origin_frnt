@@ -155,7 +155,7 @@ export default function Pomodoro({ onBack, user, setTimeMode, onNavigate: _onNav
       label: 'Deep Focus',
       color: 'from-primary to-primary/80',
       shadow: 'shadow-primary/20',
-      icon: () => <img src="/ai-bot.png" className="w-8 h-8 object-cover rounded-lg" />,
+      icon: () => <img src="/iconsax/Ai-Icon.png" className="w-8 h-8 object-contain" />,
       defaultTime: settings.focusDuration * 60
     },
     shortBreak: {
