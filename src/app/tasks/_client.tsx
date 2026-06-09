@@ -27,7 +27,7 @@ export default function TasksClient({ initialTasks }: TasksClientProps) {
       onAddTask={addTask}
       onToggleTask={toggleTask}
       onRemoveTask={removeTask}
-      onBack={() => router.back()}
+      onBack={() => router.push('/dashboard')}
     />
   );
 }

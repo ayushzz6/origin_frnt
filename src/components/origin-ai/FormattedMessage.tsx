@@ -424,6 +424,7 @@ export function FormattedMessage({ content, className, isAssistant = true, inlin
       !inline && 'prose-ul:my-2 prose-ol:my-2',
       !inline && 'prose-li:my-0.5',
       !inline && 'prose-strong:text-primary prose-strong:font-bold',
+      !inline && 'select-text cursor-text',
       className
     )}>
       <ReactMarkdown

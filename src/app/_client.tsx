@@ -5,7 +5,6 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import LandingPage from '@/sections/LandingPage';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Zap } from 'lucide-react';
 
 export default function HomeClient() {
   const { user } = useAuth();
@@ -62,16 +61,16 @@ export default function HomeClient() {
               <source src="/videos/Intro%20Video.mp4" type="video/mp4" />
             </video>
 
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 1.2, ease: "easeOut" }}
-              className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
-            >
-              <h1 className="text-4xl sm:text-6xl md:text-8xl font-black text-white tracking-tighter text-center uppercase drop-shadow-[0_0_30px_rgba(0,0,0,0.5)]">
-                Welcome to <span className="text-gradient brightness-125">O3 Origin</span>
-              </h1>
-            </motion.div>
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <div className="flex flex-col items-center gap-2 sm:gap-3 text-center px-6">
+                <p className="text-pop-up-top text-[11px] sm:text-sm font-semibold tracking-[0.65em] uppercase text-white/40">
+                  Welcome to
+                </p>
+                <h1 className="text-pop-up-top-delay text-5xl sm:text-7xl md:text-9xl font-black text-white tracking-tighter uppercase leading-none">
+                  <span className="text-gradient brightness-125">O3 Origin</span>
+                </h1>
+              </div>
+            </div>
             
             <button 
               onClick={finishIntro}

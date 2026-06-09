@@ -35,7 +35,7 @@ export default function ProfileClient({ initialProfileStats }: ProfileClientProp
     return (
       <TeacherProfile
         user={user}
-        onBack={() => router.back()}
+        onBack={() => router.push('/teacher')}
         onLogout={logout}
       />
     );
@@ -46,7 +46,7 @@ export default function ProfileClient({ initialProfileStats }: ProfileClientProp
       user={user}
       initialProfileStats={initialProfileStats}
       streakData={streakData}
-      onBack={() => router.back()}
+      onBack={() => router.push('/dashboard')}
       onUpgrade={() => router.push('/premium')}
     />
   );

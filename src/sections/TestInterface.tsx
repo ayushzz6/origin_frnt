@@ -938,7 +938,7 @@ export default function TestInterface({ test, onComplete, onExit, timerSource, s
                 </div>
               )}
 
-              <div className="text-base text-gray-800 leading-relaxed font-serif mb-8 whitespace-pre-wrap">
+              <div className="text-base text-gray-800 leading-relaxed font-serif mb-8 select-text cursor-text">
                 {renderQuestionText(currentQuestion?.text || '', 'test-question')}
               </div>
 
@@ -964,7 +964,7 @@ export default function TestInterface({ test, onComplete, onExit, timerSource, s
                         {String.fromCharCode(65 + idx)}
                       </div>
                       <div className="flex-1 pt-1">
-                        <span className="text-slate-900 font-medium">{renderInlineSegments(String(option), `test-mcq-option-${idx}`, 'plain')}</span>
+                        <span className="text-slate-900 font-medium select-text">{renderInlineSegments(String(option), `test-mcq-option-${idx}`, 'plain')}</span>
                       </div>
                     </button>
                   ))}

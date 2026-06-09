@@ -12,7 +12,7 @@ export default function MilestonesClient({ initialPoints }: MilestonesClientProp
   return (
     <MilestonesPage
       userPoints={initialPoints}
-      onBack={() => router.back()}
+      onBack={() => router.push('/dashboard')}
     />
   );
 }

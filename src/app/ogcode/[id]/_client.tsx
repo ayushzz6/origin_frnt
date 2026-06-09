@@ -23,7 +23,7 @@ export default function OGCodeClient({ questionId, initialQuestion }: Props) {
     <OGCodeWorkspace
       questionId={questionId}
       initialQuestion={initialQuestion}
-      onBack={() => router.back()}
+      onBack={() => router.push('/ogcode')}
       user={user}
       onRefreshUser={refreshUser}
       setTimeMode={setTimeMode}

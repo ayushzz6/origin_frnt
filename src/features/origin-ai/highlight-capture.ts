@@ -71,9 +71,12 @@ function emitChange() {
   // React re-renders may replace DOM nodes, invalidating lockedRange's container.
   // Double-rAF fires AFTER React's own rAF-batched DOM flush, reliably
   // re-applying the CSS Highlight API mark post-reconciliation.
-  if (currentHighlight && lockedRange) {
+  // Guard: skip during active drag — lockedRange still holds the PREVIOUS selection,
+  // so re-applying it would paint the old large highlight over the new in-progress drag,
+  // making it look like the whole block is selected.
+  if (!isMouseDown && currentHighlight && lockedRange) {
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      if (currentHighlight && lockedRange) applyCSShighlight();
+      if (!isMouseDown && currentHighlight && lockedRange) applyCSShighlight();
     }));
   }
 }

@@ -25,7 +25,7 @@ export default function PomodoroClient() {
 
   return (
     <Pomodoro
-      onBack={() => router.back()}
+      onBack={() => router.push('/dashboard')}
       user={user}
       setTimeMode={setTimeMode}
       onNavigate={handleNavigate}

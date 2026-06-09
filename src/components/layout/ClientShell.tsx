@@ -190,7 +190,8 @@ function ClientShellInner({ children, connectEnabled }: { children: React.ReactN
 
   return (
     <TutorialProvider>
-      {/* ::highlight(origin-ai-selection) lives in globals.css */}
+      {/* CSS Highlight API — PostCSS rejects ::highlight() so we inject it at runtime */}
+      <style dangerouslySetInnerHTML={{ __html: `::highlight(origin-ai-selection){background-color:rgba(244,63,94,.22);color:inherit;text-decoration:none}` }} />
       <div id="tutorial-welcome" className={cn(
         "h-dvh bg-background text-foreground font-sans antialiased overflow-hidden relative flex transition-colors duration-700",
         aiSide === 'right' ? 'flex-row' : 'flex-row-reverse'

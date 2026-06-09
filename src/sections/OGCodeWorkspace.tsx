@@ -512,7 +512,7 @@ export default function OGCodeWorkspace({ questionId, onBack, onRefreshUser, set
                                 {diff.label}
                             </span>
                         </div>
-                        <div className="text-xl sm:text-2xl font-serif leading-relaxed text-slate-900 dark:text-slate-100">
+                        <div className="text-xl sm:text-2xl font-serif leading-relaxed text-slate-900 dark:text-slate-100 select-text cursor-text">
                             {renderQuestionText(question.text, 'question-text')}
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -544,7 +544,7 @@ export default function OGCodeWorkspace({ questionId, onBack, onRefreshUser, set
                                     `}
                                 >
                                     <span className="font-mono text-xs mr-3 opacity-50">({String.fromCharCode(65 + idx)})</span>
-                                    <span>{renderInlineSegments(String(opt), `mcq-option-${idx}`)}</span>
+                                    <span className="select-text">{renderInlineSegments(String(opt), `mcq-option-${idx}`)}</span>
                                 </button>
                             ))}
 
@@ -568,7 +568,7 @@ export default function OGCodeWorkspace({ questionId, onBack, onRefreshUser, set
                                             {selectedOptions.includes(idx) && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
                                         </div>
                                         <span className="font-mono text-xs opacity-50">({String.fromCharCode(65 + idx)})</span>
-                                        <span>{renderInlineSegments(String(opt), `msq-option-${idx}`)}</span>
+                                        <span className="select-text">{renderInlineSegments(String(opt), `msq-option-${idx}`)}</span>
                                     </div>
                                 </button>
                             ))}
