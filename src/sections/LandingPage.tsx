@@ -624,8 +624,9 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         </motion.div>
       )}
 
-      {/* 3D logo background – z:0, always behind the video (z:1) and all content (z:10) */}
-      {mounted && actualTheme === 'dark' && <OriginLogoBackground />}
+      {/* 3D logo background – always rendered; dark mode uses additive blending (glow),
+          light mode uses normal blending so particles are visible on bright backgrounds */}
+      {mounted && <OriginLogoBackground isDark={actualTheme === 'dark'} />}
 
       {/* Fixed Navbar – outside the hero motion.div so CSS fixed works across all sections */}
       <div className="fixed top-0 left-0 right-0 z-50 pointer-events-none">
