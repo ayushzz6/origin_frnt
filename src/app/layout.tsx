@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import "./globals.css";
+import { Agentation } from "agentation";
 import "katex/dist/katex.min.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "next-themes";
@@ -77,6 +78,7 @@ export default function RootLayout({
             </AuthProvider>
           </Suspense>
           <Toaster position="top-right" richColors />
+          {process.env.NODE_ENV === "development" && <Agentation />}
         </ThemeProvider>
       </body>
     </html>

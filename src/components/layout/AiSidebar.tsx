@@ -40,7 +40,7 @@ export default function AiSidebar({
           exit={{ width: 0, opacity: 0 }}
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
           className={cn(
-            "relative z-[60] flex h-screen flex-col border-border/40 bg-card/50 backdrop-blur-xl transition-colors",
+            "relative z-[60] flex h-dvh flex-col border-border/40 bg-card/50 backdrop-blur-xl transition-colors",
             side === 'left' ? "border-r" : "border-l",
             "fixed md:relative", // Ensure it's fixed on mobile and relative on desktop
             isMobile ? "w-full" : ""

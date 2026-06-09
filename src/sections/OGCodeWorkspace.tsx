@@ -779,15 +779,9 @@ export default function OGCodeWorkspace({ questionId, onBack, onRefreshUser, set
                                                 {result.correctAnswerText && (
                                                     <div className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-3 backdrop-blur-sm">
                                                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Stored Answer</p>
-                                                        {hasMathMarkup(result.correctAnswerText) ? (
-                                                            <div className="rounded-lg border border-primary/15 bg-primary/5 dark:bg-black/20 px-3 py-2 font-mono text-base text-primary dark:text-primary/90">
-                                                                {formatMathExpression(result.correctAnswerText)}
-                                                            </div>
-                                                        ) : (
-                                                            <div className="text-sm text-slate-100 leading-relaxed whitespace-pre-line font-medium">
-                                                                {renderQuestionText(result.correctAnswerText, 'correct-answer-text')}
-                                                            </div>
-                                                        )}
+                                                        <div className="text-sm leading-relaxed">
+                                                            <FormattedMessage content={result.correctAnswerText} />
+                                                        </div>
                                                     </div>
                                                 )}
                                                 {result.explanation && (

@@ -68,13 +68,13 @@ function emitChange() {
   listeners.forEach((l) => l(currentHighlight));
   selectionListeners.forEach((l) => l({ text: currentHighlight, rect: currentHighlightRect }));
 
-  // React re-renders triggered by emitChange may replace DOM nodes, invalidating
-  // the lockedRange's startContainer. Re-apply after the paint so the highlight
-  // survives the reconciliation.
+  // React re-renders may replace DOM nodes, invalidating lockedRange's container.
+  // Double-rAF fires AFTER React's own rAF-batched DOM flush, reliably
+  // re-applying the CSS Highlight API mark post-reconciliation.
   if (currentHighlight && lockedRange) {
-    requestAnimationFrame(() => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
       if (currentHighlight && lockedRange) applyCSShighlight();
-    });
+    }));
   }
 }
 
@@ -208,9 +208,8 @@ function handleMouseDown() {
   isMouseDown = true;
 }
 
-function handleMouseUp() {
+function finaliseSelection(): void {
   isMouseDown = false;
-
   const selection = window.getSelection();
   const selectedText = selection?.toString().trim();
 
@@ -225,11 +224,25 @@ function handleMouseUp() {
   handleSelectionChange();
 }
 
+function handleMouseUp() {
+  finaliseSelection();
+}
+
+// Mobile: touchend fires instead of mouseup after the user lifts their finger
+function handleTouchEnd() {
+  // Small delay so the browser has time to update window.getSelection()
+  setTimeout(finaliseSelection, 50);
+}
+
 // ─── Click handler — clear only on genuine "blank area" clicks ───────────────
 
 /**
- * Returns true only for a click on a truly empty area of the page — not on
- * text, interactive elements, or the Origin AI panel.
+ * Returns true only for a click on a genuinely empty / layout area of the
+ * page — not on text, interactive elements, or the Origin AI panel.
+ *
+ * Key rule: we check DIRECT text nodes of the clicked element, not its full
+ * subtree. A layout <div> wrapping paragraphs has no direct text → blank.
+ * A <p> element has direct text → not blank (and is caught by .closest() too).
  */
 function isBlankSpace(target: Element | null): boolean {
   if (!target) return true;
@@ -245,11 +258,16 @@ function isBlankSpace(target: Element | null): boolean {
   // Never clear when clicking interactive elements.
   if (target.closest('button, a, input, textarea, select, [role="button"], [contenteditable="true"]')) return false;
 
-  // Never clear when clicking known text/content elements.
-  if (target.closest('p, span, h1, h2, h3, h4, h5, h6, li, a, code, pre, strong, em, b, i, sub, sup, blockquote, td, th, label')) return false;
+  // Never clear when clicking known text/content or media elements.
+  if (target.closest('p, span, h1, h2, h3, h4, h5, h6, li, code, pre, strong, em, b, i, sub, sup, blockquote, td, th, label, img, svg, figure, video, canvas')) return false;
 
-  // Never clear if the element itself (or any descendant) has readable text.
-  if (target.textContent?.trim().length) return false;
+  // Check only DIRECT text-node children — not the full subtree.
+  // A layout container (div, section, main) that wraps content has no direct
+  // text nodes and is correctly treated as blank space.
+  const hasDirectText = Array.from(target.childNodes).some(
+    (n) => n.nodeType === Node.TEXT_NODE && (n.textContent?.trim().length ?? 0) > 0,
+  );
+  if (hasDirectText) return false;
 
   return true;
 }
@@ -279,6 +297,7 @@ export function startHighlightCapture(): void {
   document.addEventListener('selectionchange', handleSelectionChange);
   window.addEventListener('mousedown', handleMouseDown);
   window.addEventListener('mouseup', handleMouseUp);
+  window.addEventListener('touchend', handleTouchEnd, { passive: true });
   window.addEventListener('click', handleGlobalClick);
 }
 
@@ -288,6 +307,7 @@ export function stopHighlightCapture(): void {
   document.removeEventListener('selectionchange', handleSelectionChange);
   window.removeEventListener('mousedown', handleMouseDown);
   window.removeEventListener('mouseup', handleMouseUp);
+  window.removeEventListener('touchend', handleTouchEnd);
   window.removeEventListener('click', handleGlobalClick);
   clearHighlightedText();
 }

@@ -393,30 +393,85 @@ html:not(.dark) [class*="border-border"] {
   border-color: #000000 !important;
 }
 
-/* GPU-accelerated scrolling for all scroll containers (excluding main to preserve fixed backgrounds) */
+/* Smooth, native-feeling scroll on all scrollable containers.
+   We intentionally DO NOT use transform: translateZ(0) here — that trick
+   creates new stacking contexts which break position:fixed descendants
+   (floating buttons, toasts, modals) inside those containers. */
 .custom-scrollbar,
-[class*="overflow-y-auto"]:not(main),
-[class*="overflow-y-scroll"]:not(main) {
-  -webkit-overflow-scrolling: touch !important;
-  will-change: scroll-position;
-  transform: translateZ(0);
-  backface-visibility: hidden;
+[class*="overflow-y-auto"],
+[class*="overflow-y-scroll"] {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
 }
 
+/* The main page scroll container gets extra native-scroll optimisation */
 main {
-  transform: none !important;
-  will-change: auto !important;
-  backface-visibility: visible !important;
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
 }
 
 
-/* Improve KaTeX formula selection accuracy and clickability */
+/* ─── KaTeX selection & accessibility ───────────────────────────────────────
+   Hide the MathML tree from pointer/selection (screen readers use it via
+   aria-label); expose only the visual HTML layer to the cursor so that
+   highlight-capture.ts extracts clean text from .katex-html. */
 .katex-mathml {
   user-select: none !important;
   pointer-events: none !important;
 }
 .katex-html {
   user-select: text !important;
+}
+
+/* ─── LatexRenderer layout ───────────────────────────────────────────────────
+   Inline formulas sit flush with surrounding text; display blocks are centred
+   on their own line with a subtle visual container. */
+.latex-inline {
+  display: inline;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+.latex-display-block {
+  display: block;
+  overflow-x: auto;
+  overflow-y: hidden;
+  text-align: center;
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.05) 0%, hsl(var(--primary) / 0.02) 100%);
+  border: 1px solid hsl(var(--primary) / 0.15);
+}
+
+.dark .latex-display-block {
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.08) 0%, hsl(var(--primary) / 0.02) 100%);
+  border-color: hsl(var(--primary) / 0.2);
+}
+
+/* Inside display blocks the nested .katex should not get the global box */
+.latex-display-block .katex {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* ─── Origin AI selection highlight ─────────────────────────────────────────
+   The CSS Highlight API mark keeps the selected text visually highlighted
+   after the user releases the mouse (like a word processor). The colour
+   is intentionally distinct from the browser's native selection blue so
+   the user can see both at once during a new drag. */
+::selection {
+  background-color: rgba(37, 99, 235, 0.18);
+}
+
+::highlight(origin-ai-selection) {
+  background-color: rgba(244, 63, 94, 0.22);
+  color: inherit;
+  text-decoration: none;
 }
 
 
