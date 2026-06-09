@@ -7,7 +7,6 @@ import { Card } from '@/components/ui/CardSwap';
 
 // Heavy graphics libs (three, gsap) — split into their own chunks
 const OriginLogoBackground = dynamic(() => import('@/components/ui/OriginLogoBackground'), { ssr: false });
-const ParticleBackground = dynamic(() => import('@/components/ui/ParticleBackground'), { ssr: false });
 const CardSwap = dynamic(() => import('@/components/ui/CardSwap'), { ssr: false });
 const SplitText = dynamic(() => import('@/components/ui/SplitText'), { ssr: false });
 const ScrollStack = dynamic(() => import('@/components/ui/ScrollStack'), { ssr: false });
@@ -624,9 +623,6 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
           </video>
         </motion.div>
       )}
-
-      {/* Ambient floating particles – z:0, behind everything */}
-      {mounted && <ParticleBackground visible={mounted} />}
 
       {/* 3D logo background – dark mode only; additive blending glow */}
       {mounted && actualTheme === 'dark' && <OriginLogoBackground />}
