@@ -132,26 +132,32 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
                 {/* Divider */}
                 <div className="w-10 mx-auto h-px bg-primary/10 flex-shrink-0" />
 
-                {/* Search — pinned at top for quick access */}
-                <div className="relative w-full px-1 pt-2 flex-shrink-0 group/search">
+                {/* Theme toggle — near top for quick access */}
+                <div className="relative w-full px-1 pt-2 flex-shrink-0 group/theme-top">
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.9 }}
-                        onClick={() => setIsSearchOpen(true)}
-                        title="Search (⌘K)"
-                        className="flex flex-col items-center gap-0.5 py-2.5 px-1 w-full rounded-xl text-slate-400 hover:text-primary hover:bg-primary/5 transition-all"
+                        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                        title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+                        className={cn(
+                            'flex flex-col items-center gap-0.5 py-2.5 px-1 w-full rounded-xl transition-all',
+                            theme === 'light'
+                                ? 'text-primary bg-primary/10'
+                                : 'text-slate-400 hover:text-amber-500 hover:bg-primary/5'
+                        )}
                     >
-                        <Search className="w-5 h-5" />
-                        <span className="text-[9px] font-bold leading-none">Search</span>
+                        {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                        <span className="text-[9px] font-bold leading-none">Theme</span>
                     </motion.button>
-                    {/* Hover expand tooltip */}
                     <div className="absolute left-[72px] top-1/2 -translate-y-1/2 pointer-events-none z-[60] flex items-center">
                         <div className={cn(
                             'flex items-center h-9 rounded-r-xl bg-card/95 dark:bg-zinc-900/95 backdrop-blur-xl',
                             'border border-l-0 border-primary/20 shadow-lg overflow-hidden',
-                            'w-0 group-hover/search:w-24 transition-all duration-200 ease-out'
+                            'w-0 group-hover/theme-top:w-28 transition-all duration-200 ease-out'
                         )}>
-                            <span className="whitespace-nowrap text-xs font-bold text-foreground px-3">Search</span>
+                            <span className="whitespace-nowrap text-xs font-bold text-foreground px-3">
+                                {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -200,7 +206,7 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
                                             : <Icon className="w-5 h-5" />
                                         }
                                     </div>
-                                    <span className="sr-only">{item.label}</span>
+                                    <span className="text-[9px] font-bold leading-none truncate w-full text-center">{item.label}</span>
                                 </button>
 
                                 {/* Hover expand tooltip — hidden once sub-menu is open for Explore */}
@@ -289,34 +295,27 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
                 {/* Divider */}
                 <div className="w-10 mx-auto h-px bg-primary/10 flex-shrink-0" />
 
-                {/* Bottom actions */}
+                {/* Bottom actions — search, alerts, profile */}
                 <div className="flex flex-col items-center gap-1 py-3 px-1 flex-shrink-0">
-                    {/* Theme toggle */}
-                    <div className="relative w-full group/theme">
+                    {/* Search */}
+                    <div className="relative w-full group/search">
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.9 }}
-                        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                        title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
-                        className={cn(
-                            'flex flex-col items-center gap-0.5 py-2.5 px-1 w-full rounded-xl transition-all',
-                            theme === 'light'
-                                ? 'text-primary bg-primary/10'
-                                : 'text-slate-400 hover:text-amber-500 hover:bg-primary/5'
-                        )}
+                        onClick={() => setIsSearchOpen(true)}
+                        title="Search (⌘K)"
+                        className="flex flex-col items-center gap-0.5 py-2.5 px-1 w-full rounded-xl text-slate-400 hover:text-primary hover:bg-primary/5 transition-all"
                     >
-                        {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                        <span className="text-[9px] font-bold leading-none">Theme</span>
+                        <Search className="w-5 h-5" />
+                        <span className="text-[9px] font-bold leading-none">Search</span>
                     </motion.button>
                     <div className="absolute left-[72px] top-1/2 -translate-y-1/2 pointer-events-none z-[60] flex items-center">
                         <div className={cn(
                             'flex items-center h-9 rounded-r-xl bg-card/95 dark:bg-zinc-900/95 backdrop-blur-xl',
                             'border border-l-0 border-primary/20 shadow-lg overflow-hidden',
-                            'w-0 group-hover/theme:w-24 transition-all duration-200 ease-out'
+                            'w-0 group-hover/search:w-24 transition-all duration-200 ease-out'
                         )}>
-                            <span className="whitespace-nowrap text-xs font-bold text-foreground px-3">
-                                {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-                            </span>
+                            <span className="whitespace-nowrap text-xs font-bold text-foreground px-3">Search</span>
                         </div>
                     </div>
                     </div>
