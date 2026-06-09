@@ -15,11 +15,6 @@ import { useTheme } from 'next-themes';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import {
-  MessageCircle,
-  BarChart3,
-  Users,
-  Clock,
-  Trophy,
   Zap,
   Menu,
   X,
@@ -386,6 +381,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
   const appFeatures = [
     {
       image: '/images/app-features/Origin-bot-emotional.png',
+      iconImg: '/iconsax/Ai-Icon.png',
       category: 'AI Mentor',
       title: 'Origin AI Mentor & Support',
       description: 'Your 24/7 emotionally intelligent companion built to understand your mood, identify learning friction points, and explain micro-concepts adaptively. It keeps you inspired and clear-headed.',
@@ -544,37 +540,37 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
 
   const features = [
     {
-      icon: MessageCircle,
+      icon: (_: { className?: string }) => <img src="/iconsax/Ai-Icon.png" alt="AI" className="w-8 h-8 object-contain" />,
       title: 'Instant Doubt Resolution',
       description: 'Stuck at 2 AM? Get detailed, step-by-step solutions instantly. No waiting, just learning.',
       video: '/videos/Instant-Doubt-Resolution.mp4'
     },
     {
-      icon: BarChart3,
+      icon: (_: { className?: string }) => <img src="/iconsax/Mathematics-Icon.png" alt="Mathematics" className="w-8 h-8 object-contain" />,
       title: 'Predictive Analytics',
       description: 'Know where you stand before the exam. Track mastery and predict your AIR with 95% accuracy.',
       video: '/videos/Predictive-Analytics.mp4'
     },
     {
-      icon: Users,
+      icon: (_: { className?: string }) => <img src="/iconsax/Physics-Icon.png" alt="Physics" className="w-8 h-8 object-contain" />,
       title: 'IITian Mentorship',
       description: 'Direct guidance from those who have cracked it. Strategies, tips, and motivation from top rankers.',
       video: '/videos/IITian-Mentorship-2.mp4'
     },
     {
-      icon: Clock,
+      icon: (_: { className?: string }) => <img src="/iconsax/Chemistry-Icon.png" alt="Chemistry" className="w-8 h-8 object-contain" />,
       title: 'Pomodoro Focus',
       description: 'Built-in productivity tools. Study smarter with scientifically proven focus timers and break intervals.',
       video: '/videos/Pomodoro-Focus.mp4'
     },
     {
-      icon: Trophy,
+      icon: (_: { className?: string }) => <img src="/iconsax/Biology-Icon.png" alt="Biology" className="w-8 h-8 object-contain" />,
       title: 'Gamified Growth',
       description: 'Make preparation addictive. Earn streaks, unlock badges, and climb the leaderboard daily.',
       video: '/videos/Gamified-Growth.mp4'
     },
     {
-      icon: () => <img src="/ai-bot.png" alt="AI" className="w-8 h-8 object-cover rounded-lg" />,
+      icon: (_: { className?: string }) => <img src="/ai-bot.png" alt="AI" className="w-8 h-8 object-cover rounded-lg" />,
       title: 'Adaptive Intelligence',
       description: 'Tests that evolve with you. Our AI identifies your weak spots and adapts the difficulty in real-time.',
       video: '/videos/Adaptive-Intelligence.mp4'
@@ -896,7 +892,9 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
                   {/* Text/Explanation Block (Below) */}
                   <div className="w-full flex-[0] shrink-0 space-y-2 text-left">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-[9px] font-black uppercase tracking-widest">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                      {(feat as { iconImg?: string }).iconImg
+                        ? <img src={(feat as { iconImg?: string }).iconImg} alt="" className="w-4 h-4 object-contain" />
+                        : <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />}
                       {feat.category}
                     </div>
                     
