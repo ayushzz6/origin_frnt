@@ -53,14 +53,16 @@ export default function PointsSummary({ data, onNextSteps }: PointsSummaryProps)
 
 
     return (
-        <div className="w-full h-full bg-card dark:bg-slate-900/40 backdrop-blur-md rounded-[32px] border border-primary/20 dark:border-border/50 p-6 flex flex-col justify-between overflow-hidden relative group shadow-sm">
+        <div className="w-full h-full bg-gradient-to-br from-card to-primary/5 dark:from-slate-900/80 dark:to-primary/10 backdrop-blur-md rounded-[32px] border-2 border-primary/25 dark:border-primary/30 p-6 flex flex-col justify-between overflow-hidden relative group shadow-lg shadow-primary/10">
+            {/* Shimmer line */}
+            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
             {/* Background glow */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[50px] pointer-events-none group-hover:bg-primary/10 transition-colors duration-500" />
 
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
                 <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center relative shadow-sm">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-indigo-500/10 flex items-center justify-center relative shadow-lg shadow-primary/20 ring-1 ring-primary/20">
                         <Trophy className="w-8 h-8 text-primary" />
                         <div className="absolute -top-1 -right-1 w-5 h-5 bg-[#059669] rounded-full border-2 border-card dark:border-zinc-900 flex items-center justify-center">
                             <Star className="w-3 h-3 text-white fill-current" />
@@ -77,7 +79,7 @@ export default function PointsSummary({ data, onNextSteps }: PointsSummaryProps)
                                 <Info className="w-3.5 h-3.5" />
                             </button>
                         </div>
-                        <p className="text-2xl font-black text-[#334155] dark:text-white mt-0.5 truncate">{data.totalPoints.toLocaleString()}</p>
+                        <p className="text-3xl font-black bg-gradient-to-r from-primary to-indigo-500 bg-clip-text text-transparent mt-0.5 truncate">{data.totalPoints.toLocaleString()}</p>
                     </div>
                 </div>
                 <div className={`px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-tighter shadow-sm flex-shrink-0 self-start sm:self-center ${tierStyle}`}>

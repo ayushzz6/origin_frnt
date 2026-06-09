@@ -620,7 +620,7 @@ function TestCard({ test, onStart, onViewAnalysis, user, getSubjectIcon, getSubj
   const isLocked = false;
 
   return (
-    <Card className={`group relative border-0 bg-card/40 dark:bg-white/5 backdrop-blur-xl shadow-soft hover:shadow-primary/10 transition-all duration-500 rounded-[2rem] sm:rounded-[32px] overflow-hidden ${isLocked ? 'grayscale opacity-80' : ''}`}>
+    <Card className={`group relative border-2 border-border/60 hover:border-primary/40 bg-card/40 dark:bg-white/5 backdrop-blur-xl shadow-sm hover:shadow-md hover:shadow-primary/10 transition-all duration-500 rounded-[2rem] sm:rounded-[32px] overflow-hidden ${isLocked ? 'grayscale opacity-80' : ''}`}>
       <CardContent className="p-5 sm:p-8">
         {/* Header Section */}
         <div className="flex items-start justify-between mb-4 sm:mb-8">

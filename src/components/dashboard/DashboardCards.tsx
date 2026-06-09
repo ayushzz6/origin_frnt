@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Clock, Target, CheckCircle2, Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { apiCall } from '@/lib/api';
 import { useEffect } from 'react';
 import { useLayout } from '@/context/LayoutContext';
@@ -266,43 +267,43 @@ export function PastActivitiesCard({ user }: { user: User }) {
 }
 
 export function PlacesToConcentrateCard({ user }: { user?: User }) {
-    const { availableWidth } = useLayout();
-    const isMobile = availableWidth < 640;
+    const subjects = user?.subjects?.length ? user.subjects.slice(0, 4) : ['Physics', 'Chemistry', 'Mathematics', 'Biology'];
+    const COLORS = ['#f87171', '#fb923c', '#34d399', '#60a5fa'];
+    const data = subjects.map((s, i) => ({ name: s, value: [35, 28, 22, 15][i % 4] }));
 
     return (
         <Card className="premium-card min-h-48 h-auto relative overflow-hidden group">
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent pointer-events-none" />
-
-            <CardContent className={cn("relative z-10 flex flex-col h-full", isMobile ? "p-4" : "p-6")}>
-                <div className="flex items-start gap-4 mb-4">
-                    <div className={cn("rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500", isMobile ? "w-10 h-10" : "w-12 h-12")}>
-                        <Target className={isMobile ? "w-5 h-5" : "w-6 h-6"} />
+            <CardContent className="relative z-10 p-4 sm:p-6 flex flex-col h-full">
+                <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                        <Target className="w-5 h-5" />
                     </div>
                     <div>
-                        <h3 className={cn("font-bold text-foreground", isMobile ? "text-sm" : "text-base")}>Focus Areas</h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">Based on your recent tests</p>
+                        <h3 className="text-sm font-bold text-foreground">Focus Areas</h3>
+                        <p className="text-[10px] text-muted-foreground">Subject-wise concentration</p>
                     </div>
                 </div>
-
-
-                <div className={cn("flex-1 flex items-center justify-around", isMobile ? "px-0" : "px-4")}>
-                    {/* Dynamic Progress Circles */}
-                    {(user?.subjects?.length ? user.subjects : ['Physics', 'Chemistry', 'Mathematics']).slice(0, 3).map((subject, idx) => {
-                        const colors = ['text-red-400', 'text-amber-400', 'text-emerald-400', 'text-blue-400'];
-                        const progress = [45, 62, 88, 70][idx % 4];
-                        return (
-                            <div key={subject} className="flex flex-col items-center gap-2 group/item">
-                                <div className={cn("relative flex items-center justify-center", isMobile ? "w-12 h-12" : "w-14 h-14")}>
-                                    <svg className="w-full h-full -rotate-90">
-                                        <circle cx={isMobile ? "24" : "28"} cy={isMobile ? "24" : "28"} r={isMobile ? "20" : "24"} stroke="currentColor" strokeWidth="4" fill="transparent" className="text-slate-100 dark:text-slate-800" />
-                                        <circle cx={isMobile ? "24" : "28"} cy={isMobile ? "24" : "28"} r={isMobile ? "20" : "24"} stroke="currentColor" strokeWidth="4" fill="transparent" strokeDasharray={isMobile ? "126" : "150"} strokeDashoffset={(isMobile ? 126 : 150) - ((isMobile ? 126 : 150) * (progress / 100))} className={`${colors[idx % 4]} transition-all duration-1000`} strokeLinecap="round" />
-                                    </svg>
-                                    <span className={cn("absolute font-bold text-black dark:text-slate-200", isMobile ? "text-[10px]" : "text-xs")}>{progress}%</span>
-                                </div>
-                                <span className="text-[10px] font-semibold text-black/60 dark:text-slate-400 tracking-wide uppercase truncate max-w-[60px]">{subject}</span>
+                <div className="flex-1 flex items-center gap-2">
+                    <div className="flex-1 h-[120px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie data={data} cx="50%" cy="50%" innerRadius="45%" outerRadius="75%" paddingAngle={3} dataKey="value" strokeWidth={0}>
+                                    {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                                </Pie>
+                                <Tooltip formatter={(v) => [`${v}%`, '']} contentStyle={{ background: 'var(--card)', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 11 }} />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <div className="flex flex-col gap-1.5 min-w-[90px]">
+                        {data.map((d, i) => (
+                            <div key={d.name} className="flex items-center gap-1.5">
+                                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
+                                <span className="text-[10px] font-semibold text-muted-foreground truncate">{d.name}</span>
+                                <span className="text-[10px] font-black ml-auto" style={{ color: COLORS[i % COLORS.length] }}>{d.value}%</span>
                             </div>
-                        );
-                    })}
+                        ))}
+                    </div>
                 </div>
             </CardContent>
         </Card>

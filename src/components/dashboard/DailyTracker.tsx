@@ -1,7 +1,7 @@
 'use client';
 import { useMemo, useRef, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Calendar, Flame } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import {
     Tooltip,
     TooltipContent,
@@ -104,21 +104,27 @@ export default function DailyTracker({ user }: DailyTrackerProps) {
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                     <div className="space-y-1.5">
                         <div className="flex items-center gap-2 sm:gap-3">
-                            <div className={cn("bg-primary/10 rounded-xl", isMobile ? "p-2" : "p-2.5")}>
+                            <div className={cn("bg-primary/15 rounded-xl", isMobile ? "p-2" : "p-2.5")}>
                                 <Calendar className={cn("text-primary", isMobile ? "w-4 h-4" : "w-5 h-5")} />
                             </div>
                             <div>
-                                <CardTitle className={cn("font-black tracking-tight text-[#334155] dark:text-slate-100", isMobile ? "text-base" : "text-xl")}>
+                                <CardTitle className={cn("font-black tracking-tight text-primary dark:text-primary", isMobile ? "text-base" : "text-xl")}>
                                     Activity Vault
                                 </CardTitle>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-[9px] sm:text-xs font-semibold text-[#64748B] dark:text-slate-400">
+                                    <span className="text-[9px] sm:text-xs font-bold text-primary/70 dark:text-primary/60">
                                         {totalSolved} solved
                                     </span>
                                     <span className="w-1 h-1 rounded-full bg-[#E2E8F0]" />
-                                    <div className="flex items-center gap-1 text-primary">
-                                        <Flame className="w-2.5 h-2.5 fill-current" />
-                                        <span className="text-[9px] sm:text-xs font-bold">{user.streak || 0}d streak</span>
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="relative flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-orange-500/20 to-amber-400/10 border border-orange-500/30 rounded-xl">
+                                            <span className="text-sm leading-none" role="img" aria-label="fire">🔥</span>
+                                            <span className="text-xs font-black text-orange-500 dark:text-orange-400">{user.streak || 0}</span>
+                                            <span className="text-[9px] font-bold text-orange-400/80 uppercase tracking-wide">day streak</span>
+                                            {(user.streak || 0) >= 3 && (
+                                                <span className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-orange-500 rounded-full animate-ping opacity-60" />
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

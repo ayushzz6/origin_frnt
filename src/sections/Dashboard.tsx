@@ -61,13 +61,13 @@ function EventsCarousel() {
           className={`absolute inset-0 transition-opacity duration-1000 ${idx === current ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
         >
           <img src={event.image} alt={event.title} className="w-full h-full object-cover opacity-60 dark:opacity-40" />
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent dark:from-background dark:via-background/60 dark:to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent dark:from-background/90 dark:via-background/60 dark:to-transparent" />
           <div className="absolute inset-0 p-6 sm:p-10 flex flex-col justify-center">
             <span className="inline-block px-3 py-1 bg-primary/10 dark:bg-primary/20 backdrop-blur-md border border-primary/20 rounded-full text-[10px] font-black tracking-widest uppercase text-primary w-fit mb-4 shadow-sm">
               {event.badge}
             </span>
-            <h2 className="text-2xl sm:text-4xl font-black text-[#334155] dark:text-white mb-2 sm:mb-3 tracking-tight leading-tight max-w-2xl">{event.title}</h2>
-            <p className="text-sm sm:text-base text-[#475569] dark:text-slate-300 max-w-xl leading-relaxed font-medium line-clamp-2 sm:line-clamp-none">{event.description}</p>
+            <h2 className="text-2xl sm:text-4xl font-black text-white dark:text-white mb-2 sm:mb-3 tracking-tight leading-tight max-w-2xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)]">{event.title}</h2>
+            <p className="text-sm sm:text-base text-white/80 dark:text-slate-300 max-w-xl leading-relaxed font-medium line-clamp-2 sm:line-clamp-none drop-shadow-[0_1px_4px_rgba(0,0,0,0.3)]">{event.description}</p>
           </div>
         </div>
       ))}
@@ -270,7 +270,7 @@ export default function Dashboard({
     : user.name.split(' ')[0];
 
   return (
-    <div className="min-h-screen bg-background font-sans selection:bg-primary/20 selection:text-primary transition-colors duration-500 relative overflow-x-hidden">
+    <div className="min-h-screen bg-primary/[0.03] dark:bg-background font-sans selection:bg-primary/20 selection:text-primary transition-colors duration-500 relative overflow-x-hidden">
       {/* Premium Background Decoration */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden opacity-40 dark:opacity-20">
         <div className="absolute top-[-20%] right-[-10%] w-[70%] h-[70%] bg-primary/10 rounded-full blur-[120px]" />
@@ -278,7 +278,7 @@ export default function Dashboard({
         <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.02] mix-blend-overlay" />
       </div>
 
-      <main className="max-w-[1400px] mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8 relative z-10">
+      <main className="max-w-[1400px] mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8 relative z-10 ring-0">
         {/* Registration Status Banner */}
         {regStatus && regStatus.seatsLeft > 0 && regStatus.seatsLeft <= 50 && (
           <motion.div 
