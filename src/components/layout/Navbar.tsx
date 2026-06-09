@@ -42,9 +42,10 @@ interface NavbarProps {
     theme: "dark" | "light" | "system";
     setTheme: (theme: "dark" | "light" | "system") => void;
     connectEnabled?: boolean;
+    leftOffset?: number;
 }
 
-export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLogout, theme, setTheme, connectEnabled }: NavbarProps) {
+export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLogout, theme, setTheme, connectEnabled, leftOffset = 0 }: NavbarProps) {
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [showExploreMenu, setShowExploreMenu] = useState(false);
     const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -107,8 +108,9 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
             {/* ── DESKTOP SIDEBAR (md+) ────────────────────────────────────── */}
             <nav
                 id="tutorial-nav"
+                style={leftOffset > 0 ? { left: leftOffset } : undefined}
                 className={cn(
-                    'fixed left-0 top-0 h-dvh z-50 hidden md:flex flex-col w-[72px]',
+                    'fixed left-0 top-0 h-dvh z-50 hidden md:flex flex-col w-[72px] transition-[left] duration-300',
                     sidebarBg
                 )}
             >
@@ -130,6 +132,32 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
                 {/* Divider */}
                 <div className="w-10 mx-auto h-px bg-primary/10 flex-shrink-0" />
 
+                {/* Search — pinned at top for quick access */}
+                <div className="relative w-full px-1 pt-2 flex-shrink-0 group/search">
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setIsSearchOpen(true)}
+                        title="Search (⌘K)"
+                        className="flex flex-col items-center gap-0.5 py-2.5 px-1 w-full rounded-xl text-slate-400 hover:text-primary hover:bg-primary/5 transition-all"
+                    >
+                        <Search className="w-5 h-5" />
+                        <span className="text-[9px] font-bold leading-none">Search</span>
+                    </motion.button>
+                    {/* Hover expand tooltip */}
+                    <div className="absolute left-[72px] top-1/2 -translate-y-1/2 pointer-events-none z-[60] flex items-center">
+                        <div className={cn(
+                            'flex items-center h-9 rounded-r-xl bg-card/95 dark:bg-zinc-900/95 backdrop-blur-xl',
+                            'border border-l-0 border-primary/20 shadow-lg overflow-hidden',
+                            'w-0 group-hover/search:w-24 transition-all duration-200 ease-out'
+                        )}>
+                            <span className="whitespace-nowrap text-xs font-bold text-foreground px-3">Search</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="w-10 mx-auto h-px bg-primary/10 flex-shrink-0 mt-2" />
+
                 {/* Nav Items */}
                 <div className="flex-1 flex flex-col items-center gap-1 py-3 overflow-y-auto no-scrollbar px-1">
                     {navItems.map((item) => {
@@ -140,7 +168,7 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
                             <div
                                 key={item.label}
                                 id={`tutorial-nav-${item.view}`}
-                                className="relative w-full"
+                                className="relative w-full group/navitem"
                                 onMouseEnter={() => {
                                     if (item.label === 'Explore') setShowExploreMenu(true);
                                 }}
@@ -172,10 +200,21 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
                                             : <Icon className="w-5 h-5" />
                                         }
                                     </div>
-                                    <span className="text-[9px] font-bold leading-none text-center truncate w-full px-0.5" style={{ fontSize: '9px' }}>
-                                        {item.label}
-                                    </span>
+                                    <span className="sr-only">{item.label}</span>
                                 </button>
+
+                                {/* Hover expand tooltip — hidden once sub-menu is open for Explore */}
+                                {!(item.label === 'Explore' && showExploreMenu) && (
+                                    <div className="absolute left-[72px] top-1/2 -translate-y-1/2 pointer-events-none z-[60] flex items-center">
+                                        <div className={cn(
+                                            'flex items-center h-9 rounded-r-xl bg-card/95 dark:bg-zinc-900/95 backdrop-blur-xl',
+                                            'border border-l-0 border-primary/20 shadow-lg overflow-hidden',
+                                            'w-0 group-hover/navitem:w-28 transition-all duration-200 ease-out'
+                                        )}>
+                                            <span className="whitespace-nowrap text-xs font-bold text-foreground px-3">{item.label}</span>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Explore sub-menu */}
                                 {item.label === 'Explore' && (
@@ -253,8 +292,9 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
                 {/* Bottom actions */}
                 <div className="flex flex-col items-center gap-1 py-3 px-1 flex-shrink-0">
                     {/* Theme toggle */}
+                    <div className="relative w-full group/theme">
                     <motion.button
-                        whileHover={{ scale: 1.1, rotate: 15 }}
+                        whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                         title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
@@ -268,27 +308,38 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
                         {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                         <span className="text-[9px] font-bold leading-none">Theme</span>
                     </motion.button>
-
-                    {/* Search */}
-                    <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => setIsSearchOpen(true)}
-                        title="Search (⌘K)"
-                        className="flex flex-col items-center gap-0.5 py-2.5 px-1 w-full rounded-xl text-slate-400 hover:text-primary hover:bg-primary/5 transition-all"
-                    >
-                        <Search className="w-5 h-5" />
-                        <span className="text-[9px] font-bold leading-none">Search</span>
-                    </motion.button>
+                    <div className="absolute left-[72px] top-1/2 -translate-y-1/2 pointer-events-none z-[60] flex items-center">
+                        <div className={cn(
+                            'flex items-center h-9 rounded-r-xl bg-card/95 dark:bg-zinc-900/95 backdrop-blur-xl',
+                            'border border-l-0 border-primary/20 shadow-lg overflow-hidden',
+                            'w-0 group-hover/theme:w-24 transition-all duration-200 ease-out'
+                        )}>
+                            <span className="whitespace-nowrap text-xs font-bold text-foreground px-3">
+                                {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                            </span>
+                        </div>
+                    </div>
+                    </div>
 
                     {/* Notifications */}
+                    <div className="relative w-full group/alerts">
                     <div className="flex flex-col items-center gap-0.5 py-2.5 px-1 w-full rounded-xl text-slate-400 hover:text-primary hover:bg-primary/5 transition-all">
                         <NotificationBell />
                         <span className="text-[9px] font-bold leading-none">Alerts</span>
                     </div>
+                    <div className="absolute left-[72px] top-1/2 -translate-y-1/2 pointer-events-none z-[60] flex items-center">
+                        <div className={cn(
+                            'flex items-center h-9 rounded-r-xl bg-card/95 dark:bg-zinc-900/95 backdrop-blur-xl',
+                            'border border-l-0 border-primary/20 shadow-lg overflow-hidden',
+                            'w-0 group-hover/alerts:w-24 transition-all duration-200 ease-out'
+                        )}>
+                            <span className="whitespace-nowrap text-xs font-bold text-foreground px-3">Alerts</span>
+                        </div>
+                    </div>
+                    </div>
 
                     {/* Avatar / Profile */}
-                    <div className="relative w-full" ref={profileMenuRef}>
+                    <div className="relative w-full group/profile" ref={profileMenuRef}>
                         <button
                             onMouseEnter={() => {
                                 setShowProfileMenu(true);
@@ -306,6 +357,16 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
                             </Avatar>
                             <span className="text-[9px] font-bold leading-none">Profile</span>
                         </button>
+                        {/* Hover expand tooltip */}
+                        <div className="absolute left-[72px] bottom-0 pointer-events-none z-[60] flex items-center">
+                            <div className={cn(
+                                'flex items-center h-9 rounded-r-xl bg-card/95 dark:bg-zinc-900/95 backdrop-blur-xl',
+                                'border border-l-0 border-primary/20 shadow-lg overflow-hidden',
+                                'w-0 group-hover/profile:w-28 transition-all duration-200 ease-out'
+                            )}>
+                                <span className="whitespace-nowrap text-xs font-bold text-foreground px-3">{user.name.split(' ')[0]}</span>
+                            </div>
+                        </div>
 
                         {showProfileMenu && (
                             <motion.div

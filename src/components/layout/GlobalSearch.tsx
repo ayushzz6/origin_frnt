@@ -188,25 +188,33 @@ export default function GlobalSearch({ isOpen, onClose, currentView, onNavigate 
           {/* Results Area */}
           <div className="max-h-[60vh] overflow-y-auto p-2 custom-scrollbar">
             {query.trim() === '' ? (
-              <div className="py-8 px-4">
-                <div className="mb-6">
-                  <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 px-2">Popular Searches</h3>
+              <div className="py-4 px-3 space-y-3">
+                {/* Popular Searches */}
+                <div className="rounded-xl border border-border/60 bg-secondary/20 p-4">
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-1.5">
+                    <TrendingUp className="w-3 h-3" />
+                    Popular Searches
+                  </h3>
                   <div className="flex flex-wrap gap-2">
                     {['JEE Main Tests', 'Circular Motion', 'Doubt Solver', 'NCERT Physics', 'Leaderboard'].map(s => (
-                      <button 
+                      <button
                         key={s}
                         onClick={() => setQuery(s)}
-                        className="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 transition-all flex items-center gap-2"
+                        className="px-3 py-1.5 rounded-full bg-background border border-border text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all flex items-center gap-1.5"
                       >
-                        <TrendingUp className="w-3 h-3" />
+                        <TrendingUp className="w-2.5 h-2.5" />
                         {s}
                       </button>
                     ))}
                   </div>
                 </div>
 
-                <div>
-                  <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 px-2">Quick Navigation</h3>
+                {/* Quick Navigation */}
+                <div className="rounded-xl border border-border/60 bg-secondary/20 p-4">
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-1.5">
+                    <ChevronRight className="w-3 h-3" />
+                    Quick Navigation
+                  </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {[
                       { label: 'My Dashboard', icon: UserIcon, view: 'dashboard' },
@@ -214,23 +222,23 @@ export default function GlobalSearch({ isOpen, onClose, currentView, onNavigate 
                       { label: 'NCERT Library', icon: BookOpen, view: 'study-corner' },
                       { label: 'AI Study Mentor', icon: MessageSquare, view: 'doubt-solver' }
                     ].map(nav => (
-                      <button 
+                      <button
                         key={nav.label}
                         onClick={() => onNavigate(nav.view as ViewState)}
-                        className="flex items-center gap-3 p-3 rounded-xl hover:bg-primary/10 dark:hover:bg-primary/20 transition-all group"
+                        className="flex items-center gap-3 p-3 rounded-xl border border-border/40 bg-background hover:border-primary/30 hover:bg-primary/5 transition-all group"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/30 flex items-center justify-center text-primary">
+                        <div className="w-8 h-8 rounded-lg bg-primary/5 border border-primary/20 flex items-center justify-center text-primary flex-shrink-0">
                           <nav.icon className="w-4 h-4" />
                         </div>
-                        <span className="text-sm font-bold text-primary group-hover:opacity-80 transition-colors">{nav.label}</span>
-                        <ChevronRight className="w-4 h-4 ml-auto text-primary/30 dark:text-primary/60 group-hover:translate-x-1 transition-all" />
+                        <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{nav.label}</span>
+                        <ChevronRight className="w-4 h-4 ml-auto text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                       </button>
                     ))}
                   </div>
                 </div>
               </div>
             ) : results.length > 0 ? (
-              <div className="space-y-1">
+              <div className="p-3 space-y-1.5">
                 {results.map((result, idx) => {
                   const Icon = result.icon;
                   const isSelected = selectedIndex === idx;
@@ -240,29 +248,33 @@ export default function GlobalSearch({ isOpen, onClose, currentView, onNavigate 
                       onClick={() => handleSelect(result)}
                       onMouseEnter={() => setSelectedIndex(idx)}
                       className={cn(
-                        "w-full flex items-center gap-4 p-3 rounded-xl transition-all text-left group",
-                        isSelected ? "bg-blue-600 shadow-lg shadow-blue-500/20" : "hover:bg-slate-100 dark:hover:bg-slate-800"
+                        "w-full flex items-center gap-4 p-3 rounded-xl transition-all text-left group border",
+                        isSelected
+                          ? "bg-primary border-primary shadow-md shadow-primary/20"
+                          : "bg-background border-border/50 hover:border-primary/30 hover:bg-primary/5"
                       )}
                     >
                       <div className={cn(
-                        "w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-colors",
-                        isSelected ? "bg-primary/20 text-primary" : "bg-primary/5 dark:bg-slate-800 text-slate-500 group-hover:text-primary"
+                        "w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-colors border",
+                        isSelected
+                          ? "bg-white/20 border-white/20 text-white"
+                          : "bg-primary/5 border-primary/20 text-primary"
                       )}>
                         <Icon className="w-5 h-5" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className={cn(
                           "text-sm font-bold truncate leading-tight mb-0.5",
-                          isSelected ? "text-white" : "text-slate-900 dark:text-white"
+                          isSelected ? "text-white" : "text-foreground"
                         )}>{result.title}</p>
                         <p className={cn(
                           "text-[10px] truncate",
-                          isSelected ? "text-white/70" : "text-slate-500 dark:text-slate-400"
+                          isSelected ? "text-white/70" : "text-muted-foreground"
                         )}>{result.subtitle}</p>
                       </div>
                       <ArrowRight className={cn(
                         "w-4 h-4 transition-all",
-                        isSelected ? "text-white translate-x-0 opacity-100" : "text-slate-300 dark:text-slate-700 -translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-100"
+                        isSelected ? "text-white opacity-100" : "text-muted-foreground/30 -translate-x-1 opacity-0 group-hover:translate-x-0 group-hover:opacity-100"
                       )} />
                     </button>
                   );

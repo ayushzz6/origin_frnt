@@ -11,7 +11,6 @@ import EvilEye from '@/components/EvilEye';
 const FloatingLines = dynamic(() => import('@/components/ui/FloatingLines'), { ssr: false });
 const CardSwap = dynamic(() => import('@/components/ui/CardSwap'), { ssr: false });
 const SplitText = dynamic(() => import('@/components/ui/SplitText'), { ssr: false });
-const CircularGallery = dynamic(() => import('@/components/ui/CircularGallery'), { ssr: false });
 const ScrollStack = dynamic(() => import('@/components/ui/ScrollStack'), { ssr: false });
 const ScrollStackItem = dynamic(() => import('@/components/ui/ScrollStack').then(mod => mod.ScrollStackItem), { ssr: false });
 import { useTheme } from 'next-themes';
@@ -99,13 +98,66 @@ const AnimatedCounter = ({ from, to, duration, inView }: { from: number; to: num
   return <>{count}</>;
 };
 
+function BookGallerySection({ ncertBooks }: { ncertBooks: { image: string; text: string }[] }) {
+  const sectionRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ['start end', 'end start'],
+  });
+  // As the section scrolls into view (0→1) translate books from -40% to +10%
+  const x = useTransform(scrollYProgress, [0, 1], ['-38%', '8%']);
+  const smoothX = useSpring(x, { stiffness: 60, damping: 20 });
+
+  return (
+    <section id="how-it-works" ref={sectionRef} className="py-28 lg:py-40 relative z-10 overflow-hidden">
+      <div className="max-w-7xl mx-auto px-6">
+        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: 'easeOut' }} viewport={{ once: true }} className="text-center mb-16">
+          <h2 className="text-[10px] font-black text-primary tracking-[0.5em] uppercase mb-6">Our Knowledge Base</h2>
+          <h1 className="text-6xl sm:text-7xl lg:text-8xl font-black text-gray-900 dark:text-white mb-6 tracking-tighter">
+            Trained on <span className="bg-gradient-to-r from-primary via-primary/90 to-primary bg-clip-text text-transparent">Gold Standards.</span>
+          </h1>
+          <p className="text-xl sm:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto font-medium leading-relaxed">
+            We trained our AI on exact NCERT textbooks and reference gold standards like <strong className="text-primary">HC Verma, Irodov, NCERT Exemplar</strong>, and standard preparatory resources.
+          </p>
+        </motion.div>
+      </div>
+
+      {/* Full-bleed horizontal scroll strip */}
+      <div className="overflow-hidden w-full py-4">
+        <motion.div
+          style={{ x: smoothX }}
+          className="flex gap-6 sm:gap-10 w-max pl-[10vw]"
+        >
+          {ncertBooks.map((book, i) => (
+            <div
+              key={i}
+              className="flex-shrink-0 w-40 sm:w-52 flex flex-col items-center gap-3 group"
+            >
+              <div className="w-full aspect-[3/4] rounded-2xl overflow-hidden border border-border/40 dark:border-white/10 shadow-xl bg-card/50 backdrop-blur-sm group-hover:shadow-2xl group-hover:-translate-y-2 transition-all duration-500">
+                <img
+                  src={book.image}
+                  alt={book.text}
+                  className="w-full h-full object-cover"
+                  style={{ transform: 'translate3d(0,0,0)' }}
+                />
+              </div>
+              <p className="text-center text-[11px] font-bold text-muted-foreground group-hover:text-primary transition-colors leading-tight px-1">
+                {book.text}
+              </p>
+            </div>
+          ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
 interface LandingPageProps {
   onGetStarted: () => void;
 }
 
 export default function LandingPage({ onGetStarted }: LandingPageProps) {
   const heroRef = useRef<HTMLDivElement>(null);
-  const howItWorksRef = useRef<HTMLDivElement>(null);
   const { theme, setTheme, resolvedTheme } = useTheme();
   const { user } = useAuth();
   const router = useRouter();
@@ -372,31 +424,6 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
     };
   }, [mountedMain]);
 
-  const { scrollYProgress } = useScroll({
-    target: howItWorksRef,
-    container: mainRef,
-    offset: ["start center", "end center"]
-  });
-  const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
-
-  // Transform for each step (unchanged logic, just nicer visual)
-  const step1Scale = useTransform(scrollYProgress, [0, 0.25], [1, 1.2]);
-  const step1Opacity = useTransform(scrollYProgress, [0, 0.25], [0.5, 1]);
-  const step1Border = useTransform(scrollYProgress, [0, 0.25], ["rgba(226, 232, 240, 0.5)", "rgba(244, 63, 94, 1)"]);
-  const step1Glow = useTransform(scrollYProgress, [0, 0.25], ["0px 0px 0px rgba(0,0,0,0)", "0px 0px 30px rgba(244, 63, 94, 0.3)"]);
-  const step2Scale = useTransform(scrollYProgress, [0.25, 0.5], [1, 1.2]);
-  const step2Opacity = useTransform(scrollYProgress, [0.25, 0.5], [0.5, 1]);
-  const step2Border = useTransform(scrollYProgress, [0.25, 0.5], ["rgba(226, 232, 240, 0.5)", "rgba(225, 29, 72, 1)"]);
-  const step2Glow = useTransform(scrollYProgress, [0.25, 0.5], ["0px 0px 0px rgba(0,0,0,0)", "0px 0px 30px rgba(225, 29, 72, 0.3)"]);
-  const step3Scale = useTransform(scrollYProgress, [0.5, 0.75], [1, 1.2]);
-  const step3Opacity = useTransform(scrollYProgress, [0.5, 0.75], [0.5, 1]);
-  const step3Border = useTransform(scrollYProgress, [0.5, 0.75], ["rgba(226, 232, 240, 0.5)", "rgba(190, 18, 60, 1)"]);
-  const step3Glow = useTransform(scrollYProgress, [0.5, 0.75], ["0px 0px 0px rgba(0,0,0,0)", "0px 0px 30px rgba(190, 18, 60, 0.3)"]);
-  const step4Scale = useTransform(scrollYProgress, [0.75, 1], [1, 1.2]);
-  const step4Opacity = useTransform(scrollYProgress, [0.75, 1], [0.5, 1]);
-  const step4Border = useTransform(scrollYProgress, [0.75, 1], ["rgba(203, 213, 225, 0.5)", "rgba(159, 18, 57, 1)"]);
-  const step4Glow = useTransform(scrollYProgress, [0.75, 1], ["0px 0px 0px rgba(0,0,0,0)", "0px 0px 30px rgba(159, 18, 57, 0.3)"]);
-
   const features = [
     {
       icon: MessageCircle,
@@ -644,16 +671,26 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             textAlign="center"
           />
           
-          <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mt-6 sm:mt-8 leading-relaxed animate-fade-rise-delay">
+          <p className="text-slate-200 dark:text-slate-200 text-base sm:text-lg max-w-2xl mt-6 sm:mt-8 leading-relaxed animate-fade-rise-delay drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]">
             We're designing tools for deep thinkers, bold creators, and quiet rebels. Amid the chaos, we build digital spaces for sharp focus and inspired work.
           </p>
 
-          <button
+          <motion.button
             onClick={handleBeginJourney}
-            className="liquid-glass rounded-full px-8 py-4 text-sm sm:px-14 sm:py-5 sm:text-base text-foreground mt-8 sm:mt-12 hover:scale-[1.03] transition-transform cursor-pointer animate-fade-rise-delay-2"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 0.6, ease: 'easeOut' }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.97 }}
+            className="relative mt-8 sm:mt-12 cursor-pointer group"
           >
-            Begin Journey
-          </button>
+            {/* Pulsing ring */}
+            <span className="absolute inset-0 rounded-full bg-primary/40 animate-ping opacity-60 group-hover:opacity-0 transition-opacity" />
+            <span className="relative flex items-center gap-3 px-10 py-4 sm:px-14 sm:py-5 rounded-full bg-primary text-primary-foreground text-sm sm:text-base font-black uppercase tracking-widest shadow-2xl shadow-primary/40 border border-primary/30">
+              Begin Journey
+              <Sparkles className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+            </span>
+          </motion.button>
         </section>
 
         {/* Stats row with subtle hover at the bottom of the first page viewport */}
@@ -720,32 +757,8 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         </div>
       </section>
 
-      {/* Immersive Book Gallery Section - Replacing the old Protocol */}
-      <section id="how-it-works" ref={howItWorksRef} className="py-28 lg:py-40 relative z-10 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6">
-          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: "easeOut" }} viewport={{ once: true }} className="text-center mb-16">
-            <h2 className="text-[10px] font-black text-primary tracking-[0.5em] uppercase mb-6">Our Knowledge Base</h2>
-            <h1 className="text-6xl sm:text-7xl lg:text-8xl font-black text-gray-900 dark:text-white mb-6 tracking-tighter">
-              Trained on <span className="bg-gradient-to-r from-primary via-primary/90 to-primary bg-clip-text text-transparent">Gold Standards.</span>
-            </h1>
-            <p className="text-xl sm:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto font-medium leading-relaxed">
-              We trained our AI on exact NCERT textbooks and reference gold standards like <strong className="text-primary">HC Verma, Irodov, NCERT Exemplar</strong>, and standard preparatory resources.
-            </p>
-          </motion.div>
-
-          {/* Curved Circular WebGL Gallery container */}
-          <div className="relative w-full h-[550px] sm:h-[650px] overflow-hidden rounded-3xl border border-border/40 dark:border-white/5 bg-gray-50/20 dark:bg-white/[0.01] backdrop-blur-sm shadow-[0_16px_48px_rgba(0,0,0,0.1)] dark:shadow-[0_16px_48px_rgba(0,0,0,0.4)]">
-            <CircularGallery 
-              items={ncertBooks} 
-              bend={3} 
-              textColor={actualTheme === 'dark' ? '#ffffff' : '#1e293b'} 
-              borderRadius={0.06} 
-              scrollEase={0.04}
-              scrollSpeed={2.5}
-            />
-          </div>
-        </div>
-      </section>
+      {/* Immersive Book Gallery Section */}
+      <BookGallerySection ncertBooks={ncertBooks} />
 
       {/* Immersive ScrollStack App Features Section */}
       <section id="app-features-stack" className="py-28 lg:py-40 relative z-10 overflow-visible bg-gradient-to-b from-transparent via-slate-50/50 to-transparent dark:via-slate-950/20">
@@ -861,14 +874,15 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
               whileInView={{ opacity: 1, scale: 1 }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.98 }}
-              className="flex items-center gap-4 px-8 py-4 bg-[#25D366] text-white rounded-full font-black text-lg shadow-2xl shadow-green-500/30 hover:shadow-green-500/50 transition-all duration-300 group"
+              className="relative flex items-center gap-4 px-10 py-4 bg-primary text-primary-foreground rounded-full font-black text-lg shadow-2xl shadow-primary/30 hover:shadow-primary/50 transition-all duration-300 group border border-primary/30"
             >
-              <div className="w-8 h-8 flex items-center justify-center bg-white rounded-full p-1.5 group-hover:rotate-12 transition-transform">
-                <svg className="w-full h-full text-[#25D366]" viewBox="0 0 24 24" fill="currentColor">
+              <span className="absolute inset-0 rounded-full bg-primary/30 animate-ping opacity-40 group-hover:opacity-0 transition-opacity" />
+              <div className="relative w-8 h-8 flex items-center justify-center bg-white/20 rounded-full p-1.5 group-hover:rotate-12 transition-transform">
+                <svg className="w-full h-full text-primary-foreground" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72.938 3.659 1.434 5.628 1.435h.006c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
                 </svg>
               </div>
-              Join O3 Origin Community
+              <span className="relative">Join O3 Origin Community</span>
             </motion.a>
           </motion.div>
         </div>

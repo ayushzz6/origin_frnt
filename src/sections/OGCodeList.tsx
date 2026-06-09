@@ -52,7 +52,7 @@ const SUBJECT_ICONS: Record<string, React.ReactNode> = {
 };
 
 const SUBJECT_COLORS: Record<string, string> = {
-    Physics: 'text-blue-500',
+    Physics: 'text-primary',
     Chemistry: 'text-sky-500',
     Mathematics: 'text-indigo-500',
     Biology: 'text-emerald-500',
@@ -581,7 +581,7 @@ export default function OGCodeList({
         : 'No questions available yet.';
 
     return (
-        <div className="min-h-screen bg-white dark:bg-black text-slate-900 dark:text-slate-100 font-sans selection:bg-blue-500/30 px-4 sm:px-6 lg:px-8 pb-16 transition-colors duration-500">
+        <div className="min-h-screen bg-white dark:bg-black text-slate-900 dark:text-slate-100 font-sans selection:bg-primary/30 px-4 sm:px-6 lg:px-8 pb-16 transition-colors duration-500">
             {/* Professional Background */}
             <div className="fixed inset-0 z-0 pointer-events-none bg-slate-50/20 dark:bg-transparent" />
 
@@ -595,12 +595,12 @@ export default function OGCodeList({
                             transition={{ duration: 0.6, ease: "easeOut" }}
                             className="space-y-3"
                         >
-                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-100/50 dark:bg-blue-500/10 border border-blue-200/50 dark:border-blue-500/20 backdrop-blur-md mb-2">
-                                <Code2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                                <span className="text-[10px] font-bold tracking-[0.2em] text-blue-600 dark:text-blue-400 uppercase">Practice Arena</span>
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/20 backdrop-blur-md mb-2">
+                                <Code2 className="w-4 h-4 text-primary dark:text-primary" />
+                                <span className="text-[10px] font-bold tracking-[0.2em] text-primary dark:text-primary uppercase">Practice Arena</span>
                             </div>
                             <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-slate-900 dark:text-white leading-tight">
-                                OG<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400 dark:from-blue-400 dark:to-blue-200">CODE</span> WORKSPACE
+                                OG<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/60 dark:from-primary dark:to-primary/60">CODE</span> WORKSPACE
                             </h1>
                             <p className="text-slate-500 dark:text-slate-400 font-light max-w-xl text-sm sm:text-base">
                                 Master complex concepts through structured practice, build your streak, and climb the national leaderboard.
@@ -642,8 +642,8 @@ export default function OGCodeList({
                                     >
                                         {/* Mastery Index Card */}
                                         <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-3xl border border-slate-200 dark:border-slate-800 p-6 rounded-3xl shadow-xl">
-                                            <h3 className="text-[11px] font-black text-blue-600 dark:text-blue-400 tracking-[0.3em] uppercase mb-4 flex items-center gap-3">
-                                                <div className="p-2 bg-blue-100 dark:bg-blue-500/20 rounded-xl">
+                                            <h3 className="text-[11px] font-black text-primary dark:text-primary tracking-[0.3em] uppercase mb-4 flex items-center gap-3">
+                                                <div className="p-2 bg-primary/10 dark:bg-primary/20 rounded-xl">
                                                     <TrendingUp className="w-4 h-4" />
                                                 </div>
                                                 Mastery Analytics
@@ -651,7 +651,7 @@ export default function OGCodeList({
                                             <div className="space-y-3">
                                                 {[
                                                     { label: 'Current Streak', val: `${streak}d`, icon: Flame, color: 'text-orange-500' },
-                                                    { label: 'Solved Questions', val: solvedCount, icon: CheckCircle2, color: 'text-blue-500' },
+                                                    { label: 'Solved Questions', val: solvedCount, icon: CheckCircle2, color: 'text-primary' },
                                                     { label: 'Accuracy Rate', val: `${accuracy}%`, icon: Target, color: 'text-emerald-500' },
                                                     { label: 'Prestige Points', val: user.points || 0, icon: Zap, color: 'text-indigo-500' },
                                                 ].map((stat, idx) => (
@@ -668,7 +668,7 @@ export default function OGCodeList({
                                                 <div className="pt-4 mt-2 border-t border-slate-200/50 dark:border-white/5 space-y-2">
                                                     <div className="flex justify-between items-end">
                                                         <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Syllabus Coverage</span>
-                                                        <span className="text-base font-black text-blue-600 dark:text-blue-400">{syllabusCoverage}%</span>
+                                                        <span className="text-base font-black text-primary dark:text-primary">{syllabusCoverage}%</span>
                                                     </div>
                                                 <div className="relative h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5">
                                                     <motion.div initial={{ width: 0 }} animate={{ width: `${syllabusCoverage}%` }} className="h-full bg-primary rounded-full shadow-[0_0_10px_rgba(59,130,246,0.3)]" />
@@ -695,7 +695,7 @@ export default function OGCodeList({
                                                             className={cn(
                                                                 "px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer", 
                                                                 timeRange === r 
-                                                                    ? "bg-blue-600 text-white shadow-lg" 
+                                                                    ? "bg-primary text-white shadow-lg" 
                                                                     : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                                                             )}
                                                         >
@@ -735,7 +735,7 @@ export default function OGCodeList({
                                                         setIsStatsExpanded(false);
                                                         onSelectQuestion('leaderboard');
                                                     }}
-                                                    className="w-full pt-4 mt-2 border-t border-slate-200/50 dark:border-white/5 text-[10px] font-black text-blue-600 hover:text-blue-500 uppercase tracking-[0.2em] flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
+                                                    className="w-full pt-4 mt-2 border-t border-slate-200/50 dark:border-white/5 text-[10px] font-black text-primary hover:text-primary uppercase tracking-[0.2em] flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
                                                 >
                                                     Global Leaderboard <ArrowRight className="w-3 h-3" />
                                                 </button>
@@ -761,11 +761,11 @@ export default function OGCodeList({
                                             onClick={() => setOpenDropdown(openDropdown === 'subject' ? null : 'subject')}
                                             className={cn(
                                                 "w-full sm:min-w-[200px] flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border bg-white dark:bg-zinc-900 transition-all shadow-sm",
-                                                activeSubject !== 'Subject' ? "border-blue-500/50 ring-1 ring-blue-500/20" : "border-slate-200 dark:border-white/10"
+                                                activeSubject !== 'Subject' ? "border-primary/50 ring-1 ring-primary/20" : "border-slate-200 dark:border-white/10"
                                             )}
                                         >
                                             <div className="flex items-center gap-2">
-                                                <span className="text-blue-500">{SUBJECTS.find(s => s.name === activeSubject)?.icon}</span>
+                                                <span className="text-primary">{SUBJECTS.find(s => s.name === activeSubject)?.icon}</span>
                                                 <span className="text-[13px] font-bold text-slate-800 dark:text-white">{activeSubject}</span>
                                             </div>
                                             <ChevronRight className={cn("w-4 h-4 transition-transform", openDropdown === 'subject' ? "-rotate-90" : "rotate-90")} />
@@ -790,10 +790,10 @@ export default function OGCodeList({
                                                             }}
                                                             className={cn(
                                                                 "w-full flex items-center gap-3 px-4 py-3 text-left text-[13px] transition-colors hover:bg-slate-50 dark:hover:bg-white/5",
-                                                                activeSubject === sub.name ? "text-blue-500 font-bold bg-blue-500/5" : "text-slate-600 dark:text-slate-300"
+                                                                activeSubject === sub.name ? "text-primary font-bold bg-primary/5" : "text-slate-600 dark:text-slate-300"
                                                             )}
                                                         >
-                                                            <span className={cn(activeSubject === sub.name ? "text-blue-500" : "text-slate-400")}>{sub.icon}</span>
+                                                            <span className={cn(activeSubject === sub.name ? "text-primary" : "text-slate-400")}>{sub.icon}</span>
                                                             {sub.name}
                                                         </button>
                                                     ))}
@@ -812,11 +812,11 @@ export default function OGCodeList({
                                         <div className="flex items-center justify-between ml-1">
                                             <div className="flex items-center gap-2">
                                                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">Target Chapters</label>
-                                                <span className="px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-500 text-[8px] font-black uppercase tracking-tighter">Multi-select</span>
+                                                <span className="px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[8px] font-black uppercase tracking-tighter">Multi-select</span>
                                             </div>
                                             <button 
                                                 onClick={handleClearChapters}
-                                                className="text-[9px] font-black uppercase text-blue-500 hover:text-blue-600 transition-colors"
+                                                className="text-[9px] font-black uppercase text-primary hover:text-primary transition-colors"
                                                 disabled={selectedChapters.length === 0}
                                             >
                                                 Clear All
@@ -833,15 +833,15 @@ export default function OGCodeList({
                                                         className={cn(
                                                             "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] font-bold transition-all",
                                                             selectedChapters.includes(chapter)
-                                                                ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-500/20"
-                                                                : "bg-white dark:bg-zinc-800 border-slate-200 dark:border-white/10 text-slate-600 dark:text-zinc-400 hover:border-blue-500/30"
+                                                                ? "bg-primary border-primary text-white shadow-md shadow-primary/20"
+                                                                : "bg-white dark:bg-zinc-800 border-slate-200 dark:border-white/10 text-slate-600 dark:text-zinc-400 hover:border-primary/30"
                                                         )}
                                                     >
                                                         <div className={cn(
                                                             "w-3 h-3 rounded-sm border flex items-center justify-center transition-colors",
                                                             selectedChapters.includes(chapter) ? "bg-white border-white" : "border-slate-300 dark:border-zinc-600"
                                                         )}>
-                                                            {selectedChapters.includes(chapter) && <div className="w-1.5 h-1.5 bg-blue-600 rounded-[1px]" />}
+                                                            {selectedChapters.includes(chapter) && <div className="w-1.5 h-1.5 bg-primary rounded-[1px]" />}
                                                         </div>
                                                         {chapter}
                                                     </button>
@@ -865,7 +865,7 @@ export default function OGCodeList({
                                                 tableEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                                 toast.success(`Filters applied for ${selectedChapters.length} chapters`);
                                             }}
-                                            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-blue-500/25 transition-all flex items-center gap-2 group"
+                                            className="px-6 py-2.5 bg-primary hover:bg-primary/90 text-white text-[11px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-primary/25 transition-all flex items-center gap-2 group"
                                         >
                                             Proceed to Arena
                                             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
@@ -883,7 +883,7 @@ export default function OGCodeList({
                                     placeholder="Search by title, tags or concepts..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-10 pr-10 py-2.5 bg-slate-100/50 dark:bg-white/5 border border-slate-200/50 dark:border-white/5 rounded-xl text-[13px] font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all shadow-sm"
+                                    className="w-full pl-10 pr-10 py-2.5 bg-slate-100/50 dark:bg-white/5 border border-slate-200/50 dark:border-white/5 rounded-xl text-[13px] font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all shadow-sm"
                                 />
                                 {searchQuery && (
                                     <button 
@@ -899,32 +899,32 @@ export default function OGCodeList({
                                     <button 
                                         id="tutorial-ogcode-difficulty-filter"
                                         onClick={() => setOpenDropdown(openDropdown === 'difficulty' ? null : 'difficulty')} 
-                                        className={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-medium border border-transparent transition-all", activeDifficulty !== 'All' ? "bg-blue-500/10 text-blue-500 border-blue-500/20" : "bg-slate-100/50 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10")}>
+                                        className={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-medium border border-transparent transition-all", activeDifficulty !== 'All' ? "bg-primary/10 text-primary border-primary/20" : "bg-slate-100/50 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10")}>
                                         {activeDifficulty === 'All' ? 'Difficulty' : activeDifficulty} 
                                         <ChevronRight className={cn("w-3.5 h-3.5 transition-transform", openDropdown === 'difficulty' ? "-rotate-90" : "rotate-90")} />
                                     </button>
                                     {openDropdown === 'difficulty' && (
                                         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="absolute top-full mt-2 left-0 w-40 bg-white dark:bg-[#1a1a1a] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-50 overflow-hidden" onClick={(e) => e.stopPropagation()}>
                                             {['All', 'Easy', 'Medium', 'Hard', 'Insane'].map((diff) => (
-                                                <button key={diff} onClick={() => { handleDifficultyChange(diff); setOpenDropdown(null); }} className={cn("w-full text-left px-4 py-2.5 text-[13px] transition-colors hover:bg-slate-50 dark:hover:bg-white/5", activeDifficulty === diff ? "text-blue-500 font-bold bg-blue-500/5" : "text-slate-600 dark:text-slate-400")}>{diff}</button>
+                                                <button key={diff} onClick={() => { handleDifficultyChange(diff); setOpenDropdown(null); }} className={cn("w-full text-left px-4 py-2.5 text-[13px] transition-colors hover:bg-slate-50 dark:hover:bg-white/5", activeDifficulty === diff ? "text-primary font-bold bg-primary/5" : "text-slate-600 dark:text-slate-400")}>{diff}</button>
                                             ))}
                                         </motion.div>
                                     )}
                                 </div>
                                 <div className="relative">
-                                    <button onClick={() => setOpenDropdown(openDropdown === 'status' ? null : 'status')} className={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-medium border border-transparent transition-all", activeStatus !== 'All' ? "bg-blue-500/10 text-blue-500 border-blue-500/20" : "bg-slate-100/50 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10")}>
+                                    <button onClick={() => setOpenDropdown(openDropdown === 'status' ? null : 'status')} className={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-medium border border-transparent transition-all", activeStatus !== 'All' ? "bg-primary/10 text-primary border-primary/20" : "bg-slate-100/50 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10")}>
                                         {activeStatus === 'All' ? 'Status' : activeStatus} 
                                         <ChevronRight className={cn("w-3.5 h-3.5 transition-transform", openDropdown === 'status' ? "-rotate-90" : "rotate-90")} />
                                     </button>
                                     {openDropdown === 'status' && (
                                         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="absolute top-full mt-2 left-0 w-40 bg-white dark:bg-[#1a1a1a] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-50 overflow-hidden" onClick={(e) => e.stopPropagation()}>
                                             {['All', 'Solved', 'Unsolved'].map((stat) => (
-                                                <button key={stat} onClick={() => { handleStatusChange(stat); setOpenDropdown(null); }} className={cn("w-full text-left px-4 py-2.5 text-[13px] transition-colors hover:bg-slate-50 dark:hover:bg-white/5", activeStatus === stat ? "text-blue-500 font-bold bg-blue-500/5" : "text-slate-600 dark:text-slate-400")}>{stat}</button>
+                                                <button key={stat} onClick={() => { handleStatusChange(stat); setOpenDropdown(null); }} className={cn("w-full text-left px-4 py-2.5 text-[13px] transition-colors hover:bg-slate-50 dark:hover:bg-white/5", activeStatus === stat ? "text-primary font-bold bg-primary/5" : "text-slate-600 dark:text-slate-400")}>{stat}</button>
                                             ))}
                                         </motion.div>
                                     )}
                                 </div>
-                                <button onClick={() => { if (filteredQuestions.length > 0) onSelectQuestion(filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)].id); }} className="flex items-center gap-2 px-4 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 rounded-full text-[13px] font-black transition-all border border-blue-500/30"><Shuffle className="w-3.5 h-3.5" /> Pick One</button>
+                                <button onClick={() => { if (filteredQuestions.length > 0) onSelectQuestion(filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)].id); }} className="flex items-center gap-2 px-4 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-full text-[13px] font-black transition-all border border-primary/30"><Shuffle className="w-3.5 h-3.5" /> Pick One</button>
                             </div>
                         </div>
 
@@ -943,20 +943,20 @@ export default function OGCodeList({
                                     </thead>
                                 <tbody className="text-sm">
                                     {showQuestionsSpinner ? (
-                                        <tr><td colSpan={5} className="py-20 text-center"><div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" /></td></tr>
+                                        <tr><td colSpan={5} className="py-20 text-center"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" /></td></tr>
                                     ) : filteredQuestions.length > 0 ? (
                                         filteredQuestions.map((q, idx) => {
                                             const conf = DIFFICULTY_CONFIG[q.difficulty?.toLowerCase()] || DIFFICULTY_CONFIG.easy;
                                             return (
                                                 <tr key={q.id} onClick={() => handleQuestionClick(q.id)} className={cn("group cursor-pointer transition-colors border-b last:border-0 border-slate-200 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/[0.03]")}>
                                                     <td className="px-6 py-4">{(q.status === 'solved' || q.isSolved) ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <div className="w-5 h-1 bg-slate-300 dark:bg-slate-700/50 rounded-full" />}</td>
-                                                    <td className="px-6 py-4 font-black text-[14px] text-slate-800 dark:text-slate-200 group-hover:text-blue-500 transition-colors">
+                                                    <td className="px-6 py-4 font-black text-[14px] text-slate-800 dark:text-slate-200 group-hover:text-primary transition-colors">
                                                         <span className="mr-1">{idx + 1}.</span>
                                                         {renderInlineSegments(String(q.title || q.text), `ogcode-row-${q.id}`)}
                                                     </td>
                                                     <td className="px-6 py-4"><div className="space-y-0.5"><div className="text-[12px] font-black text-slate-700 dark:text-slate-300">{q.chapter || 'Foundations'}</div><div className="text-[10px] font-bold text-slate-500/80 uppercase tracking-wider">{q.concept || 'JEE Advanced'}</div></div></td>
                                                     <td className={cn("px-6 py-4 font-black text-[13px]", conf.darkText)}>{conf.label}</td>
-                                                    <td className="px-6 py-4 text-right"><button className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500/10 hover:bg-blue-600 hover:text-white text-blue-500 text-[11px] font-black uppercase tracking-wider transition-all group/btn shadow-sm">Attempt Now <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" /></button></td>
+                                                    <td className="px-6 py-4 text-right"><button className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 hover:bg-primary hover:text-white text-primary text-[11px] font-black uppercase tracking-wider transition-all group/btn shadow-sm">Attempt Now <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" /></button></td>
                                                 </tr>
                                             );
                                         })
@@ -970,7 +970,7 @@ export default function OGCodeList({
                             {/* Card view for Mobile */}
                             <div className="md:hidden divide-y divide-slate-200 dark:divide-white/5">
                                 {showQuestionsSpinner ? (
-                                    <div className="py-20 text-center"><div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" /></div>
+                                    <div className="py-20 text-center"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" /></div>
                                 ) : filteredQuestions.length > 0 ? (
                                     filteredQuestions.map((q, idx) => {
                                         const conf = DIFFICULTY_CONFIG[q.difficulty?.toLowerCase()] || DIFFICULTY_CONFIG.easy;
@@ -993,7 +993,7 @@ export default function OGCodeList({
                                                             {renderInlineSegments(String(q.title || q.text), `ogcode-mobile-${q.id}`)}
                                                         </h4>
                                                     </div>
-                                                    <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
+                                                    <div className="p-2 bg-primary/10 rounded-lg text-primary">
                                                         <ChevronRight className="w-4 h-4" />
                                                     </div>
                                                 </div>
@@ -1006,7 +1006,7 @@ export default function OGCodeList({
                                                             {q.concept || 'JEE Advanced'}
                                                         </span>
                                                     </div>
-                                                    <button className="px-3 py-1.5 bg-blue-600 text-white text-[10px] font-black uppercase tracking-wider rounded-lg shadow-sm">
+                                                    <button className="px-3 py-1.5 bg-primary text-white text-[10px] font-black uppercase tracking-wider rounded-lg shadow-sm">
                                                         Attempt
                                                     </button>
                                                 </div>
@@ -1027,7 +1027,7 @@ export default function OGCodeList({
                                         type="button"
                                         onClick={handleLoadMore}
                                         disabled={questionsLoading}
-                                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-[11px] font-black uppercase tracking-wider text-blue-500 transition-all hover:bg-blue-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-primary/10 px-4 py-2 text-[11px] font-black uppercase tracking-wider text-primary transition-all hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         {questionsLoading ? 'Loading...' : `Load ${QUESTION_PAGE_SIZE} More`}
                                     </button>

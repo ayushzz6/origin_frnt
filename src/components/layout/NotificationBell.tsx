@@ -9,8 +9,10 @@ import { formatDistanceToNow } from 'date-fns';
 
 export const NotificationBell: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState<'right' | 'below'>('below');
   const { notifications, unreadCount, markAsRead, markAllAsRead, removeNotification, clearAll } = useNotifications();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -22,6 +24,15 @@ export const NotificationBell: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const handleToggle = () => {
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      // If there's room to the right (dropdown is 384px wide + 8px gap), open right
+      setDropdownPos(rect.right + 392 <= window.innerWidth ? 'right' : 'below');
+    }
+    setIsOpen(prev => !prev);
+  };
+
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'success': return <CheckCircle className="w-4 h-4 text-emerald-500" />;
@@ -32,10 +43,11 @@ export const NotificationBell: React.FC = () => {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <motion.button 
+      <motion.button
+        ref={buttonRef}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
         className="p-2 text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white transition-colors relative bg-primary/10 dark:bg-white/5 rounded-full"
       >
         <Bell className="w-4 h-4" />
@@ -51,7 +63,12 @@ export const NotificationBell: React.FC = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="absolute right-0 mt-2 w-80 sm:w-96 bg-card dark:bg-zinc-950 border border-primary/20 dark:border-zinc-800 rounded-2xl shadow-xl overflow-hidden z-50 backdrop-blur-xl bg-opacity-80 dark:bg-opacity-80"
+            className={cn(
+              "absolute w-80 sm:w-96 bg-card dark:bg-zinc-950 border border-primary/20 dark:border-zinc-800 rounded-2xl shadow-xl overflow-hidden z-[100] backdrop-blur-xl bg-opacity-80 dark:bg-opacity-80",
+              dropdownPos === 'right'
+                ? "left-full ml-2 top-0"
+                : "right-0 mt-2"
+            )}
           >
             {/* Header */}
             <div className="px-4 py-3 border-b border-primary/10 dark:border-zinc-900 flex items-center justify-between bg-primary/5 dark:bg-white/5">

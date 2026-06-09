@@ -213,6 +213,7 @@ function ClientShellInner({ children, connectEnabled }: { children: React.ReactN
               theme={currentTheme as "dark" | "light" | "system"}
               setTheme={setTheme}
               connectEnabled={connectEnabled}
+              leftOffset={aiSide === 'left' && isAiOpen ? aiWidth : 0}
             />
           )}
           <main 

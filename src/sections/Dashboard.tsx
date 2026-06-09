@@ -63,9 +63,6 @@ function EventsCarousel() {
           <img src={event.image} alt={event.title} className="w-full h-full object-cover opacity-60 dark:opacity-40" />
           <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent dark:from-background/90 dark:via-background/60 dark:to-transparent" />
           <div className="absolute inset-0 p-6 sm:p-10 flex flex-col justify-center">
-            <span className="inline-block px-3 py-1 bg-primary/10 dark:bg-primary/20 backdrop-blur-md border border-primary/20 rounded-full text-[10px] font-black tracking-widest uppercase text-primary w-fit mb-4 shadow-sm">
-              {event.badge}
-            </span>
             <h2 className="text-2xl sm:text-4xl font-black text-white dark:text-white mb-2 sm:mb-3 tracking-tight leading-tight max-w-2xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)]">{event.title}</h2>
             <p className="text-sm sm:text-base text-white/80 dark:text-slate-300 max-w-xl leading-relaxed font-medium line-clamp-2 sm:line-clamp-none drop-shadow-[0_1px_4px_rgba(0,0,0,0.3)]">{event.description}</p>
           </div>
@@ -303,17 +300,15 @@ export default function Dashboard({
             </button>
           </motion.div>
         )}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-4xl font-black text-[#334155] dark:text-white tracking-tight">
-              {getGreeting()}, {displayName}!
-            </h1>
-            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 font-medium mt-1">
-              {pointsData?.pointsToNext && pointsData.pointsToNext > 0 
-                ? `You're just ${pointsData.pointsToNext.toLocaleString()} pts away from becoming a ${pointsData.nextTier}!`
-                : "You've reached the absolute peak of excellence!"}
-            </p>
-          </div>
+        <div className="text-center">
+          <h1 className="text-2xl sm:text-4xl font-black text-[#334155] dark:text-white tracking-tight">
+            {getGreeting()}, {displayName}!
+          </h1>
+          <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 font-medium mt-1">
+            {pointsData?.pointsToNext && pointsData.pointsToNext > 0
+              ? `You're just ${pointsData.pointsToNext.toLocaleString()} pts away from becoming a ${pointsData.nextTier}!`
+              : "You've reached the absolute peak of excellence!"}
+          </p>
         </div>
 
         <motion.div

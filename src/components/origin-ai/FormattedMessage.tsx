@@ -258,7 +258,10 @@ function wrapBareLaTeX(text: string): string {
     let next = end;
     while (next < len && (text[next] === ' ' || text[next] === '\t')) next++;
 
-    return next < len && '=+*/^_<>'.includes(text[next]);
+    if (next >= len) return false;
+    // Don't treat fill-blank underscores (__ or more) as a math operator
+    if (text[next] === '_' && next + 1 < len && text[next + 1] === '_') return false;
+    return '=+*/^_<>'.includes(text[next]);
   };
 
   // Peek ahead from position pos (skipping spaces) and check if what follows
@@ -347,8 +350,11 @@ function wrapBareLaTeX(text: string): string {
           continue;
         }
 
-        // Superscript / subscript
-        if ('^_'.includes(c)) { j++; continue; }
+        // Superscript / subscript — stop on consecutive underscores (fill-blank: __, ___, etc.)
+        if ('^_'.includes(c)) {
+          if (c === '_' && j + 1 < len && text[j + 1] === '_') break;
+          j++; continue;
+        }
 
         // Operators, digits, and grouping symbols
         if (/[0-9+\-*\/=<>!|&~%()[\]]/.test(c)) { j++; continue; }
