@@ -693,7 +693,7 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
 
           <div className="relative">
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-rose-600/10 border border-rose-500/20 flex items-center justify-center shadow-lg overflow-hidden">
-              <img src="/ai-bot.png" alt="AI" className="w-full h-full object-cover" />
+              <img src="/iconsax/Ai-Icon.png" alt="AI" className="w-full h-full object-contain p-1" />
             </div>
           </div>
           <div className="flex flex-col">
@@ -1369,7 +1369,7 @@ function ChatMessage({ message }: { message: ChatMessageType }) {
       <div className={`flex gap-4 max-w-[85%] ${isAI ? 'flex-row' : 'flex-row-reverse'}`}>
         {isAI && (
           <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center flex-shrink-0 mt-1 shadow-lg shadow-blue-900/20 overflow-hidden">
-            <img src="/ai-bot.png" alt="AI" className="w-full h-full object-cover" />
+            <img src="/iconsax/Ai-Icon.png" alt="AI" className="w-full h-full object-contain p-1" />
           </div>
         )}
         <div className={`p-3 sm:p-5 rounded-xl sm:rounded-[28px] text-xs sm:text-[15px] leading-relaxed shadow-xl relative ${isAI
@@ -1564,7 +1564,7 @@ function TypingIndicator() {
   return (
     <div className="flex justify-start gap-4">
       <div className="w-10 h-10 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center overflow-hidden">
-        <img src="/ai-bot.png" alt="AI Thinking" className="w-full h-full object-cover animate-pulse" />
+        <img src="/iconsax/Ai-Icon.png" alt="AI Thinking" className="w-full h-full object-contain p-1 animate-pulse" />
       </div>
       <div className="px-6 py-4 bg-white/[0.04] border border-white/5 rounded-[28px] rounded-tl-none flex gap-1.5 items-center">
         <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce [animation-delay:-0.3s]" />

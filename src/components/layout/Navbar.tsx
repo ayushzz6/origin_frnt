@@ -85,7 +85,7 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
 
     const navItems = isTeacher ? [] : [
         { label: 'OGCode', icon: Code, view: 'ogcode' as ViewState },
-        { label: 'AI Explainer', icon: () => <img src="/ai-bot.png" className="w-5 h-5 object-cover rounded-sm" />, view: 'doubt-solver' as ViewState },
+        { label: 'AI Explainer', icon: () => <img src="/iconsax/Ai-Icon.png" className="w-5 h-5 object-contain" />, view: 'doubt-solver' as ViewState },
         { label: 'Tests', icon: FileText, view: 'test-list' as ViewState },
         { label: 'Rooms', icon: Crown, view: 'study-rooms' as ViewState },
         { label: 'DPP', icon: Target, view: 'dpp' as ViewState },
@@ -115,7 +115,7 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
                 )}
             >
                 {/* Logo */}
-                <div className="flex items-center justify-center h-[72px] flex-shrink-0">
+                <div className="flex items-center justify-center h-[48px] flex-shrink-0">
                     <button
                         onClick={() => onNavigate('dashboard')}
                         onMouseEnter={() => onPrefetch?.('dashboard')}
@@ -127,6 +127,49 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
                             className="h-9 w-9 object-cover rounded-lg"
                         />
                     </button>
+                </div>
+
+                {/* Divider */}
+                <div className="w-10 mx-auto h-px bg-primary/10 flex-shrink-0" />
+
+                {/* Search — near top */}
+                <div className="relative w-full group/search px-1 pt-1 flex-shrink-0">
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setIsSearchOpen(true)}
+                        title="Search (⌘K)"
+                        className="flex flex-col items-center gap-0.5 py-2 px-1 w-full rounded-xl text-slate-400 hover:text-primary hover:bg-primary/5 transition-all"
+                    >
+                        <Search className="w-5 h-5" />
+                        <span className="text-[9px] font-bold leading-none">Search</span>
+                    </motion.button>
+                    <div className="absolute left-[72px] top-1/2 -translate-y-1/2 pointer-events-none z-[60] flex items-center">
+                        <div className={cn(
+                            'flex items-center h-9 rounded-r-xl bg-card/95 dark:bg-zinc-900/95 backdrop-blur-xl',
+                            'border border-l-0 border-primary/20 shadow-lg overflow-hidden',
+                            'w-0 group-hover/search:w-24 transition-all duration-200 ease-out'
+                        )}>
+                            <span className="whitespace-nowrap text-xs font-bold text-foreground px-3">Search</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Notifications — near top */}
+                <div className="relative w-full group/alerts px-1 pb-1 flex-shrink-0">
+                    <div className="flex flex-col items-center gap-0.5 py-2 px-1 w-full rounded-xl text-slate-400 hover:text-primary hover:bg-primary/5 transition-all">
+                        <NotificationBell />
+                        <span className="text-[9px] font-bold leading-none">Alerts</span>
+                    </div>
+                    <div className="absolute left-[72px] top-1/2 -translate-y-1/2 pointer-events-none z-[60] flex items-center">
+                        <div className={cn(
+                            'flex items-center h-9 rounded-r-xl bg-card/95 dark:bg-zinc-900/95 backdrop-blur-xl',
+                            'border border-l-0 border-primary/20 shadow-lg overflow-hidden',
+                            'w-0 group-hover/alerts:w-24 transition-all duration-200 ease-out'
+                        )}>
+                            <span className="whitespace-nowrap text-xs font-bold text-foreground px-3">Alerts</span>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Divider */}
@@ -295,48 +338,8 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
                 {/* Divider */}
                 <div className="w-10 mx-auto h-px bg-primary/10 flex-shrink-0" />
 
-                {/* Bottom actions — search, alerts, profile */}
+                {/* Bottom actions — profile */}
                 <div className="flex flex-col items-center gap-1 py-3 px-1 flex-shrink-0">
-                    {/* Search */}
-                    <div className="relative w-full group/search">
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => setIsSearchOpen(true)}
-                        title="Search (⌘K)"
-                        className="flex flex-col items-center gap-0.5 py-2.5 px-1 w-full rounded-xl text-slate-400 hover:text-primary hover:bg-primary/5 transition-all"
-                    >
-                        <Search className="w-5 h-5" />
-                        <span className="text-[9px] font-bold leading-none">Search</span>
-                    </motion.button>
-                    <div className="absolute left-[72px] top-1/2 -translate-y-1/2 pointer-events-none z-[60] flex items-center">
-                        <div className={cn(
-                            'flex items-center h-9 rounded-r-xl bg-card/95 dark:bg-zinc-900/95 backdrop-blur-xl',
-                            'border border-l-0 border-primary/20 shadow-lg overflow-hidden',
-                            'w-0 group-hover/search:w-24 transition-all duration-200 ease-out'
-                        )}>
-                            <span className="whitespace-nowrap text-xs font-bold text-foreground px-3">Search</span>
-                        </div>
-                    </div>
-                    </div>
-
-                    {/* Notifications */}
-                    <div className="relative w-full group/alerts">
-                    <div className="flex flex-col items-center gap-0.5 py-2.5 px-1 w-full rounded-xl text-slate-400 hover:text-primary hover:bg-primary/5 transition-all">
-                        <NotificationBell />
-                        <span className="text-[9px] font-bold leading-none">Alerts</span>
-                    </div>
-                    <div className="absolute left-[72px] top-1/2 -translate-y-1/2 pointer-events-none z-[60] flex items-center">
-                        <div className={cn(
-                            'flex items-center h-9 rounded-r-xl bg-card/95 dark:bg-zinc-900/95 backdrop-blur-xl',
-                            'border border-l-0 border-primary/20 shadow-lg overflow-hidden',
-                            'w-0 group-hover/alerts:w-24 transition-all duration-200 ease-out'
-                        )}>
-                            <span className="whitespace-nowrap text-xs font-bold text-foreground px-3">Alerts</span>
-                        </div>
-                    </div>
-                    </div>
-
                     {/* Avatar / Profile */}
                     <div className="relative w-full group/profile" ref={profileMenuRef}>
                         <button

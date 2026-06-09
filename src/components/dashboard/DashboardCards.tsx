@@ -272,37 +272,32 @@ export function PlacesToConcentrateCard({ user }: { user?: User }) {
     const data = subjects.map((s, i) => ({ name: s, value: [35, 28, 22, 15][i % 4] }));
 
     return (
-        <Card className="premium-card min-h-48 h-auto relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent pointer-events-none" />
-            <CardContent className="relative z-10 p-4 sm:p-6 flex flex-col items-center justify-center h-full">
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Focus Areas</p>
-                <div className="relative w-[180px] h-[180px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                            <Pie data={data} cx="50%" cy="50%" innerRadius="52%" outerRadius="78%" paddingAngle={3} dataKey="value" strokeWidth={0}>
-                                {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                            </Pie>
-                            <Tooltip formatter={(v) => [`${v}%`, '']} contentStyle={{ background: 'var(--card)', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 11 }} />
-                        </PieChart>
-                    </ResponsiveContainer>
-                    {/* Center label */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                        <Target className="w-5 h-5 text-emerald-500 mb-0.5" />
-                        <span className="text-[9px] font-black uppercase tracking-wider text-muted-foreground">Focus</span>
+        <div className="min-h-48 h-auto relative flex flex-col items-center justify-center p-4 sm:p-6">
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Focus Areas</p>
+            <div className="relative w-[180px] h-[180px]">
+                <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                        <Pie data={data} cx="50%" cy="50%" innerRadius="52%" outerRadius="78%" paddingAngle={3} dataKey="value" strokeWidth={0}>
+                            {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                        </Pie>
+                        <Tooltip formatter={(v) => [`${v}%`, '']} contentStyle={{ background: 'var(--card)', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 11 }} />
+                    </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <Target className="w-5 h-5 text-emerald-500 mb-0.5" />
+                    <span className="text-[9px] font-black uppercase tracking-wider text-muted-foreground">Focus</span>
+                </div>
+            </div>
+            <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-3">
+                {data.map((d, i) => (
+                    <div key={d.name} className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
+                        <span className="text-[10px] font-semibold text-muted-foreground">{d.name}</span>
+                        <span className="text-[10px] font-black" style={{ color: COLORS[i % COLORS.length] }}>{d.value}%</span>
                     </div>
-                </div>
-                {/* Subject legend below chart */}
-                <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-3">
-                    {data.map((d, i) => (
-                        <div key={d.name} className="flex items-center gap-1">
-                            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
-                            <span className="text-[10px] font-semibold text-muted-foreground">{d.name}</span>
-                            <span className="text-[10px] font-black" style={{ color: COLORS[i % COLORS.length] }}>{d.value}%</span>
-                        </div>
-                    ))}
-                </div>
-            </CardContent>
-        </Card>
+                ))}
+            </div>
+        </div>
     );
 }
 
