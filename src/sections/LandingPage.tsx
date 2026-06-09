@@ -1,14 +1,12 @@
 'use client';
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, type ComponentType } from 'react';
 import dynamic from 'next/dynamic';
-import { motion, useScroll, useTransform, useSpring, useInView, AnimatePresence } from 'framer-motion';
+import { motion, useSpring, useInView, AnimatePresence, useMotionValue } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import CrystalBackground from '@/components/ui/CrystalBackground';
 import { Card } from '@/components/ui/CardSwap';
-import EvilEye from '@/components/EvilEye';
 
 // Heavy graphics libs (three, gsap) — split into their own chunks
-const FloatingLines = dynamic(() => import('@/components/ui/FloatingLines'), { ssr: false });
+const OriginLogoBackground = dynamic(() => import('@/components/ui/OriginLogoBackground'), { ssr: false });
 const CardSwap = dynamic(() => import('@/components/ui/CardSwap'), { ssr: false });
 const SplitText = dynamic(() => import('@/components/ui/SplitText'), { ssr: false });
 const ScrollStack = dynamic(() => import('@/components/ui/ScrollStack'), { ssr: false });
@@ -100,13 +98,62 @@ const AnimatedCounter = ({ from, to, duration, inView }: { from: number; to: num
 
 function BookGallerySection({ ncertBooks }: { ncertBooks: { image: string; text: string }[] }) {
   const sectionRef = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ['start end', 'end start'],
-  });
-  // As the section scrolls into view (0→1) translate books from -40% to +10%
-  const x = useTransform(scrollYProgress, [0, 1], ['-38%', '8%']);
-  const smoothX = useSpring(x, { stiffness: 60, damping: 20 });
+  const trackRef = useRef<HTMLDivElement>(null);
+  // All mutable scroll state lives in a ref — no React re-renders inside the RAF loop
+  const stateRef = useRef({ x: 0, scrollBoost: 0, lastScroll: -1, singleWidth: 0 });
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+
+    const state = stateRef.current;
+    const BASE_SPEED = 0.55; // px per frame at ~60 fps
+    const BOOST_GAIN = 0.35; // how much each scroll-delta px contributes to boost
+    const BOOST_CAP = 9;     // max extra speed
+    const DECAY = 0.94;      // boost decay per frame
+
+    let raf: number;
+    const tick = () => {
+      state.scrollBoost = Math.max(0, state.scrollBoost * DECAY);
+      state.x -= BASE_SPEED + state.scrollBoost;
+      // Seamless loop: jump forward by one copy-width when we've scrolled past it
+      if (state.singleWidth > 0 && state.x <= -state.singleWidth) {
+        state.x += state.singleWidth;
+      }
+      track.style.transform = `translateX(${state.x}px)`;
+      raf = requestAnimationFrame(tick);
+    };
+
+    // Measure after the first paint when layout is ready
+    raf = requestAnimationFrame(() => {
+      // Track holds 3 identical copies → divide by 3 for one copy's width
+      state.singleWidth = track.scrollWidth / 3;
+      tick();
+    });
+
+    const handleScroll = () => {
+      const mainEl = document.querySelector('main');
+      const scrollTop = mainEl ? mainEl.scrollTop : window.scrollY;
+      if (state.lastScroll >= 0) {
+        const delta = Math.abs(scrollTop - state.lastScroll);
+        state.scrollBoost = Math.min(state.scrollBoost + delta * BOOST_GAIN, BOOST_CAP);
+      }
+      state.lastScroll = scrollTop;
+    };
+
+    const mainEl = document.querySelector('main');
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    if (mainEl) mainEl.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', handleScroll);
+      if (mainEl) mainEl.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  // Triple the array so the loop has plenty of runway before the reset jump
+  const loopBooks = [...ncertBooks, ...ncertBooks, ...ncertBooks];
 
   return (
     <section id="how-it-works" ref={sectionRef} className="py-28 lg:py-40 relative z-10 overflow-hidden">
@@ -122,13 +169,14 @@ function BookGallerySection({ ncertBooks }: { ncertBooks: { image: string; text:
         </motion.div>
       </div>
 
-      {/* Full-bleed horizontal scroll strip */}
-      <div className="overflow-hidden w-full py-4">
-        <motion.div
-          style={{ x: smoothX }}
-          className="flex gap-6 sm:gap-10 w-max pl-[10vw]"
+      {/* Full-bleed auto-scrolling marquee — always runs, faster when page scrolls */}
+      <div className="overflow-hidden w-full py-4 select-none">
+        <div
+          ref={trackRef}
+          className="flex gap-6 sm:gap-10 w-max"
+          style={{ willChange: 'transform' }}
         >
-          {ncertBooks.map((book, i) => (
+          {loopBooks.map((book, i) => (
             <div
               key={i}
               className="flex-shrink-0 w-40 sm:w-52 flex flex-col items-center gap-3 group"
@@ -137,6 +185,7 @@ function BookGallerySection({ ncertBooks }: { ncertBooks: { image: string; text:
                 <img
                   src={book.image}
                   alt={book.text}
+                  loading="lazy"
                   className="w-full h-full object-cover"
                   style={{ transform: 'translate3d(0,0,0)' }}
                 />
@@ -146,9 +195,63 @@ function BookGallerySection({ ncertBooks }: { ncertBooks: { image: string; text:
               </p>
             </div>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
+  );
+}
+
+interface FeatureItem {
+  icon: ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
+  video: string;
+}
+
+// Defined outside LandingPage so React sees a stable component reference on every render.
+// Defining it inside would create a new function on each parent state change, unmounting all cards.
+function FeatureCard({ feature }: { feature: FeatureItem }) {
+  return (
+    <div className="group relative bg-card/80 dark:bg-card/85 backdrop-blur-xl rounded-3xl border border-border/50 dark:border-white/10 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 overflow-hidden h-full flex flex-col">
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/60 via-primary to-primary/60 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="h-14 bg-gray-50/50 dark:bg-white/[0.01] border-b border-border/30 dark:border-white/10 flex items-center px-4 sm:px-6 gap-3 shrink-0">
+        <div className="flex gap-2">
+          <div className="w-3 h-3 rounded-full bg-red-400/60" />
+          <div className="w-3 h-3 rounded-full bg-amber-400/60" />
+          <div className="w-3 h-3 rounded-full bg-rose-400/60" />
+        </div>
+        <span className="text-[10px] font-black text-gray-500 dark:text-gray-400 ml-4 uppercase tracking-[0.2em] truncate">
+          {feature.title}
+        </span>
+      </div>
+      <div className="p-6 sm:p-8 flex flex-col justify-center items-start text-left h-full">
+        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br bg-primary/10 flex items-center justify-center mb-6 text-primary dark:text-primary/70 shadow-inner ring-1 ring-primary/20">
+          <feature.icon className="w-7 h-7" />
+        </div>
+        <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">
+          {feature.title}
+        </h3>
+        <p className="text-gray-600 dark:text-gray-300 leading-relaxed font-medium mb-6">
+          {feature.description}
+        </p>
+        <div className="w-full mt-auto rounded-xl overflow-hidden border border-border dark:border-white/10 bg-gray-100 dark:bg-white/[0.05] shadow-md group-hover:shadow-xl transition-all duration-500 relative h-32">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="none"
+            className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-700"
+            poster="/video-poster.jpg"
+          >
+            <source src={feature.video} type="video/mp4" />
+          </video>
+          <div className="absolute bottom-2 right-2 bg-white/80 dark:bg-black/60 backdrop-blur p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+            <Zap className="w-3 h-3 text-rose-500 animate-pulse" />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -171,6 +274,11 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [showStickyCTA, setShowStickyCTA] = useState(false);
+  const showStickyCTARef = useRef(false);
+
+  // Drives the video opacity on scroll — fades out over the first viewport height
+  const videoOpacity = useMotionValue(1);
+  const smoothVideoOpacity = useSpring(videoOpacity, { stiffness: 60, damping: 25 });
 
   const scrubVideoRef = useRef<HTMLVideoElement>(null);
   const prevXRef = useRef<number | null>(null);
@@ -408,7 +516,17 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
     const mainScroller = mainRef.current;
     const handleScroll = () => {
       const scrollTop = mainScroller ? mainScroller.scrollTop : window.scrollY;
-      setShowStickyCTA(scrollTop > 400);
+
+      // Gate setState to only fire when the boolean actually changes — avoids re-render on every scroll frame
+      const shouldShow = scrollTop > 400;
+      if (shouldShow !== showStickyCTARef.current) {
+        showStickyCTARef.current = shouldShow;
+        setShowStickyCTA(shouldShow);
+      }
+
+      // Fade the video out as user scrolls — fully gone after 1 viewport height
+      const fadeProgress = Math.min(scrollTop / window.innerHeight, 1);
+      videoOpacity.set(1 - fadeProgress);
     };
     if (mainScroller) {
       mainScroller.addEventListener('scroll', handleScroll, { passive: true });
@@ -422,7 +540,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         window.removeEventListener('scroll', handleScroll);
       }
     };
-  }, [mountedMain]);
+  }, [mountedMain, videoOpacity]);
 
   const features = [
     {
@@ -469,56 +587,6 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
     { value: 'Built for Results', label: 'Proven Framework' },
   ];
 
-  // Enhanced FeatureCard with nicer styling, borders, hover effects
-  const FeatureCard = ({ feature }: { feature: typeof features[0] }) => (
-    <div className="group relative bg-card/80 dark:bg-card/85 backdrop-blur-xl rounded-3xl border border-border/50 dark:border-white/10 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 overflow-hidden h-full flex flex-col">
-      {/* Gradient top line */}
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/60 via-primary to-primary/60 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-      
-      {/* Tab Header */}
-      <div className="h-14 bg-gray-50/50 dark:bg-white/[0.01] border-b border-border/30 dark:border-white/10 flex items-center px-4 sm:px-6 gap-3 shrink-0">
-        <div className="flex gap-2">
-          <div className="w-3 h-3 rounded-full bg-red-400/60" />
-          <div className="w-3 h-3 rounded-full bg-amber-400/60" />
-          <div className="w-3 h-3 rounded-full bg-rose-400/60" />
-        </div>
-        <span className="text-[10px] font-black text-gray-500 dark:text-gray-400 ml-4 uppercase tracking-[0.2em] truncate">
-          {feature.title}
-        </span>
-      </div>
-
-      {/* Card Content */}
-      <div className="p-6 sm:p-8 flex flex-col justify-center items-start text-left h-full">
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br bg-primary/10 flex items-center justify-center mb-6 text-primary dark:text-primary/70 shadow-inner ring-1 ring-primary/20">
-          <feature.icon className="w-7 h-7" />
-        </div>
-        <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">
-          {feature.title}
-        </h3>
-        <p className="text-gray-600 dark:text-gray-300 leading-relaxed font-medium mb-6">
-          {feature.description}
-        </p>
-
-        {/* Video Preview */}
-        <div className="w-full mt-auto rounded-xl overflow-hidden border border-border dark:border-white/10 bg-gray-100 dark:bg-white/[0.05] shadow-md group-hover:shadow-xl transition-all duration-500 relative h-32">
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-700"
-            poster="/video-poster.jpg"
-          >
-            <source src={feature.video} type="video/mp4" />
-          </video>
-          <div className="absolute bottom-2 right-2 bg-white/80 dark:bg-black/60 backdrop-blur p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
-            <Zap className="w-3 h-3 text-rose-500 animate-pulse" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <div className="min-h-dvh bg-background text-foreground selection:bg-primary/20 font-sans antialiased transition-colors duration-500 relative overflow-x-visible">
       {/* Background Layer: Light Theme – mouse-scrub controlled video */}
@@ -537,13 +605,11 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
           </video>
         </div>
       )}
-      {/* Fixed video background for dark mode - placed globally */}
+      {/* Dark mode video – fades out on scroll, revealing 3D logo below */}
       {mounted && actualTheme === 'dark' && (
         <motion.div
-          animate={isTransitioning ? { scale: 0.1, opacity: 0, filter: 'blur(10px)' } : { scale: 1, opacity: 1, filter: 'blur(0px)' }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          style={{ transformOrigin: '52% 75%' }}
-          className="fixed inset-0 w-full h-full z-0 pointer-events-none"
+          style={{ opacity: smoothVideoOpacity, willChange: 'opacity' }}
+          className="fixed inset-0 w-full h-full z-[2] pointer-events-none"
         >
           <video
             ref={videoRef}
@@ -558,15 +624,12 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         </motion.div>
       )}
 
-      {/* Hero Section Wrapper */}
-      <motion.div
-        animate={isTransitioning ? { scale: 0.95, opacity: 0, filter: 'blur(10px)' } : { scale: 1, opacity: 1, filter: 'blur(0px)' }}
-        transition={{ duration: 0.8, ease: 'easeOut' }}
-        className="relative min-h-dvh flex flex-col justify-between z-10 overflow-hidden"
-      >
+      {/* 3D logo background – z:0, always behind the video (z:1) and all content (z:10) */}
+      {mounted && actualTheme === 'dark' && <OriginLogoBackground />}
 
-        {/* Navigation – glassmorphic floating navbar */}
-        <nav className="relative z-50 flex flex-row justify-between items-center px-4 py-2.5 sm:px-6 md:px-8 md:py-4 max-w-7xl mx-auto w-[calc(100%-1rem)] sm:w-[calc(100%-2rem)] mt-3 sm:mt-6 rounded-full border border-black/5 dark:border-white/5 bg-white/20 dark:bg-white/[0.02] backdrop-blur-md shadow-[0_8px_32px_0_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
+      {/* Fixed Navbar – outside the hero motion.div so CSS fixed works across all sections */}
+      <div className="fixed top-0 left-0 right-0 z-50 pointer-events-none">
+        <nav className="pointer-events-auto relative flex flex-row justify-between items-center px-4 py-2.5 sm:px-6 md:px-8 md:py-4 max-w-7xl mx-auto w-[calc(100%-1rem)] sm:w-[calc(100%-2rem)] mt-3 sm:mt-6 rounded-full border border-black/5 dark:border-white/5 bg-white/20 dark:bg-white/[0.02] backdrop-blur-md shadow-[0_8px_32px_0_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
           <div className="flex items-center gap-1.5 sm:gap-3">
             <img src="/origin-new.jpg" alt="ORIGIN" className="h-7 w-auto sm:h-9 rounded-lg object-contain" />
             <span 
@@ -614,15 +677,16 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             </button>
           </div>
         </nav>
+      </div>
 
-        {/* Mobile Menu Overlay – smooth */}
-        {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed inset-0 z-40 bg-background/95 backdrop-blur-2xl flex flex-col items-center justify-center p-8 md:hidden"
-          >
+      {/* Mobile Menu Overlay – smooth */}
+      {mobileMenuOpen && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="fixed inset-0 z-40 bg-background/95 backdrop-blur-2xl flex flex-col items-center justify-center p-8 md:hidden"
+        >
             <div className="flex flex-col items-center gap-12 w-full max-w-sm">
               {navLinks.map((link) => (
                 <a
@@ -652,7 +716,14 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
               </div>
             </div>
           </motion.div>
-        )}
+      )}
+
+      {/* Hero Section Wrapper — filter only applied during the Begin Journey exit animation, never at rest */}
+      <motion.div
+        animate={isTransitioning ? { scale: 0.95, opacity: 0, filter: 'blur(10px)' } : { scale: 1, opacity: 1 }}
+        transition={{ duration: 0.8, ease: 'easeOut' }}
+        className="relative min-h-dvh flex flex-col justify-between z-10 overflow-hidden pt-[88px] sm:pt-[108px]"
+      >
 
         {/* Hero Section – cinematic and vertically centered */}
         <section ref={heroRef} className="relative z-10 flex flex-col items-center justify-center text-center px-6 flex-grow max-w-7xl mx-auto w-full py-8 sm:py-12">
@@ -744,7 +815,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
                       <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">{feature.title}</h3>
                       <p className="text-gray-600 dark:text-gray-300 leading-relaxed font-medium mb-6">{feature.description}</p>
                       <div className="w-full rounded-xl overflow-hidden border border-border dark:border-white/10 bg-gray-100 dark:bg-white/[0.05] relative h-32">
-                        <video autoPlay loop muted playsInline className="w-full h-full object-cover" poster="/video-poster.jpg">
+                        <video autoPlay loop muted playsInline preload="none" className="w-full h-full object-cover" poster="/video-poster.jpg">
                           <source src={feature.video} type="video/mp4" />
                         </video>
                       </div>
