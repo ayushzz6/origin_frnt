@@ -127,8 +127,6 @@ export default function OriginLogoBackground({ motionOpacity }: { motionOpacity?
       })
       .then(text => {
         const geo = parsePLYVertices(text);
-        const verts = geo.getAttribute('position').count;
-        console.info(`[OriginLogoBackground] loaded ${verts.toLocaleString()} vertices`);
 
         const mat = new THREE.ShaderMaterial({
           uniforms: { uTime: { value: 0 } },

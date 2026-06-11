@@ -16,7 +16,6 @@ const limiter = redis
   : null;
 
 const MAX_QUESTION_LEN = 500;
-const MAX_TOKENS = 600;
 
 // Profanity / PII guard (simple keyword list — expand as needed)
 const BLOCKED_PATTERNS = [/\b(fuck|shit|porn|nude|kill|hack)\b/i, /\b\d{10,}\b/, /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i];
@@ -55,14 +54,14 @@ export async function POST(req: NextRequest) {
   }
 
   const question = (body.question ?? '').trim().slice(0, MAX_QUESTION_LEN);
-  if (!question || question.length < 10) {
+  if (!question || question.length < 5) {
     return NextResponse.json({ error: 'Question too short' }, { status: 400 });
   }
   if (isBlocked(question)) {
     return NextResponse.json({ error: 'Invalid question content' }, { status: 400 });
   }
 
-  // Rate limit by IP: 1 solve per IP per 24h
+  // Rate limit by IP: 8 solves per IP per week (matches client 5 text + 3 voice)
   const ip =
     req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     req.headers.get('x-real-ip') ||
@@ -72,34 +71,53 @@ export async function POST(req: NextRequest) {
     const { success } = await limiter.limit(`ip:${ip}`);
     if (!success) {
       return NextResponse.json(
-        { error: 'Daily limit reached. Create a free account for unlimited solves.' },
+        { error: 'Weekly preview limit reached. Create a free account for unlimited solves.' },
         { status: 429 }
       );
     }
   }
 
-  // Try real origin-ai service
+  // Connect to the SAME real pipeline the in-app Doubt Solver uses
+  // (POST /api/v1/chat/message → run_pipeline: knowledge-base retrieval +
+  // provider generation). The service trusts any forwarded user id as long as
+  // the service token matches, so we forward a stable per-visitor guest id.
+  // Memory stays scoped to that guest (bounded — the IP is rate-limited to a
+  // handful of calls per week) and is never mixed with real student data.
   const serviceUrl = process.env.ORIGIN_AI_SERVICE_URL;
-  if (serviceUrl) {
+  const serviceToken = process.env.ORIGIN_AI_SERVICE_TOKEN;
+  if (serviceUrl && serviceToken) {
     try {
-      const resp = await fetch(`${serviceUrl}/v1/public/demo-solve`, {
+      const guestId = `landing-demo:${ip}`;
+      const resp = await fetch(`${serviceUrl}/api/v1/chat/message`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.ORIGIN_AI_SERVICE_TOKEN ?? ''}`,
+          Authorization: `Bearer ${serviceToken}`,
+          'X-Origin-User-Id': guestId,
+          'X-Origin-User-Name': 'Guest',
+          'X-Origin-User-Email': '',
+          'X-Origin-User-Role': 'student',
+          'X-Origin-User-Streak': '0',
         },
-        body: JSON.stringify({ question, max_tokens: MAX_TOKENS, mode: 'public_demo' }),
-        signal: AbortSignal.timeout(15_000),
+        body: JSON.stringify({
+          message: question,
+          pageContext: { pathname: '/', pageKind: 'doubt_solver' },
+          highlightedText: null,
+          threadId: null,
+        }),
+        signal: AbortSignal.timeout(30_000),
       });
       if (resp.ok) {
-        const data = await resp.json();
-        return NextResponse.json({ answer: data.answer ?? FALLBACK_ANSWER });
+        const data = (await resp.json()) as { answer?: string };
+        if (data.answer && data.answer.trim()) {
+          return NextResponse.json({ answer: data.answer });
+        }
       }
     } catch {
       // fall through to fallback
     }
   }
 
-  // Fallback: return curated demo answer
+  // Fallback: return curated demo answer when the service is unreachable
   return NextResponse.json({ answer: FALLBACK_ANSWER });
 }
