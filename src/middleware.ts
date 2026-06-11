@@ -143,7 +143,9 @@ export async function middleware(request: NextRequest) {
   if (
     isApi &&
     !SAFE_METHODS.has(request.method.toUpperCase()) &&
-    !CSRF_EXEMPT_API_PATHS.has(pathname)
+    !CSRF_EXEMPT_API_PATHS.has(pathname) &&
+    // /api/public/* routes are unauthenticated; they have no session cookie so CSRF is meaningless
+    !pathname.startsWith('/api/public/')
   ) {
     const csrfCookie = request.cookies.get(CSRF_COOKIE_NAME)?.value;
     const csrfHeader = request.headers.get("x-csrf-token");

@@ -104,7 +104,6 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "agentation": "^3.0.2",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/downloadjs": "^1.4.6",
@@ -113,9 +112,11 @@
     "@types/pg": "^8.20.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "agentation": "^3.0.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
     "fast-check": "^4.8.0",
+    "prettier-plugin-tailwindcss": "^0.8.0",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5"

@@ -3,19 +3,27 @@ import { useRef, useEffect, useState, type ComponentType } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, useSpring, useInView, AnimatePresence, useMotionValue } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/CardSwap';
+import SmoothScroll from '@/components/providers/SmoothScroll';
+import LiveCounter from '@/components/landing/LiveCounter';
+import ActivityTicker from '@/components/landing/ActivityTicker';
+import NoiseOverlay from '@/components/landing/NoiseOverlay';
+import { useTypewriter } from '@/hooks/useTypewriter';
 
-// Heavy graphics libs (three, gsap) — split into their own chunks
+// Heavy/below-fold — all split into their own chunks
 const OriginLogoBackground = dynamic(() => import('@/components/ui/OriginLogoBackground'), { ssr: false });
-const CardSwap = dynamic(() => import('@/components/ui/CardSwap'), { ssr: false });
+const TryOriginAI = dynamic(() => import('@/components/landing/TryOriginAI'), { ssr: false });
+const RankPredictor = dynamic(() => import('@/components/landing/RankPredictor'), { ssr: false });
+const NumbersWall = dynamic(() => import('@/components/landing/NumbersWall'), { ssr: false });
+const StreakPreview = dynamic(() => import('@/components/landing/StreakPreview'), { ssr: false });
+const TopperWall = dynamic(() => import('@/components/landing/TopperWall'), { ssr: false });
+const TeacherFlipCard = dynamic(() => import('@/components/landing/TeacherFlipCard'), { ssr: false });
+const ManifestoReveal = dynamic(() => import('@/components/landing/ManifestoReveal'), { ssr: false });
+const CustomCursor = dynamic(() => import('@/components/landing/CustomCursor'), { ssr: false });
 const SplitText = dynamic(() => import('@/components/ui/SplitText'), { ssr: false });
-const ScrollStack = dynamic(() => import('@/components/ui/ScrollStack'), { ssr: false });
-const ScrollStackItem = dynamic(() => import('@/components/ui/ScrollStack').then(mod => mod.ScrollStackItem), { ssr: false });
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import {
-  Zap,
   Menu,
   X,
   Sparkles,
@@ -226,25 +234,9 @@ function FeatureCard({ feature }: { feature: FeatureItem }) {
         <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">
           {feature.title}
         </h3>
-        <p className="text-gray-600 dark:text-gray-300 leading-relaxed font-medium mb-6">
+        <p className="text-gray-600 dark:text-gray-300 leading-relaxed font-medium">
           {feature.description}
         </p>
-        <div className="w-full mt-auto rounded-xl overflow-hidden border border-border dark:border-white/10 bg-gray-100 dark:bg-white/[0.05] shadow-md group-hover:shadow-xl transition-all duration-500 relative h-32">
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            preload="none"
-            className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-700"
-            poster="/video-poster.jpg"
-          >
-            <source src={feature.video} type="video/mp4" />
-          </video>
-          <div className="absolute bottom-2 right-2 bg-white/80 dark:bg-black/60 backdrop-blur p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
-            <Zap className="w-3 h-3 text-rose-500 animate-pulse" />
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -260,9 +252,9 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
   const { user } = useAuth();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const { text: typewriterText, isTyping } = useTypewriter();
   const actualTheme = mounted ? resolvedTheme : (theme === 'system' ? 'dark' : theme);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const [regStatus, setRegStatus] = useState<{ count: number; limit: number; seatsLeft: number } | null>(null);
   const counterRef = useRef<HTMLDivElement>(null);
   const isCounterInView = useInView(counterRef, { once: true, amount: 0.5 });
@@ -378,94 +370,6 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
     { image: '/images/ncert/Mathematics-class-12-part-1.png', text: 'Maths Class 12 & Exemplar' }
   ];
 
-  const appFeatures = [
-    {
-      image: '/images/app-features/Origin-bot-emotional.png',
-      iconImg: '/iconsax/Ai-Icon.png',
-      category: 'AI Mentor',
-      title: 'Origin AI Mentor & Support',
-      description: 'Your 24/7 emotionally intelligent companion built to understand your mood, identify learning friction points, and explain micro-concepts adaptively. It keeps you inspired and clear-headed.',
-      audience: 'Student Interface'
-    },
-    {
-      image: '/images/app-features/Focus-timer.png',
-      category: 'Productivity',
-      title: 'Integrated Pomodoro Engine',
-      description: 'Block out distractions and build perfect flow states. Track your direct study hours with scientifically-proven session intervals and rest blocks optimized for rigorous preps.',
-      audience: 'Student Interface'
-    },
-    {
-      image: '/images/app-features/Global-Ranking.png',
-      category: 'Competition',
-      title: 'Real-time Leaderboards & Stats',
-      description: 'Gauge your performance against top national rankers daily. See precise global percentiles, accurate subject accuracy curves, and absolute velocity scores updated instantly.',
-      audience: 'Student Interface'
-    },
-    {
-      image: '/images/app-features/OG-code-to-Practice.png',
-      category: 'Coding & Practice',
-      title: 'OGCode Practice Environment',
-      description: 'Convert conceptual physics or maths logic directly into interactive sandbox challenges. Solve code-driven logic boards that establish structural thinking.',
-      audience: 'Student Interface'
-    },
-    {
-      image: '/images/app-features/Origin-testing-Agency.png',
-      category: 'Evaluation',
-      title: 'Origin Testing Agency',
-      description: 'Engage in full-length custom mock assessments built dynamically to mimic real NTA templates. Get immediate failure reviews, predictive AIR metrics, and concept gap diagnostics.',
-      audience: 'Student Interface'
-    },
-    {
-      image: '/images/app-features/Peronalized-dpp-generation.png',
-      category: 'Practice Engine',
-      title: 'Personalized DPP Generation',
-      description: 'Never solve generic question sheets again. Our AI analyzes your mock mistakes and generates customized Daily Practice Problems matching your unique concept friction points.',
-      audience: 'Student Interface'
-    },
-    {
-      image: '/images/app-features/Room-feature.png',
-      category: 'Collaboration',
-      title: 'Interactive Study Rooms',
-      description: 'Join real-time, interactive virtual study rooms. Solve challenges alongside classmates, exchange immediate chat notes, share code snippets, and sync up on collective mock sprints.',
-      audience: 'Student Interface'
-    },
-    {
-      image: '/images/app-features/books-study-notes.png',
-      category: 'Resource Hub',
-      title: 'Study Notes & Reference Vault',
-      description: 'Access hyper-precise summary blueprints, structured micro-concepts, and formulas cross-referenced directly from gold standards like NCERT, HC Verma, and Irodov.',
-      audience: 'Student Interface'
-    },
-    {
-      image: '/images/app-features/teacher/Live-test.png',
-      category: 'Teacher Operating System',
-      title: 'Live Batch Mock Control',
-      description: 'Deploy live custom tests to multiple student batches instantaneously. Monitor student solve speed, check ongoing accuracy spreads, and spot struggling students live.',
-      audience: 'Teacher Interface'
-    },
-    {
-      image: '/images/app-features/teacher/Syallabus-compliton-tracker.png',
-      category: 'Teacher Operating System',
-      title: 'Syllabus Mastery Map',
-      description: 'Track overall batch coverage and subject syllabus percentiles dynamically. Pinpoint exactly which topics have low collective mastery and adjust future lecture blocks.',
-      audience: 'Teacher Interface'
-    },
-    {
-      image: '/images/app-features/teacher/Teacher-Batch.png',
-      category: 'Teacher Operating System',
-      title: 'Cohort Performance Analytics',
-      description: 'Organize hundreds of students into performance cohorts. Dive deep into individual growth metrics, parent reports, and batch engagement distributions on one dashboard.',
-      audience: 'Teacher Interface'
-    },
-    {
-      image: '/images/app-features/teacher/Teacher-question.png',
-      category: 'Teacher Operating System',
-      title: 'Infinite Question Pool Builder',
-      description: 'Construct proprietary class tests using the AI-assisted problem importer. Auto-parse hand-written sheets or PDFs and tag them with precise subjects, chapters, and difficulty levels in seconds.',
-      audience: 'Teacher Interface'
-    }
-  ];
-
   const handleNavLinkClick = (e: React.MouseEvent, path: string, isPremiumLink: boolean) => {
     e.preventDefault();
     if (!user) {
@@ -493,10 +397,6 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
 
   useEffect(() => {
     setMounted(true);
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   const mainRef = useRef<HTMLElement | null>(null);
@@ -584,6 +484,9 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
   ];
 
   return (
+    <SmoothScroll>
+    <NoiseOverlay />
+    <CustomCursor />
     <div className="min-h-dvh bg-background text-foreground selection:bg-primary/20 font-sans antialiased transition-colors duration-500 relative overflow-x-visible">
       {/* Background Layer: Light Theme – mouse-scrub controlled video */}
       {mounted && actualTheme === 'light' && (
@@ -723,33 +626,59 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
 
         {/* Hero Section – cinematic and vertically centered */}
         <section ref={heroRef} className="relative z-10 flex flex-col items-center justify-center text-center px-6 flex-grow max-w-7xl mx-auto w-full py-8 sm:py-12">
+
+          {/* Eyebrow label */}
+          <motion.div
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="mb-6 inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/5 backdrop-blur-sm"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-[0.35em] text-primary/90">
+              Where Excellence Is Born
+            </span>
+          </motion.div>
+
+          {/* Logo image + tagline block */}
           <div className="w-full max-w-[1076px] flex flex-col">
             <motion.img
               src="/Origin-Name.png"
               alt="Origin"
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
-              className="w-full h-[240px] sm:h-[300px] object-contain drop-shadow-[0_4px_24px_rgba(0,102,255,0.25)]"
+              initial={{ opacity: 0, y: 40, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+              className="w-full h-[200px] sm:h-[220px] object-contain drop-shadow-[0_8px_40px_rgba(0,102,255,0.35)]"
             />
+
           </div>
 
+          {/* Live student counter */}
+          <LiveCounter />
+
+          {/* CTA Button — glassmorphism + shimmer */}
           <motion.button
             onClick={handleBeginJourney}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.6, ease: 'easeOut' }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.97 }}
-            className="relative mt-12 cursor-pointer group"
+            transition={{ delay: 0.7, duration: 0.6, ease: 'easeOut' }}
+            whileHover={{ scale: 1.04, y: -2 }}
+            whileTap={{ scale: 0.96 }}
+            data-cursor="cta"
+            className="relative mt-12 cursor-pointer group overflow-hidden rounded-full"
           >
-            {/* Pulsing ring */}
-            <span className="absolute inset-0 rounded-full bg-primary/40 animate-ping opacity-60 group-hover:opacity-0 transition-opacity" />
-            <span className="relative flex items-center gap-3 px-10 py-4 sm:px-14 sm:py-5 rounded-full bg-primary text-primary-foreground text-sm sm:text-base font-black uppercase tracking-widest shadow-2xl shadow-primary/40 border border-primary/30">
+            {/* Glow ring */}
+            <span className="absolute inset-0 rounded-full bg-primary/30 blur-xl scale-110 opacity-0 group-hover:opacity-100 transition-all duration-500" />
+            {/* Shimmer sweep */}
+            <span className="absolute inset-0 rounded-full overflow-hidden">
+              <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+            </span>
+            <span className="relative flex items-center gap-3 px-10 py-4 sm:px-14 sm:py-5 rounded-full bg-primary/90 backdrop-blur-sm text-white text-sm sm:text-base font-black uppercase tracking-widest shadow-[0_0_40px_rgba(0,102,255,0.5)] border border-white/20">
               Begin Journey
-              <Sparkles className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+              <Sparkles className="w-4 h-4 group-hover:rotate-12 group-hover:scale-110 transition-transform duration-300" />
             </span>
           </motion.button>
+
         </section>
 
         {/* Stats row with subtle hover at the bottom of the first page viewport */}
@@ -766,8 +695,24 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
               </div>
             ))}
           </motion.div>
+
+          {/* Live activity ticker — Act 2: FOMO + social proof */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.1, duration: 0.8 }}
+            className="mt-4 border-t border-white/[0.06] w-full"
+          >
+            <ActivityTicker />
+          </motion.div>
         </div>
       </motion.div>
+
+      {/* Manifesto Reveal — second screen, right after hero */}
+      <ManifestoReveal onBeginJourney={handleBeginJourney} />
+
+      {/* Rank Predictor — immediately after manifesto */}
+      <RankPredictor />
 
       {/* Features Section - Responsive: Rotating cards on desktop, grid on mobile */}
       <section id="features" className="py-28 lg:py-36 relative z-10 overflow-x-hidden">
@@ -779,138 +724,30 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             </h1>
           </motion.div>
 
-          {isMobile ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-              {features.map((feature, idx) => <FeatureCard key={idx} feature={feature} />)}
-            </div>
-          ) : (
-            <div className="flex justify-center items-center min-h-[520px] w-full relative">
-              <CardSwap className="relative !transform-none !bottom-auto !right-auto mx-auto" width="520px" height="520px" verticalDistance={40} pauseOnHover={true}>
-                {features.map((feature, index) => (
-                  <Card key={index} className="bg-white/90 dark:bg-card/95 backdrop-blur-xl rounded-3xl border border-border/70 dark:border-white/10 shadow-2xl overflow-hidden">
-                    <div className="h-14 bg-gray-50/80 dark:bg-white/[0.02] border-b border-border/50 dark:border-white/10 flex items-center px-6 gap-3">
-                      <div className="flex gap-2">
-                        <div className="w-3 h-3 rounded-full bg-red-400/60" />
-                        <div className="w-3 h-3 rounded-full bg-amber-400/60" />
-                        <div className="w-3 h-3 rounded-full bg-rose-400/60" />
-                      </div>
-                      <span className="text-[10px] font-black text-gray-500 dark:text-gray-400 ml-4 uppercase tracking-[0.2em] truncate">{feature.title}</span>
-                    </div>
-                    <div className="p-8 flex flex-col justify-center items-start h-full">
-                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br bg-primary/10 flex items-center justify-center mb-6 text-primary dark:text-primary/70">
-                        <feature.icon className="w-7 h-7" />
-                      </div>
-                      <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">{feature.title}</h3>
-                      <p className="text-gray-600 dark:text-gray-300 leading-relaxed font-medium mb-6">{feature.description}</p>
-                      <div className="w-full rounded-xl overflow-hidden border border-border dark:border-white/10 bg-gray-100 dark:bg-white/[0.05] relative h-32">
-                        <video autoPlay loop muted playsInline preload="none" className="w-full h-full object-cover" poster="/video-poster.jpg">
-                          <source src={feature.video} type="video/mp4" />
-                        </video>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </CardSwap>
-            </div>
-          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {features.map((feature, idx) => <FeatureCard key={idx} feature={feature} />)}
+          </div>
         </div>
       </section>
+
+      {/* Act 5 — Numbers Wall */}
+      <NumbersWall />
+
+      {/* Act 3 — Interactive AI Demo */}
+      <TryOriginAI />
 
       {/* Immersive Book Gallery Section */}
       <BookGallerySection ncertBooks={ncertBooks} />
 
-      {/* Immersive ScrollStack App Features Section */}
-      <section id="app-features-stack" className="py-28 lg:py-40 relative z-10 overflow-visible bg-gradient-to-b from-transparent via-slate-50/50 to-transparent dark:via-slate-950/20">
-        <div className="max-w-7xl mx-auto px-6 mb-16 text-center">
-          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: "easeOut" }} viewport={{ once: true }} className="space-y-4">
-            <h2 className="text-[10px] font-black text-primary tracking-[0.5em] uppercase">Ecosystem Walkthrough</h2>
-            <h1 className="text-5xl sm:text-7xl font-black text-gray-900 dark:text-white tracking-tighter">
-              Explore the <span className="bg-gradient-to-r from-primary via-primary/90 to-primary bg-clip-text text-transparent">ORIGIN Stack.</span>
-            </h1>
-            <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto font-medium">
-              A comprehensive walkthrough of specialized tools built for extreme student performance and complete teacher batch control.
-            </p>
-          </motion.div>
-        </div>
 
-        <div className="w-full px-[5%] sm:px-[5%] lg:px-[5%]">
-          <ScrollStack 
-            useWindowScroll={true} 
-            itemDistance={140} 
-            itemScale={0.02}
-            itemStackDistance={0} 
-            stackPosition="10%"
-            baseScale={0.92}
-            blurAmount={1}
-          >
-            {appFeatures.map((feat, idx) => {
-              const isBotEmotional = feat.image === '/images/app-features/Origin-bot-emotional.png';
-              
-              if (isBotEmotional) {
-                return (
-                  <ScrollStackItem 
-                    key={idx} 
-                    itemClassName="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-border/50 dark:border-white/5 shadow-2xl p-3 sm:p-5 flex flex-col items-center justify-center"
-                  >
-                    {/* Full card image to show text clearly */}
-                    <div className="w-full h-full rounded-[30px] overflow-hidden bg-gray-50/30 dark:bg-white/[0.01] flex items-center justify-center relative p-1 shadow-inner group">
-                      <img 
-                        src={feat.image} 
-                        alt={feat.title} 
-                        style={{ transform: 'translate3d(0, 0, 0)', backfaceVisibility: 'hidden' }}
-                        className="w-full h-full object-contain rounded-2xl shadow-sm transition-transform duration-500 will-change-transform" 
-                      />
-                    </div>
-                  </ScrollStackItem>
-                );
-              }
+      {/* Act 8 — Streak Preview (gamification hook) */}
+      <StreakPreview />
 
-              return (
-                <ScrollStackItem 
-                  key={idx} 
-                  itemClassName="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-border/50 dark:border-white/5 shadow-2xl flex flex-col gap-2.5 sm:gap-4 items-center p-3 sm:p-6"
-                >
-                  {/* Image Block (Top) */}
-                  <div className="w-full h-[40vh] sm:h-auto sm:flex-[2] min-h-0 rounded-2xl overflow-hidden border border-border/40 dark:border-white/5 bg-gray-50/30 dark:bg-white/[0.01] flex items-center justify-center relative p-2 shadow-inner group">
-                    <img 
-                      src={feat.image} 
-                      alt={feat.title} 
-                      style={{ transform: 'translate3d(0, 0, 0)', backfaceVisibility: 'hidden' }}
-                      className="max-w-full max-h-full object-contain rounded-xl shadow-md group-hover:scale-[1.01] transition-transform duration-500 will-change-transform" 
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/[0.02] via-transparent to-transparent pointer-events-none" />
-                  </div>
+      {/* Act 7 — Topper Wall */}
+      <TopperWall />
 
-                  {/* Text/Explanation Block (Below) */}
-                  <div className="w-full flex-[0] shrink-0 space-y-2 text-left">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-[9px] font-black uppercase tracking-widest">
-                      {(feat as { iconImg?: string }).iconImg
-                        ? <img src={(feat as { iconImg?: string }).iconImg} alt="" className="w-4 h-4 object-contain" />
-                        : <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />}
-                      {feat.category}
-                    </div>
-                    
-                    <h3 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight leading-none">
-                      {feat.title}
-                    </h3>
-                    
-                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 leading-relaxed font-medium">
-                      {feat.description}
-                    </p>
-                    
-                    <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
-                      <span>Target:</span>
-                      <span className="text-gray-800 dark:text-gray-200 border-b border-primary/30 pb-0.5">
-                        {feat.audience}
-                      </span>
-                    </div>
-                  </div>
-                </ScrollStackItem>
-              );
-            })}
-          </ScrollStack>
-        </div>
-      </section>
+      {/* Act 6.5 — Teacher Flip Card */}
+      <TeacherFlipCard />
 
       {/* Testimonials – nicer counter and CTA */}
       <section className="py-28 lg:py-40 relative z-10 overflow-hidden">
@@ -920,13 +757,6 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
               Trusted by the <br />
               <span className="bg-gradient-to-r from-primary via-primary/90 to-primary bg-clip-text text-transparent">Top 1%.</span>
             </h2>
-            <p className="text-xl sm:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto font-black leading-relaxed tracking-tight uppercase">
-              <span className="text-primary text-5xl sm:text-7xl md:text-8xl block mb-5 font-black tabular-nums">
-                <AnimatedCounter from={1} to={12620} duration={10} inView={isCounterInView} />+
-              </span>
-              QUESTIONS To Practice FROM NCERT, PYQS, AND Famous Books for JEE and NEET Preparation
-            </p>
-
             <motion.a
               href="https://chat.whatsapp.com/BBwpKNeiCypGzeVMwsw9ns?mode=gi_t"
               target="_blank"
@@ -992,33 +822,6 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         </div>
       </section>
 
-      {/* Final CTA – elegant */}
-      <section className="py-28 lg:py-36 relative z-10 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-rose-100 via-indigo-50 to-rose-100 dark:from-blue-950/20 dark:via-indigo-950/20 dark:to-blue-950/20 -z-10 blur-3xl" />
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} viewport={{ once: true }} className="space-y-10">
-            <h2 className="text-6xl sm:text-8xl lg:text-9xl font-black text-gray-900 dark:text-white tracking-tighter leading-[0.9] mb-8">
-              REWRITE YOUR <br />
-              <span className="bg-gradient-to-r from-primary via-primary/90 to-primary bg-clip-text text-transparent">STORY.</span>
-              </h2>
-            <div className="flex flex-col items-center gap-6">
-              <div className="bg-primary/10 dark:bg-primary/5 border border-primary/20 dark:border-primary/30 px-6 py-2 rounded-full">
-                <p className="text-sm font-black tracking-[0.2em] text-primary uppercase animate-pulse">
-                  {regStatus ? `⚠️ ${regStatus.seatsLeft > 0 ? `Only ${regStatus.seatsLeft} Seats Left` : 'Capacity Reached'}` : '⚠️ Limited Seats Remaining'}
-                </p>
-              </div>
-              <Button onClick={handleBeginJourney} className="bg-primary hover:opacity-90 text-primary-foreground rounded-full px-14 py-8 text-2xl font-black shadow-2xl shadow-primary/30 transition-all duration-300 hover:scale-105 group">
-                Try Origin Now
-                <Zap className="w-7 h-7 ml-3 group-hover:rotate-12 transition-transform" />
-              </Button>
-              <p className="text-lg sm:text-xl text-gray-500 dark:text-gray-400 font-black tracking-tight uppercase">
-                Join Success journey with <span className="text-gray-900 dark:text-white border-b-4 border-primary/50">O3 Origin</span>
-              </p>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
       {/* Footer */}
       <footer className="py-10 relative z-10 border-t border-border/50 dark:border-white/10 bg-background/50 dark:bg-card/30 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center md:items-end justify-between gap-8">
@@ -1068,5 +871,6 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         )}
       </AnimatePresence>
     </div>
+    </SmoothScroll>
   );
 }

@@ -1,6 +1,26 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { Inter, Syne, Instrument_Serif } from "next/font/google";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
+});
+
+const syne = Syne({
+  subsets: ["latin"],
+  variable: "--font-heading",
+  display: "swap",
+});
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  variable: "--font-display",
+  weight: "400",
+  display: "swap",
+});
 import AgentationLoader from "@/components/layout/AgentationLoader";
 import "katex/dist/katex.min.css";
 import { AuthProvider } from "@/context/AuthContext";
@@ -56,11 +76,8 @@ export default function RootLayout({
   // student "Connect" nav entry so it mirrors the server `teacherConnect` gate.
   const connectEnabled = isFeatureEnabled("teacherConnect");
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <link href="https://db.onlinewebfonts.com/c/5ac3fe7c6abd2f62067f266d89671492?family=HelveticaNowDisplay-Medium" rel="stylesheet" type="text/css" />
-        <link href="https://db.onlinewebfonts.com/c/1aa3377e489837a26d019bba501e779d?family=HelveticaNowDisplayW01-Rg" rel="stylesheet" type="text/css" />
-      </head>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${syne.variable} ${instrumentSerif.variable}`}>
+      <head />
       <body className="antialiased" suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
