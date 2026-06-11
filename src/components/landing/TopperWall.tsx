@@ -72,7 +72,7 @@ function MiniHeatmap({ days }: { days: number }) {
       {cells.map((active, i) => (
         <div
           key={i}
-          className={`h-1.5 rounded-[1px] ${active ? 'bg-primary/60' : 'bg-white/[0.06]'}`}
+          className={`h-1.5 rounded-[1px] ${active ? 'bg-primary/60' : 'bg-gray-100 dark:bg-white/[0.06]'}`}
         />
       ))}
     </div>
@@ -82,30 +82,30 @@ function MiniHeatmap({ days }: { days: number }) {
 function Card({ topper }: { topper: TopperCard }) {
   return (
     <div
-      className={`flex-none w-72 sm:w-80 rounded-2xl border border-white/10 bg-gradient-to-br ${topper.accentColor} backdrop-blur-sm p-6 space-y-4 select-none`}
+      className={`flex-none w-72 sm:w-80 rounded-2xl border border-black/10 dark:border-white/10 bg-gradient-to-br ${topper.accentColor} backdrop-blur-sm p-6 space-y-4 select-none`}
     >
       {/* Avatar + name */}
       <div className="flex items-center gap-3">
         {/* Placeholder for real photo */}
-        <div className="w-12 h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center relative overflow-hidden flex-none">
-          <span className="text-base font-black text-white/70">{topper.initials}</span>
+        <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-white/10 border border-black/20 dark:border-white/20 flex items-center justify-center relative overflow-hidden flex-none">
+          <span className="text-base font-black text-gray-700 dark:text-white/70">{topper.initials}</span>
           {/* Tooltip-style photo note on hover */}
           <div className="absolute inset-0 bg-black/70 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200 rounded-full p-1">
-            <span className="text-[7px] text-white/70 text-center leading-tight">{topper.photoNote.slice(0, 30)}…</span>
+            <span className="text-[7px] text-gray-700 dark:text-white/70 text-center leading-tight">{topper.photoNote.slice(0, 30)}…</span>
           </div>
         </div>
         <div>
-          <p className="font-black text-white text-sm">{topper.name}</p>
+          <p className="font-black text-gray-900 dark:text-white text-sm">{topper.name}</p>
           <p className="text-[10px] text-primary font-bold uppercase tracking-wider">{topper.detail}</p>
         </div>
       </div>
 
       {/* Quote */}
-      <p className="text-xs text-white/70 leading-relaxed font-medium italic">{topper.quote}</p>
+      <p className="text-xs text-gray-700 dark:text-white/70 leading-relaxed font-medium italic">{topper.quote}</p>
 
       {/* Streak heatmap */}
       <div className="space-y-1.5">
-        <div className="flex items-center justify-between text-[9px] text-white/30 font-semibold uppercase tracking-wider">
+        <div className="flex items-center justify-between text-[9px] text-gray-500 dark:text-white/30 font-semibold uppercase tracking-wider">
           <span>Streak calendar</span>
           <span>🔥 {topper.streakDays} days</span>
         </div>
@@ -130,8 +130,8 @@ export default function TopperWall() {
           className="text-center"
         >
           <span className="text-[10px] font-black text-primary tracking-[0.4em] uppercase block mb-4">Founding Batch</span>
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-gray-900 dark:text-white tracking-tighter mb-3">
-            Built by toppers,{' '}
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter mb-3">
+            <span className="text-outline">Built by toppers,</span>{' '}
             <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">for toppers.</span>
           </h2>
           <p className="text-gray-500 dark:text-gray-400 text-sm font-medium max-w-xl mx-auto">

@@ -1,7 +1,7 @@
 'use client';
 import { useRef, useEffect, useState, type ComponentType } from 'react';
 import dynamic from 'next/dynamic';
-import { motion, useSpring, useInView, AnimatePresence, useMotionValue } from 'framer-motion';
+import { motion, useSpring, useInView, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import SmoothScroll from '@/components/providers/SmoothScroll';
 import LiveCounter from '@/components/landing/LiveCounter';
@@ -18,6 +18,7 @@ const StreakPreview = dynamic(() => import('@/components/landing/StreakPreview')
 const TopperWall = dynamic(() => import('@/components/landing/TopperWall'), { ssr: false });
 const TeacherFlipCard = dynamic(() => import('@/components/landing/TeacherFlipCard'), { ssr: false });
 const ManifestoReveal = dynamic(() => import('@/components/landing/ManifestoReveal'), { ssr: false });
+const SplineScene = dynamic(() => import('@/components/ui/splite').then(m => ({ default: m.SplineScene })), { ssr: false });
 const CustomCursor = dynamic(() => import('@/components/landing/CustomCursor'), { ssr: false });
 const SplitText = dynamic(() => import('@/components/ui/SplitText'), { ssr: false });
 import { useTheme } from 'next-themes';
@@ -26,7 +27,6 @@ import { useRouter } from 'next/navigation';
 import {
   Menu,
   X,
-  Sparkles,
   ChevronRight,
   CheckCircle2,
   Sun,
@@ -163,10 +163,10 @@ function BookGallerySection({ ncertBooks }: { ncertBooks: { image: string; text:
       <div className="max-w-7xl mx-auto px-6">
         <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: 'easeOut' }} viewport={{ once: true }} className="text-center mb-16">
           <h2 className="text-[10px] font-black text-primary tracking-[0.5em] uppercase mb-6">Our Knowledge Base</h2>
-          <h1 className="text-6xl sm:text-7xl lg:text-8xl font-black text-gray-900 dark:text-white mb-6 tracking-tighter">
-            Trained on <span className="bg-gradient-to-r from-primary via-primary/90 to-primary bg-clip-text text-transparent">Gold Standards.</span>
+          <h1 className="text-6xl sm:text-7xl lg:text-8xl font-black mb-6 tracking-tighter">
+            <span className="text-outline">Trained on</span>{' '}<span className="bg-gradient-to-r from-primary via-primary/90 to-primary bg-clip-text text-transparent">Gold Standards.</span>
           </h1>
-          <p className="text-xl sm:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto font-medium leading-relaxed">
+          <p className="text-xl sm:text-2xl text-gray-500 dark:text-gray-300 max-w-3xl mx-auto font-medium leading-relaxed">
             We trained our AI on exact NCERT textbooks and reference gold standards like <strong className="text-primary">HC Verma, Irodov, NCERT Exemplar</strong>, and standard preparatory resources.
           </p>
         </motion.div>
@@ -266,72 +266,9 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
   // Drives the video opacity on scroll — fades out over the first viewport height
   const videoOpacity = useMotionValue(1);
   const smoothVideoOpacity = useSpring(videoOpacity, { stiffness: 60, damping: 25 });
+  // 3D logo fades in only after video is mostly gone (video 0.4→0.05 → logo 0→1)
+  const logoOpacity = useTransform(smoothVideoOpacity, [0.4, 0.05], [0, 1]);
 
-  const scrubVideoRef = useRef<HTMLVideoElement>(null);
-  const prevXRef = useRef<number | null>(null);
-  const targetTimeRef = useRef<number>(0);
-  const isSeekingRef = useRef<boolean>(false);
-
-  useEffect(() => {
-    if (!mounted || actualTheme !== 'light') return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const video = scrubVideoRef.current;
-      if (!video) return;
-      
-      const duration = video.duration;
-      if (isNaN(duration) || duration === 0) return;
-
-      if (prevXRef.current === null) {
-        prevXRef.current = e.clientX;
-        return;
-      }
-
-      const delta = e.clientX - prevXRef.current;
-      prevXRef.current = e.clientX;
-
-      const SENSITIVITY = 0.8;
-      const timeOffset = (delta / window.innerWidth) * SENSITIVITY * duration;
-      
-      let nextTarget = targetTimeRef.current + timeOffset;
-      if (nextTarget < 0) nextTarget = 0;
-      if (nextTarget > duration) nextTarget = duration;
-      
-      targetTimeRef.current = nextTarget;
-
-      if (!isSeekingRef.current) {
-        isSeekingRef.current = true;
-        const diff = nextTarget - video.currentTime;
-        if (Math.abs(diff) > 0.05) {
-          const step = diff * 0.15;
-          video.currentTime = Math.max(0, Math.min(duration, video.currentTime + step));
-        } else {
-          video.currentTime = nextTarget;
-        }
-      }
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      prevXRef.current = null;
-    };
-  }, [mounted, actualTheme]);
-
-  const handleSeeked = () => {
-    const video = scrubVideoRef.current;
-    if (!video) return;
-    
-    const diff = targetTimeRef.current - video.currentTime;
-    if (Math.abs(diff) > 0.05) {
-      const step = diff * 0.15;
-      video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + step));
-    } else if (Math.abs(diff) > 0.001) {
-      video.currentTime = targetTimeRef.current;
-    } else {
-      isSeekingRef.current = false;
-    }
-  };
 
   const handleBeginJourney = (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
@@ -488,20 +425,14 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
     <NoiseOverlay />
     <CustomCursor />
     <div className="min-h-dvh bg-background text-foreground selection:bg-primary/20 font-sans antialiased transition-colors duration-500 relative overflow-x-visible">
-      {/* Background Layer: Light Theme – mouse-scrub controlled video */}
+      {/* Light theme: 3D robot fixed behind all content — stays in place across every screen while
+          scrolling and reacts to the cursor. */}
       {mounted && actualTheme === 'light' && (
-        <div className="fixed inset-0 z-0 pointer-events-none w-full h-full">
-          <video
-            ref={scrubVideoRef}
-            muted
-            playsInline
-            preload="auto"
-            className="w-full h-full object-cover"
-            style={{ position: 'fixed', inset: 0, zIndex: 0, objectPosition: '70% center' }}
-            onSeeked={handleSeeked}
-          >
-            <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260530_042513_df96a13b-6155-4f6e-8b93-c9dee66fba08.mp4" type="video/mp4" />
-          </video>
+        <div className="fixed inset-0 z-0 w-full h-full bg-white [&_canvas]:!h-full [&_canvas]:!w-full">
+          <SplineScene
+            scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
+            className="w-full h-full"
+          />
         </div>
       )}
       {/* Dark mode video – fades out on scroll, revealing 3D logo below */}
@@ -523,8 +454,8 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         </motion.div>
       )}
 
-      {/* 3D logo background – dark mode only; additive blending glow */}
-      {mounted && actualTheme === 'dark' && <OriginLogoBackground />}
+      {/* 3D logo background – dark mode only; fades in as hero video fades out */}
+      {mounted && actualTheme === 'dark' && <OriginLogoBackground motionOpacity={logoOpacity} />}
 
       {/* Fixed Navbar – outside the hero motion.div so CSS fixed works across all sections */}
       <div className="fixed top-0 left-0 right-0 z-50 pointer-events-none">
@@ -568,7 +499,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
               onClick={handleBeginJourney}
               className="liquid-glass rounded-full px-3.5 py-2 text-xs sm:px-6 sm:py-2.5 sm:text-sm text-foreground hover:scale-[1.03] transition-transform cursor-pointer"
             >
-              Begin Journey
+              Originate
             </button>
 
             <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden p-2 text-foreground">
@@ -627,19 +558,6 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         {/* Hero Section – cinematic and vertically centered */}
         <section ref={heroRef} className="relative z-10 flex flex-col items-center justify-center text-center px-6 flex-grow max-w-7xl mx-auto w-full py-8 sm:py-12">
 
-          {/* Eyebrow label */}
-          <motion.div
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="mb-6 inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/5 backdrop-blur-sm"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-            <span className="text-[10px] font-black uppercase tracking-[0.35em] text-primary/90">
-              Where Excellence Is Born
-            </span>
-          </motion.div>
-
           {/* Logo image + tagline block */}
           <div className="w-full max-w-[1076px] flex flex-col">
             <motion.img
@@ -673,9 +591,8 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             <span className="absolute inset-0 rounded-full overflow-hidden">
               <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out bg-gradient-to-r from-transparent via-white/20 to-transparent" />
             </span>
-            <span className="relative flex items-center gap-3 px-10 py-4 sm:px-14 sm:py-5 rounded-full bg-primary/90 backdrop-blur-sm text-white text-sm sm:text-base font-black uppercase tracking-widest shadow-[0_0_40px_rgba(0,102,255,0.5)] border border-white/20">
-              Begin Journey
-              <Sparkles className="w-4 h-4 group-hover:rotate-12 group-hover:scale-110 transition-transform duration-300" />
+            <span className="relative flex items-center justify-center px-10 py-4 sm:px-14 sm:py-5 rounded-full bg-primary/90 backdrop-blur-sm text-white text-sm sm:text-base font-black uppercase tracking-widest shadow-[0_0_40px_rgba(0,102,255,0.5)] border border-white/20">
+              Originate
             </span>
           </motion.button>
 
@@ -686,10 +603,10 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.6 }} className="flex flex-wrap items-center justify-center gap-6 sm:gap-12 md:gap-20">
             {stats.map((stat, i) => (
               <div key={i} className="text-center group">
-                <div className="text-3xl font-black text-foreground mb-2 group-hover:scale-110 transition-transform tracking-tight">
+                <div className="text-3xl font-black text-outline mb-2 group-hover:scale-110 transition-transform tracking-tight">
                   {stat.value}
                 </div>
-                <div className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">
+                <div className="text-[10px] font-black text-gray-500 dark:text-white/50 uppercase tracking-[0.3em]">
                   {stat.label}
                 </div>
               </div>
@@ -701,7 +618,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.1, duration: 0.8 }}
-            className="mt-4 border-t border-white/[0.06] w-full"
+            className="mt-4 border-t border-black/[0.06] dark:border-white/[0.06] w-full"
           >
             <ActivityTicker />
           </motion.div>
@@ -753,8 +670,8 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
       <section className="py-28 lg:py-40 relative z-10 overflow-hidden">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <motion.div ref={counterRef} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} viewport={{ once: true }} className="flex flex-col items-center space-y-10">
-            <h2 className="text-5xl sm:text-7xl lg:text-8xl font-black text-gray-900 dark:text-white tracking-tighter leading-none">
-              Trusted by the <br />
+            <h2 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-tighter leading-none">
+              <span className="text-outline">Trusted by the</span> <br />
               <span className="bg-gradient-to-r from-primary via-primary/90 to-primary bg-clip-text text-transparent">Top 1%.</span>
             </h2>
             <motion.a
@@ -784,8 +701,8 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-[10px] font-black text-primary tracking-[0.4em] uppercase mb-4">Pricing Plans</h2>
-            <h2 className="text-5xl sm:text-6xl lg:text-7xl font-black text-gray-900 dark:text-white mb-6 tracking-tighter">
-              Invest in <span className="bg-gradient-to-r from-primary via-primary/90 to-primary bg-clip-text text-transparent">Your Future.</span>
+            <h2 className="text-5xl sm:text-6xl lg:text-7xl font-black mb-6 tracking-tighter">
+              <span className="text-outline">Invest in</span>{' '}<span className="bg-gradient-to-r from-primary via-primary/90 to-primary bg-clip-text text-transparent">Your Future.</span>
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto font-medium">Elite training shouldn't be a luxury. Choose the track that fits your ambition.</p>
           </div>
@@ -826,7 +743,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
       <footer className="py-10 relative z-10 border-t border-border/50 dark:border-white/10 bg-background/50 dark:bg-card/30 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center md:items-end justify-between gap-8">
           <div className="flex flex-col items-center md:items-start gap-2">
-            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em]">© 2026 SUPERGOAT TECHNOLOGIES PRIVATE LIMITED</span>
+            <span className="text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-[0.4em]">© 2026 SUPERGOAT TECHNOLOGIES PRIVATE LIMITED</span>
             <div className="flex flex-wrap gap-4 text-xs text-muted-foreground mt-2">
               <a href="/terms-and-conditions" className="hover:text-foreground hover:underline transition-colors">Terms & Conditions</a>
               <span>•</span>
@@ -839,7 +756,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             <img src="/origin-new.jpg" alt="ORIGIN" className="h-12 w-auto dark:brightness-110 mt-3" />
           </div>
           <div className="flex flex-col items-center md:items-end gap-4">
-            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em]">Connect With Us</span>
+            <span className="text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-[0.4em]">Connect With Us</span>
             <div className="flex gap-5 items-center">
               <a href="https://chat.whatsapp.com/BBwpKNeiCypGzeVMwsw9ns?mode=gi_t" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform"><img src="/images/SocialMedia/Whatsapp-Logo.png" alt="WhatsApp" className="h-10 w-auto" /></a>
               <a href="https://www.linkedin.com/in/o3-origin-ba73233a8/" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform"><img src="/images/SocialMedia/LinkedIn.png" alt="LinkedIn" className="h-10 w-auto" /></a>
@@ -864,7 +781,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
               onClick={() => handleBeginJourney()}
               className="w-full bg-primary text-black font-semibold rounded-full py-4 text-base hover:scale-[1.01] active:scale-[0.99] transition-all shadow-xl shadow-primary/25 flex items-center justify-center gap-2 border border-primary/25 backdrop-blur-md"
             >
-              <span>Begin Journey</span>
+              <span>Originate</span>
               <ChevronRight className="w-5 h-5 text-black" />
             </button>
           </motion.div>

@@ -38,14 +38,14 @@ export default function TeacherFlipCard() {
           className="text-center mb-12"
         >
           <span className="text-[10px] font-black text-primary tracking-[0.4em] uppercase block mb-4">Two Audiences, One Platform</span>
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-gray-900 dark:text-white tracking-tighter mb-6">
-            Built for{' '}
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter mb-6">
+            <span className="text-outline">Built for</span>{' '}
             <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">both sides</span>{' '}
-            of the classroom.
+            <span className="text-outline">of the classroom.</span>
           </h2>
 
           {/* Toggle */}
-          <div className="inline-flex items-center gap-1 p-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm">
+          <div className="inline-flex items-center gap-1 p-1 rounded-full border border-black/10 dark:border-white/10 bg-gray-100 dark:bg-white/5 backdrop-blur-sm">
             {(['student', 'teacher'] as Audience[]).map((a) => (
               <button
                 key={a}
@@ -53,7 +53,7 @@ export default function TeacherFlipCard() {
                 className={`px-6 py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all duration-300 ${
                   active === a
                     ? 'bg-primary text-white shadow-lg shadow-primary/30'
-                    : 'text-white/50 hover:text-white'
+                    : 'text-gray-600 dark:text-white/50 hover:text-white'
                 }`}
               >
                 {a === 'student' ? 'For Students' : 'For Teachers'}
@@ -73,12 +73,12 @@ export default function TeacherFlipCard() {
             className="grid md:grid-cols-2 gap-8 items-stretch"
           >
             {/* Content panel */}
-            <div className="rounded-2xl border border-white/10 bg-white/5 dark:bg-white/[0.03] backdrop-blur-xl p-8 space-y-5">
+            <div className="rounded-2xl border border-black/10 dark:border-white/10 bg-gray-100 dark:bg-white/[0.03] backdrop-blur-xl p-8 space-y-5">
               <div>
                 <p className="text-[10px] font-black text-primary tracking-[0.35em] uppercase mb-2">
                   {isStudent ? 'Student experience' : 'Teacher dashboard'}
                 </p>
-                <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight">
+                <h3 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight leading-tight">
                   {isStudent
                     ? 'Everything you need to crack JEE / NEET.'
                     : 'Run your batch like a top coaching centre.'}
@@ -97,7 +97,7 @@ export default function TeacherFlipCard() {
                     <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-none mt-0.5">
                       <Icon className="w-3.5 h-3.5 text-primary" />
                     </div>
-                    <p className="text-sm text-white/70 font-medium leading-relaxed">{text}</p>
+                    <p className="text-sm text-gray-700 dark:text-white/70 font-medium leading-relaxed">{text}</p>
                   </motion.div>
                 ))}
               </div>
@@ -114,17 +114,17 @@ export default function TeacherFlipCard() {
             </div>
 
             {/* Visual placeholder */}
-            <div className="rounded-2xl border border-dashed border-white/20 bg-white/[0.02] flex flex-col items-center justify-center gap-4 p-8 min-h-[340px]">
-              <div className="w-14 h-14 rounded-2xl border-2 border-dashed border-white/20 flex items-center justify-center">
+            <div className="rounded-2xl border border-dashed border-black/20 dark:border-white/20 bg-gray-100 dark:bg-white/[0.02] flex flex-col items-center justify-center gap-4 p-8 min-h-[340px]">
+              <div className="w-14 h-14 rounded-2xl border-2 border-dashed border-black/20 dark:border-white/20 flex items-center justify-center">
                 {isStudent
-                  ? <BarChart2 className="w-6 h-6 text-white/20" />
-                  : <Users className="w-6 h-6 text-white/20" />}
+                  ? <BarChart2 className="w-6 h-6 text-gray-400 dark:text-white/20" />
+                  : <Users className="w-6 h-6 text-gray-400 dark:text-white/20" />}
               </div>
               <div className="text-center space-y-1">
-                <p className="text-xs font-black text-white/30 uppercase tracking-widest">
+                <p className="text-xs font-black text-gray-500 dark:text-white/30 uppercase tracking-widest">
                   {isStudent ? 'IMAGE' : 'IMAGE'}
                 </p>
-                <p className="text-xs text-white/25 font-medium max-w-[220px] leading-relaxed">
+                <p className="text-xs text-gray-400 dark:text-white/25 font-medium max-w-[220px] leading-relaxed">
                   {isStudent
                     ? 'Dashboard screenshot — analytics view, 1600×1000 PNG · place at /images/screenshots/student-dashboard.png'
                     : 'Teacher batch view screenshot — student list, DPP assignment panel, 1600×1000 PNG · place at /images/screenshots/teacher-dashboard.png'}
