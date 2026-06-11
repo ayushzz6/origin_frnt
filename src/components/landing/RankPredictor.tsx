@@ -79,7 +79,7 @@ function PercentileDial({ percentile, air }: DialProps) {
         </linearGradient>
       </defs>
       {/* Background arc */}
-      <path d={arcPath(startAngle, endAngle, r)} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10" strokeLinecap="round" />
+      <path d={arcPath(startAngle, endAngle, r)} fill="none" className="stroke-black/10 dark:stroke-white/[0.08]" strokeWidth="10" strokeLinecap="round" />
       {/* Filled arc */}
       <path d={arcPath(startAngle, filled, r)} fill="none" stroke={`url(#dial-fill)`} strokeWidth="10" strokeLinecap="round" />
       {/* Needle — initial uses concrete numbers; animate springs to new tip on change */}
@@ -96,14 +96,14 @@ function PercentileDial({ percentile, air }: DialProps) {
       {/* Centre dot */}
       <circle cx={cx} cy={cy} r="5" fill={color} />
       {/* Percentile label */}
-      <text x={cx} y={cy - 15} textAnchor="middle" fontSize="26" fontWeight="900" fill="white" fontFamily="inherit">
+      <text x={cx} y={cy - 15} textAnchor="middle" fontSize="26" fontWeight="900" className="fill-gray-900 dark:fill-white" fontFamily="inherit">
         {percentile}
         <tspan fontSize="12" fontWeight="700">th</tspan>
       </text>
-      <text x={cx} y={cy - 2} textAnchor="middle" fontSize="8" fontWeight="700" fill="rgba(255,255,255,0.4)" fontFamily="inherit" letterSpacing="1">
+      <text x={cx} y={cy - 2} textAnchor="middle" fontSize="8" fontWeight="700" className="fill-gray-500 dark:fill-white/40" fontFamily="inherit" letterSpacing="1">
         PERCENTILE
       </text>
-      <text x={cx} y={cy + 13} textAnchor="middle" fontSize="7.5" fontWeight="700" fill="rgba(255,255,255,0.35)" fontFamily="inherit" letterSpacing="0.5">
+      <text x={cx} y={cy + 13} textAnchor="middle" fontSize="7.5" fontWeight="700" className="fill-gray-400 dark:fill-white/40" fontFamily="inherit" letterSpacing="0.5">
         AIR ~{formatAIR(air)}
       </text>
     </svg>
@@ -137,13 +137,13 @@ export default function RankPredictor() {
           <span className="text-[10px] font-black text-primary tracking-[0.4em] uppercase block mb-4">
             Know Your Future
           </span>
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-gray-900 dark:text-white tracking-tighter leading-none mb-4">
-            Where will you{' '}
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter leading-none mb-4">
+            <span className="text-outline">Where will you</span>{' '}
             <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               rank?
             </span>
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 text-base font-medium">
+          <p className="text-gray-400 dark:text-gray-400 text-base font-medium">
             Set your study plan. See where consistent effort with Origin AI takes you.
           </p>
         </motion.div>
@@ -156,7 +156,7 @@ export default function RankPredictor() {
           className="grid md:grid-cols-2 gap-8 items-center"
         >
           {/* Sliders */}
-          <div className="space-y-8 rounded-2xl border border-white/10 bg-white/5 dark:bg-white/[0.03] backdrop-blur-xl p-6 sm:p-8">
+          <div className="space-y-8 rounded-2xl border border-black/10 dark:border-white/10 bg-gray-100 dark:bg-white/[0.03] backdrop-blur-xl p-6 sm:p-8">
             <SliderField
               label="Study hours / day"
               value={hours}
@@ -192,10 +192,10 @@ export default function RankPredictor() {
               className="text-center space-y-2"
             >
               <p className={`text-sm font-black uppercase tracking-widest ${zoneColor}`}>{zoneLabel}</p>
-              <p className="text-xs text-white/60 max-w-[260px] mx-auto leading-relaxed text-center">
+              <p className="text-xs text-primary/80 dark:text-primary/70 max-w-[260px] mx-auto leading-relaxed text-center">
                 If you work with this much consistency with Origin AI you will reach{' '}
-                <span className="text-white font-black">{improved}th percentile</span>
-                {' '}(AIR ~<span className="text-white font-black">{formatAIR(improvedAir)}</span>)!
+                <span className="text-primary font-black">{improved}th percentile</span>
+                {' '}(AIR ~<span className="text-primary font-black">{formatAIR(improvedAir)}</span>)!
               </p>
             </motion.div>
 
@@ -228,14 +228,14 @@ function SliderField({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-white/60 uppercase tracking-wider">{label}</span>
-        <span className="text-sm font-black text-white tabular-nums">{format(value)}</span>
+        <span className="text-xs font-semibold text-gray-600 dark:text-white/60 uppercase tracking-wider">{label}</span>
+        <span className="text-sm font-black text-gray-900 dark:text-white tabular-nums">{format(value)}</span>
       </div>
       <Slider
         min={min} max={max} step={step}
         value={[value]}
         onValueChange={([v]) => onChange(v)}
-        className="[&_[data-slot=slider-range]]:bg-primary [&_[data-slot=slider-track]]:bg-white/10 [&_[data-slot=slider-thumb]]:border-primary"
+        className="[&_[data-slot=slider-range]]:bg-primary [&_[data-slot=slider-track]]:bg-gray-200 dark:[&_[data-slot=slider-track]]:bg-white/10 [&_[data-slot=slider-thumb]]:border-primary"
       />
     </div>
   );

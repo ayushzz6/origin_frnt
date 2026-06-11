@@ -80,7 +80,7 @@ function formatInline(text: string): string {
 function AiResponse({ text }: { text: string }) {
   const paras = text.split(/\n{2,}/).filter(Boolean);
   return (
-    <div className="text-sm text-white/80 leading-relaxed space-y-3 font-medium">
+    <div className="text-sm text-gray-700 dark:text-white/80 leading-relaxed space-y-3 font-medium">
       {paras.map((p, i) => (
         <p key={i} dangerouslySetInnerHTML={{ __html: formatInline(p) }} />
       ))}
@@ -92,10 +92,10 @@ function AiResponse({ text }: { text: string }) {
 function LimitCard() {
   return (
     <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-center space-y-3">
-      <p className="text-xs font-semibold text-white/70">
+      <p className="text-xs font-semibold text-gray-700 dark:text-white/70">
         You&apos;ve used your free preview quota for this week.
       </p>
-      <p className="text-xs text-white/40">
+      <p className="text-xs text-gray-500 dark:text-white/40">
         Sign up free to ask unlimited questions, use voice anytime, and unlock the full Origin AI inside.
       </p>
       <motion.a
@@ -126,15 +126,24 @@ export default function TryOriginAI() {
   const [voiceError, setVoiceError] = useState('');
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const transcriptRef = useRef('');
+  const didMountRef = useRef(false);
 
   useEffect(() => {
     setUsage(getUsage());
   }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Skip the initial mount so loading the page never auto-scrolls to this section.
+    // Only scroll the chat's OWN container — never the page.
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+    const c = messagesContainerRef.current;
+    if (c) c.scrollTop = c.scrollHeight;
   }, [messages, loading]);
 
   function appendLimitCard() {
@@ -282,12 +291,12 @@ export default function TryOriginAI() {
           <span className="text-[10px] font-black text-primary tracking-[0.4em] uppercase block mb-4">
             Live Preview
           </span>
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-gray-900 dark:text-white tracking-tighter leading-none mb-4">
-            Talk to{' '}
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter leading-none mb-4">
+            <span className="text-outline">Talk to</span>{' '}
             <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               Origin AI
             </span>{' '}
-            now.
+            <span className="text-outline">now.</span>
           </h2>
           <p className="text-gray-500 dark:text-gray-400 text-base font-medium">
             5 text questions + 3 voice trials per week — free, no account needed.
@@ -299,10 +308,10 @@ export default function TryOriginAI() {
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
           viewport={{ once: true, margin: '-80px' }}
-          className="rounded-2xl border border-white/10 bg-white/5 dark:bg-white/[0.03] backdrop-blur-xl overflow-hidden shadow-2xl shadow-black/30"
+          className="rounded-2xl border border-black/10 dark:border-white/10 bg-gray-100 dark:bg-white/[0.03] backdrop-blur-xl overflow-hidden shadow-2xl shadow-black/30"
         >
           {/* Toolbar */}
-          <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-white/[0.08] bg-white/[0.02]">
+          <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-black/[0.08] dark:border-white/[0.08] bg-gray-100 dark:bg-white/[0.02]">
             <div className="flex items-center gap-3">
               <div className="flex gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-red-400/50" />
@@ -311,20 +320,20 @@ export default function TryOriginAI() {
               </div>
               <div className="flex items-center gap-1.5 ml-1">
                 <Sparkles className="w-3.5 h-3.5 text-primary" />
-                <span className="text-[10px] font-black uppercase tracking-[0.25em] text-white/50">Origin AI</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-600 dark:text-white/50">Origin AI</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <span
                 className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-wider border rounded-full px-2 py-1 transition-colors ${
-                  textLeft === 0 ? 'text-red-400/70 border-red-400/20' : 'text-white/40 border-white/10'
+                  textLeft === 0 ? 'text-red-400/70 border-red-400/20' : 'text-gray-500 dark:text-white/40 border-black/10 dark:border-white/10'
                 }`}
               >
                 <MessageSquare className="w-3 h-3" /> {textLeft}/{TEXT_LIMIT} text
               </span>
               <span
                 className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-wider border rounded-full px-2 py-1 transition-colors ${
-                  voiceLeft === 0 ? 'text-red-400/70 border-red-400/20' : 'text-white/40 border-white/10'
+                  voiceLeft === 0 ? 'text-red-400/70 border-red-400/20' : 'text-gray-500 dark:text-white/40 border-black/10 dark:border-white/10'
                 }`}
               >
                 <Mic className="w-3 h-3" /> {voiceLeft}/{VOICE_LIMIT} voice
@@ -333,7 +342,7 @@ export default function TryOriginAI() {
           </div>
 
           {/* Messages */}
-          <div className="h-[445px] overflow-y-auto p-4 space-y-4">
+          <div ref={messagesContainerRef} className="h-[445px] overflow-y-auto p-4 space-y-4">
             {messages.map((msg) => (
               <motion.div
                 key={msg.id}
@@ -356,8 +365,8 @@ export default function TryOriginAI() {
                   <div
                     className={`max-w-[82%] rounded-2xl px-4 py-3 ${
                       msg.role === 'user'
-                        ? 'bg-primary/20 border border-primary/20 text-white text-sm font-medium'
-                        : 'bg-white/[0.06] border border-white/[0.08]'
+                        ? 'bg-primary/20 border border-primary/20 text-gray-900 dark:text-white text-sm font-medium'
+                        : 'bg-gray-100 dark:bg-white/[0.06] border border-black/[0.08] dark:border-white/[0.08]'
                     }`}
                   >
                     {msg.role === 'ai' ? (
@@ -378,7 +387,7 @@ export default function TryOriginAI() {
                 <div className="w-6 h-6 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center mr-2 mt-1 shrink-0">
                   <Sparkles className="w-3 h-3 text-primary" />
                 </div>
-                <div className="bg-white/[0.06] border border-white/[0.08] rounded-2xl px-4 py-3">
+                <div className="bg-gray-100 dark:bg-white/[0.06] border border-black/[0.08] dark:border-white/[0.08] rounded-2xl px-4 py-3">
                   <div className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:0ms]" />
                     <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:150ms]" />
@@ -406,7 +415,7 @@ export default function TryOriginAI() {
           </AnimatePresence>
 
           {/* Input */}
-          <div className="border-t border-white/[0.08] p-3">
+          <div className="border-t border-black/[0.08] dark:border-white/[0.08] p-3">
             <div className="flex items-end gap-2">
               <button
                 onClick={isListening ? stopVoice : startVoice}
@@ -422,8 +431,8 @@ export default function TryOriginAI() {
                   isListening
                     ? 'bg-red-500/20 border-red-500/40 text-red-400 animate-pulse'
                     : voiceLeft === 0
-                    ? 'bg-white/[0.03] border-white/10 text-white/20 cursor-not-allowed'
-                    : 'bg-white/[0.06] border-white/10 text-white/50 hover:text-white hover:border-primary/40 hover:bg-primary/10'
+                    ? 'bg-gray-100 dark:bg-white/[0.03] border-black/10 dark:border-white/10 text-gray-400 dark:text-white/20 cursor-not-allowed'
+                    : 'bg-gray-100 dark:bg-white/[0.06] border-black/10 dark:border-white/10 text-gray-600 dark:text-white/50 hover:text-white hover:border-primary/40 hover:bg-primary/10'
                 }`}
               >
                 {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
@@ -452,10 +461,10 @@ export default function TryOriginAI() {
                   }
                   rows={1}
                   disabled={exhausted}
-                  className="w-full resize-none rounded-xl bg-white/[0.06] border border-white/[0.1] px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 transition-all duration-200 font-medium disabled:opacity-40"
+                  className="w-full resize-none rounded-xl bg-gray-100 dark:bg-white/[0.06] border border-black/[0.1] dark:border-white/[0.1] px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-white/30 focus:outline-none focus:border-primary/50 transition-all duration-200 font-medium disabled:opacity-40"
                   style={{ minHeight: '40px', maxHeight: '120px' }}
                 />
-                <div className="absolute bottom-2 right-3 text-[9px] text-white/20 font-mono">{input.length}/500</div>
+                <div className="absolute bottom-2 right-3 text-[9px] text-gray-400 dark:text-white/20 font-mono">{input.length}/500</div>
               </div>
 
               <button
@@ -467,7 +476,7 @@ export default function TryOriginAI() {
               </button>
             </div>
 
-            <p className="text-[9px] text-white/20 mt-2 text-center">
+            <p className="text-[9px] text-gray-400 dark:text-white/20 mt-2 text-center">
               {isListening
                 ? 'Speak now — Origin AI is listening'
                 : 'Enter to send · Shift+Enter for new line · 🎤 for voice input'}

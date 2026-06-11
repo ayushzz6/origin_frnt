@@ -3,6 +3,7 @@
 import { useRef } from 'react';
 import { motion, useScroll, useTransform, useReducedMotion, type MotionValue } from 'framer-motion';
 import dynamic from 'next/dynamic';
+import { useTheme } from 'next-themes';
 import { useMainScrollContainer } from '@/hooks/useMainScrollContainer';
 
 const OriginLogoBackground = dynamic(() => import('@/components/ui/OriginLogoBackground'), { ssr: false });
@@ -26,7 +27,7 @@ function WordReveal({ word, i, total, scrollYProgress, prefersReduced }: {
       className={`text-5xl sm:text-7xl lg:text-8xl font-black tracking-tighter leading-none ${
         isHighlight
           ? 'bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent'
-          : 'text-white'
+          : 'text-outline'
       }`}
     >
       {word}
@@ -38,6 +39,8 @@ export default function ManifestoReveal({ onBeginJourney }: { onBeginJourney?: (
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainer = useMainScrollContainer();
   const prefersReduced = useReducedMotion();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
 
   const { scrollYProgress } = useScroll({
     container: scrollContainer,
@@ -49,12 +52,18 @@ export default function ManifestoReveal({ onBeginJourney }: { onBeginJourney?: (
     <section
       ref={containerRef}
       className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden py-32 z-10"
-      style={{ background: 'linear-gradient(to bottom, transparent, rgba(2,6,23,0.97) 20%, rgb(2,6,23) 50%, rgb(2,6,23) 80%, transparent)' }}
+      style={
+        isDark
+          ? { background: 'linear-gradient(to bottom, transparent, rgba(2,6,23,0.97) 20%, rgb(2,6,23) 50%, rgb(2,6,23) 80%, transparent)' }
+          : undefined
+      }
     >
-      {/* 3D logo at 8% opacity behind */}
-      <div className="absolute inset-0 z-0 opacity-[0.08] pointer-events-none">
-        <OriginLogoBackground />
-      </div>
+      {/* 3D logo at 8% opacity behind — dark theme only (kept off light so it never fights the robot) */}
+      {isDark && (
+        <div className="absolute inset-0 z-0 opacity-[0.08] pointer-events-none">
+          <OriginLogoBackground />
+        </div>
+      )}
 
       {/* Radial glow */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_50%,rgba(0,102,255,0.12),transparent)] pointer-events-none z-0" />

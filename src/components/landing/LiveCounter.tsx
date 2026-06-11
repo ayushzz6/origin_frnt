@@ -77,29 +77,29 @@ export default function LiveCounter() {
       className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 mt-8"
     >
       {/* Active now */}
-      <div className="flex items-center gap-2 text-sm font-semibold text-white/80">
+      <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-white/80">
         <span className="relative flex h-2 w-2">
           <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
           <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
         </span>
         <OdometerNumber value={stats.activeNow} />
-        <span className="text-white/50 font-normal">solving right now</span>
+        <span className="text-gray-600 dark:text-white/50 font-normal">solving right now</span>
       </div>
 
-      <div className="w-px h-4 bg-white/20 hidden sm:block" />
+      <div className="w-px h-4 bg-gray-100 dark:bg-white/20 hidden sm:block" />
 
       {/* Doubts today */}
-      <div className="text-sm font-semibold text-white/80">
+      <div className="text-sm font-semibold text-gray-700 dark:text-white/80">
         <OdometerNumber value={stats.doubtsToday} />
-        <span className="text-white/50 font-normal ml-1.5">doubts solved today</span>
+        <span className="text-gray-600 dark:text-white/50 font-normal ml-1.5">doubts solved today</span>
       </div>
 
-      <div className="w-px h-4 bg-white/20 hidden sm:block" />
+      <div className="w-px h-4 bg-gray-100 dark:bg-white/20 hidden sm:block" />
 
       {/* Active streaks */}
-      <div className="text-sm font-semibold text-white/80">
+      <div className="text-sm font-semibold text-gray-700 dark:text-white/80">
         🔥 <OdometerNumber value={stats.streaksActive} />
-        <span className="text-white/50 font-normal ml-1.5">active streaks</span>
+        <span className="text-gray-600 dark:text-white/50 font-normal ml-1.5">active streaks</span>
       </div>
     </motion.div>
   );

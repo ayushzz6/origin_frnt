@@ -1,5 +1,6 @@
 'use client';
 import { useRef, useEffect, useState } from 'react';
+import { motion, type MotionValue } from 'framer-motion';
 import * as THREE from 'three';
 
 /**
@@ -62,7 +63,7 @@ function parsePLYVertices(text: string): THREE.BufferGeometry {
   return geo;
 }
 
-export default function OriginLogoBackground() {
+export default function OriginLogoBackground({ motionOpacity }: { motionOpacity?: MotionValue<number> } = {}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [opacity, setOpacity] = useState(0);
 
@@ -181,13 +182,23 @@ export default function OriginLogoBackground() {
     };
   }, []);
 
+  // When a MotionValue is passed, use motion.canvas so Framer can drive opacity
+  // directly without re-renders. The internal `opacity` state still gates display
+  // until the PLY geometry is ready.
+  if (motionOpacity) {
+    return (
+      <motion.canvas
+        ref={canvasRef as React.RefObject<HTMLCanvasElement>}
+        className="fixed inset-0 pointer-events-none"
+        style={{ zIndex: 1, opacity: opacity === 0 ? 0 : motionOpacity }}
+      />
+    );
+  }
+
   return (
     <canvas
       ref={canvasRef}
       className="fixed inset-0 pointer-events-none"
-      // z-index 1 — above the static page bg-background (z-auto non-positioned)
-      // but BELOW the video wrapper (z-2) so the video initially covers the logo.
-      // Content sections are z-10, so they layer above both.
       style={{ zIndex: 1, opacity, transition: 'opacity 1.5s ease' }}
     />
   );
