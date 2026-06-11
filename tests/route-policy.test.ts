@@ -45,11 +45,14 @@ test("future API routes are denied by default", () => {
   assert.equal(getAppRoutePolicy("/new-feature").kind, "unconfigured");
 });
 
-test("public API allowlist is limited to health, auth entrypoints, the drain receiver, and the payment webhooks", () => {
+test("public API allowlist is limited to health, auth entrypoints, the drain receiver, the payment webhooks, and landing-page public data", () => {
   assert.deepEqual([...PUBLIC_API_PATHS].sort(), [
     "/api/connect/webhook",
     "/api/health",
     "/api/internal/observability/drain",
+    "/api/public/activity-feed",
+    "/api/public/demo-solve",
+    "/api/public/live-stats",
     "/api/subscriptions/webhook",
     "/api/users/google-login",
     "/api/users/login",

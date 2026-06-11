@@ -25,6 +25,10 @@ export const PUBLIC_API_PATHS = [
   // Connect (Flow-2 batch tuition) webhook — same Razorpay HMAC model as the
   // subscriptions webhook; public at the edge, verified in the handler.
   "/api/connect/webhook",
+  // Landing-page public data — no auth required; rate-limited by Upstash in handler.
+  "/api/public/live-stats",
+  "/api/public/activity-feed",
+  "/api/public/demo-solve",
 ] as const;
 
 export const INTERNAL_API_PREFIXES = ["/api/internal"] as const;

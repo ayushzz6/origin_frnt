@@ -38,9 +38,9 @@
 }
 
 :root {
-  --font-display: 'Instrument Serif', serif;
-  --font-heading: 'HelveticaNowDisplay-Medium', 'Helvetica Neue', Arial, sans-serif;
-  --font-body: 'HelveticaNowDisplayW01-Rg', 'Helvetica Neue', Arial, sans-serif;
+  --font-display: var(--font-display, 'Instrument Serif', serif);
+  --font-heading: var(--font-heading, 'Syne', system-ui, sans-serif);
+  --font-body: var(--font-body, 'Inter', system-ui, sans-serif);
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;
   --card: 0 0% 100%;
