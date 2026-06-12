@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ArrowRight, Loader2, Mic, MicOff, Send, MessageSquare } from 'lucide-react';
+import { ContainerScroll } from '@/components/ui/container-scroll-animation';
 
 interface SpeechRecognitionAlternative {
   readonly transcript: string;
@@ -279,39 +280,29 @@ export default function TryOriginAI() {
   const exhausted = textLeft === 0 && voiceLeft === 0;
 
   return (
-    <section id="demo" className="py-24 lg:py-32 relative z-10">
-      <div className="max-w-3xl mx-auto px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7 }}
-          viewport={{ once: true, margin: '-80px' }}
-          className="text-center mb-12"
-        >
-          <span className="text-[10px] font-black text-primary tracking-[0.4em] uppercase block mb-4">
-            Live Preview
-          </span>
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter leading-none mb-4">
-            <span className="text-outline">Talk to</span>{' '}
-            <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              Origin AI
-            </span>{' '}
-            <span className="text-outline">now.</span>
-          </h2>
-          <p className="text-gray-500 dark:text-gray-400 text-base font-medium">
-            5 text questions + 3 voice trials per week — free, no account needed.
-          </p>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          viewport={{ once: true, margin: '-80px' }}
-          className="rounded-2xl border border-black/10 dark:border-white/10 bg-gray-100 dark:bg-white/[0.03] backdrop-blur-xl overflow-hidden shadow-2xl shadow-black/30"
-        >
+    <section id="demo" className="relative z-10">
+      <ContainerScroll
+        titleComponent={
+          <>
+            <span className="text-[10px] font-black text-primary tracking-[0.4em] uppercase block mb-4">
+              Live Preview
+            </span>
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter leading-none mb-4">
+              <span className="text-outline">Talk to</span>{' '}
+              <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                Origin AI
+              </span>{' '}
+              <span className="text-outline">now.</span>
+            </h2>
+            <p className="text-gray-500 dark:text-gray-400 text-base font-medium mb-4">
+              5 text questions + 3 voice trials per week — free, no account needed.
+            </p>
+          </>
+        }
+      >
+        <div className="h-full flex flex-col bg-gray-100 dark:bg-zinc-900 text-left">
           {/* Toolbar */}
-          <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-black/[0.08] dark:border-white/[0.08] bg-gray-100 dark:bg-white/[0.02]">
+          <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-b border-black/[0.08] dark:border-white/[0.08] bg-gray-100 dark:bg-zinc-900">
             <div className="flex items-center gap-3">
               <div className="flex gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-red-400/50" />
@@ -342,7 +333,7 @@ export default function TryOriginAI() {
           </div>
 
           {/* Messages */}
-          <div ref={messagesContainerRef} className="h-[445px] overflow-y-auto p-4 space-y-4">
+          <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
             {messages.map((msg) => (
               <motion.div
                 key={msg.id}
@@ -415,7 +406,7 @@ export default function TryOriginAI() {
           </AnimatePresence>
 
           {/* Input */}
-          <div className="border-t border-black/[0.08] dark:border-white/[0.08] p-3">
+          <div className="shrink-0 border-t border-black/[0.08] dark:border-white/[0.08] p-3">
             <div className="flex items-end gap-2">
               <button
                 onClick={isListening ? stopVoice : startVoice}
@@ -482,8 +473,8 @@ export default function TryOriginAI() {
                 : 'Enter to send · Shift+Enter for new line · 🎤 for voice input'}
             </p>
           </div>
-        </motion.div>
-      </div>
+        </div>
+      </ContainerScroll>
     </section>
   );
 }
