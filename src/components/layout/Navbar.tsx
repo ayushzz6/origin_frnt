@@ -42,10 +42,11 @@ interface NavbarProps {
     theme: "dark" | "light" | "system";
     setTheme: (theme: "dark" | "light" | "system") => void;
     connectEnabled?: boolean;
+    premiumEnabled?: boolean;
     leftOffset?: number;
 }
 
-export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLogout, theme, setTheme, connectEnabled, leftOffset = 0 }: NavbarProps) {
+export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLogout, theme, setTheme, connectEnabled, premiumEnabled, leftOffset = 0 }: NavbarProps) {
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [showExploreMenu, setShowExploreMenu] = useState(false);
     const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -382,13 +383,15 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
                                     <p className="text-sm font-black text-black dark:text-white">{user.name}</p>
                                     <div className="flex items-center justify-between mt-1">
                                         <p className="text-xs text-slate-500 dark:text-zinc-500 truncate max-w-[120px]">{user.email}</p>
-                                        <Badge className="text-[10px] h-5 px-1.5 bg-rose-600 text-white dark:bg-rose-500/20 dark:text-rose-400 border-none font-bold">
-                                            {user.isPremium ? 'PRO' : 'FREE'}
-                                        </Badge>
+                                        {premiumEnabled && (
+                                            <Badge className="text-[10px] h-5 px-1.5 bg-rose-600 text-white dark:bg-rose-500/20 dark:text-rose-400 border-none font-bold">
+                                                {user.isPremium ? 'PRO' : 'FREE'}
+                                            </Badge>
+                                        )}
                                     </div>
                                 </div>
 
-                                {!user.isPremium && (
+                                {premiumEnabled && !user.isPremium && (
                                     <div className="px-3 mb-2">
                                         <button
                                             onClick={() => {

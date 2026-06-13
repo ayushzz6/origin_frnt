@@ -49,7 +49,7 @@ function resolveRoute(view: string) {
   return ROUTES[view] || `/${view}`;
 }
 
-function ClientShellInner({ children, connectEnabled }: { children: React.ReactNode; connectEnabled?: boolean }) {
+function ClientShellInner({ children, connectEnabled, premiumEnabled }: { children: React.ReactNode; connectEnabled?: boolean; premiumEnabled?: boolean }) {
   const { user, logout, isNavigationLocked } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
@@ -229,6 +229,7 @@ function ClientShellInner({ children, connectEnabled }: { children: React.ReactN
               theme={currentTheme as "dark" | "light" | "system"}
               setTheme={setTheme}
               connectEnabled={connectEnabled}
+              premiumEnabled={premiumEnabled}
               leftOffset={aiSide === 'left' && isAiOpen ? aiWidth : 0}
             />
           )}
@@ -278,11 +279,11 @@ function ClientShellInner({ children, connectEnabled }: { children: React.ReactN
   );
 }
 
-export default function ClientShell({ children, connectEnabled }: { children: React.ReactNode; connectEnabled?: boolean }) {
+export default function ClientShell({ children, connectEnabled, premiumEnabled }: { children: React.ReactNode; connectEnabled?: boolean; premiumEnabled?: boolean }) {
   return (
     <LayoutProvider>
       <TimeTrackerProvider>
-        <ClientShellInner connectEnabled={connectEnabled}>{children}</ClientShellInner>
+        <ClientShellInner connectEnabled={connectEnabled} premiumEnabled={premiumEnabled}>{children}</ClientShellInner>
       </TimeTrackerProvider>
     </LayoutProvider>
   );

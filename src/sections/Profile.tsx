@@ -41,6 +41,7 @@ interface ProfileProps {
   onBack: () => void;
   onUpgrade: () => void;
   initialProfileStats?: ProfileStats | null;
+  premiumEnabled?: boolean;
 }
 
 interface ProfileStats {
@@ -67,6 +68,7 @@ export default function Profile({
   onBack,
   onUpgrade,
   initialProfileStats = null,
+  premiumEnabled = false,
 }: ProfileProps) {
   const { refreshUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
@@ -572,7 +574,7 @@ export default function Profile({
                   </button>
                 ))}
 
-                {!user.isPremium && (
+                {premiumEnabled && !user.isPremium && (
                   <div className="mt-2 p-6 rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground relative overflow-hidden shadow-xl shadow-primary/20">
                     <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
                     <div className="flex items-center gap-3 mb-3 relative z-10">
