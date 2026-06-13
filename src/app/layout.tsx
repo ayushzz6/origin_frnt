@@ -75,6 +75,9 @@ export default function RootLayout({
   // Env-only read (no request cookies) — safe in the root layout. Gates the
   // student "Connect" nav entry so it mirrors the server `teacherConnect` gate.
   const connectEnabled = isFeatureEnabled("teacherConnect");
+  // Same pattern for the premium surface: when the flag is off (default), the
+  // premium nav/upsell entry points stay hidden, mirroring the dark server gate.
+  const premiumEnabled = isFeatureEnabled("premiumSubscriptions");
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable} ${syne.variable} ${instrumentSerif.variable}`}>
       <head />
@@ -89,7 +92,7 @@ export default function RootLayout({
             <AuthProvider initialUser={null}>
               <NotificationProvider>
                 <QuotaProvider>
-                  <ClientShell connectEnabled={connectEnabled}>{children}</ClientShell>
+                  <ClientShell connectEnabled={connectEnabled} premiumEnabled={premiumEnabled}>{children}</ClientShell>
                 </QuotaProvider>
               </NotificationProvider>
             </AuthProvider>

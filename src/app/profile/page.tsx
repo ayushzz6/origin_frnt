@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getServerUser } from '@/lib/auth-server';
 import { getProfileStatsForRender } from '@/server/render-loaders';
+import { isFeatureEnabled } from '@/lib/feature-flags';
 import ProfileClient from './_client';
 
 export default function ProfilePage() {
@@ -23,5 +24,10 @@ async function ProfileGate() {
     // Profile page can fall back to client fetch.
   }
 
-  return <ProfileClient initialProfileStats={initialProfileStats} />;
+  return (
+    <ProfileClient
+      initialProfileStats={initialProfileStats}
+      premiumEnabled={isFeatureEnabled('premiumSubscriptions')}
+    />
+  );
 }
