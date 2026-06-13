@@ -13,6 +13,7 @@ import { useResizable } from '@/hooks/use-resizable';
 import AiSidebar from './AiSidebar';
 import { LayoutProvider, useLayout } from '@/context/LayoutContext';
 import { TimeTrackerProvider } from '@/context/TimeTrackerContext';
+import { startHighlightCapture, stopHighlightCapture } from '@/features/origin-ai/highlight-capture';
 
 const FloatingChat = dynamic(() => import('./FloatingChat'), { ssr: false });
 const TutorialOverlay = dynamic(() =>
@@ -78,6 +79,18 @@ function ClientShellInner({ children, connectEnabled }: { children: React.ReactN
       mainElement.scrollTop = 0;
     }
   }, [pathname]);
+
+  // Select-to-ask must never engage on test surfaces. The pill is already gated
+  // by `shouldShowFloatingOriginAi`, but the capture engine's global listeners
+  // persist across navigation and would still paint the selection highlight and
+  // hold captured text. Tear the engine down on test routes; restore it after.
+  React.useEffect(() => {
+    if (shouldHideOriginAi) {
+      stopHighlightCapture();
+    } else {
+      startHighlightCapture();
+    }
+  }, [shouldHideOriginAi]);
 
   // Side AI State
   const [isAiOpen, setIsAiOpenInternal] = React.useState(false);
@@ -190,8 +203,11 @@ function ClientShellInner({ children, connectEnabled }: { children: React.ReactN
 
   return (
     <TutorialProvider>
-      {/* CSS Highlight API — PostCSS rejects ::highlight() so we inject it at runtime */}
-      <style dangerouslySetInnerHTML={{ __html: `::highlight(origin-ai-selection){background-color:rgba(244,63,94,.22);color:inherit;text-decoration:none}` }} />
+      {/* CSS Highlight API — PostCSS rejects ::highlight() so we inject it at runtime.
+          Withheld on test surfaces so no selection mark can paint during an attempt. */}
+      {!shouldHideOriginAi && (
+        <style dangerouslySetInnerHTML={{ __html: `::highlight(origin-ai-selection){background-color:rgba(244,63,94,.22);color:inherit;text-decoration:none}` }} />
+      )}
       <div id="tutorial-welcome" className={cn(
         "h-dvh bg-background text-foreground font-sans antialiased overflow-hidden relative flex transition-colors duration-700",
         aiSide === 'right' ? 'flex-row' : 'flex-row-reverse'

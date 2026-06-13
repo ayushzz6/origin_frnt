@@ -44,12 +44,15 @@ function isCSSHighlightSupported(): boolean {
 function applyCSShighlight(range?: Range | null): void {
   if (!isCSSHighlightSupported()) return;
   const r = range ?? lockedRange;
-  if (!r) return;
+  if (!r || r.collapsed) return;
 
   // If the range's container was removed from the DOM (React replaced the node),
   // the highlight would render nothing. Skip silently.
   try {
-    if (!document.contains(r.startContainer)) return;
+    if (!document.contains(r.startContainer) || !document.contains(r.endContainer)) return;
+    // A re-applied range whose geometry has collapsed to nothing (node reflowed
+    // away) would otherwise paint a stale/expanded mark — drop it instead.
+    if (r.getClientRects().length === 0) return;
     const hl = new (window as unknown as { Highlight: new (...ranges: Range[]) => unknown }).Highlight(r);
     (CSS as unknown as { highlights: { set(name: string, hl: unknown): void } }).highlights.set('origin-ai-selection', hl);
   } catch (_) {}
@@ -85,17 +88,45 @@ function emitChange() {
 
 function getSelectionRect(selection: Selection | null): HighlightRect | null {
   if (!selection || selection.rangeCount === 0) return null;
-  const rect = selection.getRangeAt(0).getBoundingClientRect();
+  const range = selection.getRangeAt(0);
+  // Anchor to the LAST line box of the selection (where the drag ends) rather
+  // than the full multi-line bounding box. For a single-line selection these
+  // are identical; for a multi-line one this puts the pill at the end of the
+  // selection instead of floating over its centre, which reads as imprecise.
+  const rects = range.getClientRects();
+  const rect = rects.length > 0 ? rects[rects.length - 1] : range.getBoundingClientRect();
   if (rect.width === 0 && rect.height === 0) return null;
   return { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
 }
 
 // ─── Text extraction ─────────────────────────────────────────────────────────
 
+/**
+ * True only when the *selected* content actually contains a rendered KaTeX node.
+ * We clone the selection's contents (not the surrounding DOM) so a math formula
+ * sitting elsewhere in the same paragraph never counts. Plain-text selections
+ * return false and skip the lossy rebuild entirely — keeping captured text
+ * byte-identical to what the user highlighted.
+ */
+export function selectionHasKatex(selection: Selection | null): boolean {
+  if (!selection || selection.rangeCount === 0) return false;
+  for (let i = 0; i < selection.rangeCount; i++) {
+    const frag = selection.getRangeAt(i).cloneContents();
+    const div = document.createElement('div');
+    div.appendChild(frag);
+    if (div.querySelector('.katex')) return true;
+  }
+  return false;
+}
+
 export function extractSelectionText(selection: Selection | null): string | null {
   if (!selection || selection.rangeCount === 0) return null;
 
   if (isMouseDown) return selection.toString().trim() || null;
+
+  // Plain-text selections: return exactly what the user selected. No KaTeX
+  // surgery and no math-wrapping heuristic — both of which can mangle prose.
+  if (!selectionHasKatex(selection)) return selection.toString().trim() || null;
 
   let extractedText = '';
 
@@ -192,10 +223,14 @@ function handleSelectionChange() {
   }
 
   // Phase 2: rich KaTeX extraction, debounced to avoid DOM mutations during drag.
+  // Only runs for selections that actually contain math — plain text was already
+  // captured exactly in phase 1, so there is nothing to refine (and re-running
+  // would risk swapping in a mangled value).
   if (heavyExtractionTimeout) clearTimeout(heavyExtractionTimeout);
   heavyExtractionTimeout = setTimeout(() => {
     if (isMouseDown) return;
     const richSel = window.getSelection();
+    if (!selectionHasKatex(richSel)) return;
     const richText = extractSelectionText(richSel);
     if (richText && richText !== currentHighlight) {
       currentHighlight = richText;
