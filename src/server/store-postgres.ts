@@ -28,7 +28,7 @@ import type {
   StoredAssignment,
 } from "@/server/store";
 
-type MutableCollectionKey =
+export type MutableCollectionKey =
   | "streaks"
   | "dailyActivities"
   | "dailySubjectActivities"
@@ -487,17 +487,50 @@ async function loadCollection<T extends MutableCollectionValue>(spec: Collection
   return result.rows.map((row) => row.data as T);
 }
 
-async function replaceCollection<T extends MutableCollectionValue>(
-  client: PoolClient,
-  spec: CollectionSpec<T>,
-  items: T[],
-): Promise<void> {
-  await client.query(`DELETE FROM app.${spec.table}`);
-  for (const item of items) {
-    await client.query(
-      `INSERT INTO app.${spec.table} (
+// One row maps to 8 columns; Postgres caps a statement at 65535 bind params, so
+// keep each multi-row INSERT well under that with a conservative chunk size.
+const COLLECTION_INSERT_COLUMNS = 8;
+const COLLECTION_INSERT_CHUNK = 500;
+
+function collectionRowParams<T extends MutableCollectionValue>(spec: CollectionSpec<T>, item: T): unknown[] {
+  return [
+    spec.idOf(item),
+    spec.userIdOf(item),
+    spec.dateOf?.(item) ?? null,
+    spec.subjectOf?.(item) ?? null,
+    spec.completedOf?.(item) ?? null,
+    JSON.stringify(normalizeJson(item)),
+    safeTimestamp(spec.createdAtOf?.(item)),
+    safeTimestamp(spec.updatedAtOf?.(item) ?? spec.createdAtOf?.(item)),
+  ];
+}
+
+// Pure builder for the chunked multi-row upsert statements. Exported for unit
+// testing because the per-chunk placeholder numbering ($1..$N) is easy to get
+// subtly wrong. `rows` are already in column order (see collectionRowParams);
+// column 6 (data) is cast to ::jsonb.
+export function buildCollectionInsertChunks(
+  table: string,
+  rows: unknown[][],
+  chunkSize: number = COLLECTION_INSERT_CHUNK,
+): Array<{ text: string; values: unknown[] }> {
+  const safeChunk = Math.max(1, chunkSize);
+  const chunks: Array<{ text: string; values: unknown[] }> = [];
+  for (let start = 0; start < rows.length; start += safeChunk) {
+    const slice = rows.slice(start, start + safeChunk);
+    const tuples: string[] = [];
+    const values: unknown[] = [];
+    slice.forEach((row, index) => {
+      const base = index * COLLECTION_INSERT_COLUMNS;
+      tuples.push(
+        `($${base + 1},$${base + 2},$${base + 3},$${base + 4},$${base + 5},$${base + 6}::jsonb,$${base + 7},$${base + 8})`,
+      );
+      values.push(...row);
+    });
+    chunks.push({
+      text: `INSERT INTO app.${table} (
          id, user_id, activity_date, subject, completed, data, created_at, updated_at
-       ) VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8)
+       ) VALUES ${tuples.join(",")}
        ON CONFLICT (id) DO UPDATE SET
          user_id = EXCLUDED.user_id,
          activity_date = EXCLUDED.activity_date,
@@ -506,18 +539,33 @@ async function replaceCollection<T extends MutableCollectionValue>(
          data = EXCLUDED.data,
          created_at = EXCLUDED.created_at,
          updated_at = EXCLUDED.updated_at`,
-      [
-        spec.idOf(item),
-        spec.userIdOf(item),
-        spec.dateOf?.(item) ?? null,
-        spec.subjectOf?.(item) ?? null,
-        spec.completedOf?.(item) ?? null,
-        JSON.stringify(normalizeJson(item)),
-        safeTimestamp(spec.createdAtOf?.(item)),
-        safeTimestamp(spec.updatedAtOf?.(item) ?? spec.createdAtOf?.(item)),
-      ],
-    );
+      values,
+    });
   }
+  return chunks;
+}
+
+// Batched, idempotent upsert of collection rows. Replaces the previous
+// one-INSERT-per-row loop (N round-trips) with a single multi-row INSERT per
+// chunk, which is the dominant cost of persisting the store.
+async function upsertCollectionRows<T extends MutableCollectionValue>(
+  client: PoolClient,
+  spec: CollectionSpec<T>,
+  items: T[],
+): Promise<void> {
+  const rows = items.map((item) => collectionRowParams(spec, item));
+  for (const chunk of buildCollectionInsertChunks(spec.table, rows)) {
+    await client.query(chunk.text, chunk.values);
+  }
+}
+
+async function replaceCollection<T extends MutableCollectionValue>(
+  client: PoolClient,
+  spec: CollectionSpec<T>,
+  items: T[],
+): Promise<void> {
+  await client.query(`DELETE FROM app.${spec.table}`);
+  await upsertCollectionRows(client, spec, items);
 }
 
 export async function hydrateStoreFromPostgres(seed: AppStore): Promise<AppStore> {
@@ -573,6 +621,50 @@ export async function persistStoreToPostgres(store: AppStore): Promise<void> {
     await replaceTasks(client, store.tasks);
     for (const spec of COLLECTION_SPECS) {
       await replaceCollection(client, spec, store[spec.key] as MutableCollectionValue[]);
+    }
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+// Persist only the rows that belong to a single user across the given
+// collections (plus, optionally, that user's row in origin_users). Unlike
+// persistStoreToPostgres this never `DELETE`s a whole table and never rewrites
+// other users' rows, so its cost scales with the one user's data rather than
+// with total database size. Use it for hot per-user write paths (test submit,
+// practice submit, etc.) whose only durable side-effects are scoped to the
+// acting user; the primary records for those flows are written through their own
+// targeted writers (e.g. persistTestAnalysisResult).
+export async function persistUserCollections(
+  store: AppStore,
+  userId: string,
+  keys: MutableCollectionKey[],
+  options: { persistUser?: boolean } = {},
+): Promise<void> {
+  if (!isUserPostgresConfigured()) return;
+
+  const specs = COLLECTION_SPECS.filter((spec) => keys.includes(spec.key));
+  if (specs.length === 0 && !options.persistUser) return;
+
+  await ensureAppStoreSchema();
+  const client = await pool().connect();
+  try {
+    await client.query("BEGIN");
+    if (options.persistUser) {
+      const user = store.users.find((entry) => entry.id === userId);
+      if (user) {
+        await upsertUsers(client, [user]);
+      }
+    }
+    for (const spec of specs) {
+      const rows = (store[spec.key] as MutableCollectionValue[]).filter(
+        (item) => spec.userIdOf(item) === userId,
+      );
+      await upsertCollectionRows(client, spec, rows);
     }
     await client.query("COMMIT");
   } catch (error) {

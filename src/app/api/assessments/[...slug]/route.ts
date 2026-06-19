@@ -34,7 +34,13 @@ import {
   updateOgcodeLocation,
 } from "@/server/assessments";
 import { badRequest, created, forbidden, getSlugSegments, methodNotAllowed, notFound, ok, parseJsonBody, unauthorized } from "@/server/http";
-import { readStoreAsync, withStoreAsync } from "@/server/store";
+import {
+  readStoreAsync,
+  withStoreAsync,
+  withStoreAsyncScoped,
+  TEST_SUBMIT_PERSIST_COLLECTIONS,
+  PRACTICE_SUBMIT_PERSIST_COLLECTIONS,
+} from "@/server/store";
 
 function revalidateUserProgress(userId: string) {
   revalidateTag("milestones", "max");
@@ -232,13 +238,15 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     if (root === "tests" && first === "custom") {
       const body = await parseJsonBody<CustomTestPayload>(request);
-      const response = await withStoreAsync(async (store) => {
+      // createCustomTest writes its durable record via persistGeneratedCustomTest
+      // and mutates no store collection, so skip the wholesale store persist.
+      const response = await withStoreAsyncScoped(async (store) => {
         const user = await requireUserFromRequest(store, request);
         if (!user) {
           throw new Error("Authentication credentials were not provided.");
         }
         return createCustomTest(store, user, body);
-      });
+      }, null);
       revalidateTag("tests", "max");
       revalidateTag(`progress-user:${auth.user.id}`, "max");
       return created(response);
@@ -246,26 +254,34 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     if (root === "tests" && first && second === "submit") {
       const body = await parseJsonBody<TestSubmissionPayload>(request);
-      const response = await withStoreAsync(async (store) => {
-        const user = await requireUserFromRequest(store, request);
-        if (!user) {
-          throw new Error("Authentication credentials were not provided.");
-        }
-        return submitTest(store, user, first, body);
-      });
+      const response = await withStoreAsyncScoped(
+        async (store) => {
+          const user = await requireUserFromRequest(store, request);
+          if (!user) {
+            throw new Error("Authentication credentials were not provided.");
+          }
+          return submitTest(store, user, first, body);
+        },
+        { userId: auth.user.id, collections: TEST_SUBMIT_PERSIST_COLLECTIONS, persistUser: true },
+      );
       revalidateTestMutation(auth.user.id, first);
       return created(response);
     }
 
     if (root === "dpps" && first && second === "submit") {
       const body = await parseJsonBody<TestSubmissionPayload>(request);
-      const response = await withStoreAsync(async (store) => {
-        const user = await requireUserFromRequest(store, request);
-        if (!user) {
-          throw new Error("Authentication credentials were not provided.");
-        }
-        return submitGeneratedDpp(store, user, first, body);
-      });
+      // DPP submit persists its attempt via persistDppAttemptResult; only the
+      // shared gamification collections need a scoped store write.
+      const response = await withStoreAsyncScoped(
+        async (store) => {
+          const user = await requireUserFromRequest(store, request);
+          if (!user) {
+            throw new Error("Authentication credentials were not provided.");
+          }
+          return submitGeneratedDpp(store, user, first, body);
+        },
+        { userId: auth.user.id, collections: TEST_SUBMIT_PERSIST_COLLECTIONS, persistUser: true },
+      );
       revalidateTestMutation(auth.user.id);
       return created(response);
     }
@@ -284,13 +300,18 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     if (root === "practice" && first && second === "submit") {
       const body = await parseJsonBody<PracticeSubmissionPayload>(request);
-      const response = await withStoreAsync(async (store) => {
-        const user = await requireUserFromRequest(store, request);
-        if (!user) {
-          throw new Error("Authentication credentials were not provided.");
-        }
-        return submitPracticeQuestion(store, user, first, body);
-      });
+      // Practice submit's attempt + subject-rank live only in the store (no
+      // targeted writer), so they are included in the scoped persist set.
+      const response = await withStoreAsyncScoped(
+        async (store) => {
+          const user = await requireUserFromRequest(store, request);
+          if (!user) {
+            throw new Error("Authentication credentials were not provided.");
+          }
+          return submitPracticeQuestion(store, user, first, body);
+        },
+        { userId: auth.user.id, collections: PRACTICE_SUBMIT_PERSIST_COLLECTIONS, persistUser: true },
+      );
       revalidateOgcodeMutation(auth.user.id, first);
       return ok(response);
     }

@@ -3,7 +3,7 @@
 import { revalidateTag } from 'next/cache';
 
 import { getServerUser } from '@/lib/auth-server';
-import { withStoreAsync } from '@/server/store';
+import { withStoreAsyncScoped, TEST_SUBMIT_PERSIST_COLLECTIONS } from '@/server/store';
 import {
   createCustomTest,
   submitTest,
@@ -19,9 +19,11 @@ async function requireUser() {
 
 export async function createCustomTestAction(payload: CustomTestPayload) {
   const user = await requireUser();
-  const test = await withStoreAsync(async (store) => {
+  // createCustomTest persists its durable record via persistGeneratedCustomTest
+  // and mutates no store collection, so no wholesale store write is needed.
+  const test = await withStoreAsyncScoped(async (store) => {
     return createCustomTest(store, user, payload);
-  });
+  }, null);
   revalidateTag('tests', 'max');
   revalidateTag(`progress-user:${user.id}`, 'max');
   return test;
@@ -29,9 +31,12 @@ export async function createCustomTestAction(payload: CustomTestPayload) {
 
 export async function submitTestAction(testId: string, payload: TestSubmissionPayload) {
   const user = await requireUser();
-  const result = await withStoreAsync(async (store) => {
-    return submitTest(store, user, testId, payload);
-  });
+  const result = await withStoreAsyncScoped(
+    async (store) => {
+      return submitTest(store, user, testId, payload);
+    },
+    { userId: user.id, collections: TEST_SUBMIT_PERSIST_COLLECTIONS, persistUser: true },
+  );
 
   revalidateTag('tests', 'max');
   revalidateTag(`test:${testId}`, 'max');
