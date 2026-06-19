@@ -17,7 +17,12 @@ import {
 } from "@/data/mockData";
 import { ncertBooksData } from "@/data/ncertBooks";
 import type { Question } from "@/types";
-import { hydrateStoreFromPostgres, persistStoreToPostgres } from "@/server/store-postgres";
+import {
+  hydrateStoreFromPostgres,
+  persistStoreToPostgres,
+  persistUserCollections,
+  type MutableCollectionKey,
+} from "@/server/store-postgres";
 
 export type UserRole = "student" | "teacher" | "admin";
 export type QuestionType = "mcq" | "msq" | "numerical" | "matrix_match" | "subjective";
@@ -1246,6 +1251,64 @@ export async function withStoreAsync<T>(mutate: (store: AppStore) => Promise<T> 
     const store = await readStoreAsync(true);
     const result = await mutate(store);
     await persistStoreToPostgres(store);
+    cachedStore = store;
+    lastHydratedAt = Date.now();
+    return result;
+  });
+}
+
+export type ScopedStorePersist = {
+  /** The user whose rows should be persisted. */
+  userId: string;
+  /** Collections mutated for that user during `mutate`. */
+  collections: MutableCollectionKey[];
+  /** Persist the user's row in `origin_users` too (e.g. streak/study-time updates). */
+  persistUser?: boolean;
+};
+
+// Collections mutated by a graded-assessment submit's post-grading side-effects
+// (updateUserStreak / awardPoints / daily activity / study time). Shared by
+// `submitTest` and `submitGeneratedDpp` — both persist their primary record via a
+// targeted writer (persistTestAnalysisResult / persistDppAttemptResult), so only
+// these gamification collections need a scoped store write. Kept here so the
+// scoped persist stays in lockstep with the store model.
+export const TEST_SUBMIT_PERSIST_COLLECTIONS: MutableCollectionKey[] = [
+  "streaks",
+  "dailyActivities",
+  "userScores",
+  "pointLogs",
+];
+
+// `submitPracticeQuestion` has no targeted writer: the practice attempt and the
+// subject-rank update live only in the store, so those collections must be
+// persisted in addition to the shared gamification set. persistUserCollections
+// upserts (never deletes), so adding the new attempt for this user is safe.
+export const PRACTICE_SUBMIT_PERSIST_COLLECTIONS: MutableCollectionKey[] = [
+  "practiceAttempts",
+  "subjectRanks",
+  "streaks",
+  "dailyActivities",
+  "userScores",
+  "pointLogs",
+];
+
+// Like `withStoreAsync`, but instead of rewriting the entire store back to
+// Postgres it persists only the rows touched for a single user (or nothing, when
+// `persist` is null). Use this for per-user hot paths whose durable records are
+// already written by targeted writers, so write cost no longer grows with total
+// database size.
+export async function withStoreAsyncScoped<T>(
+  mutate: (store: AppStore) => Promise<T> | T,
+  persist: ScopedStorePersist | null,
+): Promise<T> {
+  return storeMutex.runExclusive(async () => {
+    const store = await readStoreAsync(true);
+    const result = await mutate(store);
+    if (persist) {
+      await persistUserCollections(store, persist.userId, persist.collections, {
+        persistUser: persist.persistUser,
+      });
+    }
     cachedStore = store;
     lastHydratedAt = Date.now();
     return result;

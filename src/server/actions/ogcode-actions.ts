@@ -3,7 +3,7 @@
 import { revalidateTag, revalidatePath } from 'next/cache';
 
 import { getServerUser } from '@/lib/auth-server';
-import { withStoreAsync } from '@/server/store';
+import { withStoreAsyncScoped, PRACTICE_SUBMIT_PERSIST_COLLECTIONS } from '@/server/store';
 import {
   submitPracticeQuestion,
   type PracticeSubmissionPayload,
@@ -20,9 +20,12 @@ export async function submitOgcodeAnswerAction(
   payload: PracticeSubmissionPayload,
 ) {
   const user = await requireUser();
-  const result = await withStoreAsync(async (store) => {
-    return submitPracticeQuestion(store, user, questionId, payload);
-  });
+  const result = await withStoreAsyncScoped(
+    async (store) => {
+      return submitPracticeQuestion(store, user, questionId, payload);
+    },
+    { userId: user.id, collections: PRACTICE_SUBMIT_PERSIST_COLLECTIONS, persistUser: true },
+  );
 
   revalidateTag('leaderboard', 'max');
   revalidateTag('milestones', 'max');

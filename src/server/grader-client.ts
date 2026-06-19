@@ -253,7 +253,10 @@ function graderTimeoutMs(itemCount: number): number {
   if (Number.isFinite(configured) && configured > 0) {
     return configured;
   }
-  return Math.min(4000, Math.max(2000, 1800 + itemCount * 75));
+  // Symbolic/subjective grading is CPU-bound (sympy); a large batch can legitimately
+  // need several seconds. The old 4s cap aborted real work and forced a full local
+  // re-grade. Scale with item count and cap below the grader's 15s statement timeout.
+  return Math.min(9000, Math.max(3000, 2000 + itemCount * 120));
 }
 
 function toGradeResult(question: StoredQuestion, payload: RemoteEvaluationResponse): GradeResult {

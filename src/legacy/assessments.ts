@@ -2980,14 +2980,19 @@ export async function createCustomTest(
     const subject = (payload.subject ?? "mixed").toLowerCase();
     const difficultyValue = (payload.difficulty ?? "medium").toLowerCase();
     const difficulty = difficultyValue === "all" ? null : normalizeDifficulty(difficultyValue);
+    // These two reads are independent — run them concurrently instead of serially.
+    const [recentWeakTopics, attemptedQuestionIds] = await Promise.all([
+      getRecentWeakTopicsForUser(user.id),
+      getAttemptedQuestionIdsForUser(user.id),
+    ]);
     const serviceResponse = await generateCustomTestWithService({
       user_id: user.id,
       subject: subject === "all" ? "mixed" : subject,
       difficulty,
       chapter: payload.chapter?.trim() || null,
       question_count: Math.max(1, Number(payload.question_count ?? 10)),
-      recent_weak_topics: await getRecentWeakTopicsForUser(user.id),
-      attempted_question_ids: await getAttemptedQuestionIdsForUser(user.id),
+      recent_weak_topics: recentWeakTopics,
+      attempted_question_ids: attemptedQuestionIds,
     });
 
     if (!serviceResponse) {
