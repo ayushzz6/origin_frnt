@@ -329,6 +329,12 @@ export type CreateAssignmentInput = {
   assignedBy: string;
 };
 
+/** Removes all question rows for a test (used when an editor replaces them). */
+export async function clearTestQuestions(testId: string): Promise<void> {
+  await ensureAssessmentSchema();
+  await pool().query(`DELETE FROM assessment.test_questions WHERE test_id = $1`, [testId]);
+}
+
 /**
  * Deletes a test and (via ON DELETE CASCADE) its questions, assignments, attempts
  * and answers. Scoped to the workspace so a teacher can only delete their own tests.

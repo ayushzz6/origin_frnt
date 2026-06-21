@@ -20,7 +20,11 @@ if (process.env.USER_DATABASE_URL) {
 
 import { addStudentsToBatches } from "@/server/workspaces/batches";
 import { getOgcodeCatalogQuestionMap } from "@/server/ogcode-catalog";
-import { createTeacherTest, deleteTeacherTest } from "@/server/workspaces/tests-service";
+import {
+  createTeacherTest,
+  deleteTeacherTest,
+  updateTeacherTest,
+} from "@/server/workspaces/tests-service";
 import { getContentQuestionStoredMap } from "@/server/workspaces/test-question-resolver";
 import {
   createAssignment,
@@ -146,6 +150,17 @@ it("phase 15: mixed OG Code + Question Bag test persists and resolves both banks
         }),
       (e) => (e as { status?: number }).status === 400,
     );
+
+    // Edit: replacing the question set updates the test (resume-a-draft path).
+    await updateTeacherTest({
+      actorUserId: fx.ownerId,
+      workspaceId: fx.workspaceId,
+      testId: teacherTest.id,
+      patch: {},
+      questions: [{ position: 1, sourceBank: "ogcode", ogcodeQuestionId: ogId, marks: 4, negativeMarks: 1 }],
+    });
+    const afterEdit = await getAssignedTestForStudent(fx.studentId, teacherTest.id);
+    assert.deepEqual(afterEdit?.orderedQuestionIds, [ogId], "edit replaced the question set");
 
     // Delete removes the test (cascades questions + assignments).
     await deleteTeacherTest({

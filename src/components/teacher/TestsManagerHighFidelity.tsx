@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Calendar, Clock, HelpCircle, Trash2, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { Plus, Search, Calendar, Clock, HelpCircle, Trash2, Loader2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -131,6 +132,19 @@ export function TestsManagerHighFidelity({ workspaceId, initialTests, questions,
                     <span className={`text-[10px] font-bold uppercase px-2 py-0.5 border rounded-full ${STATUS_COLORS[test.status] || ""}`}>
                       {STATUS_LABELS[test.status] || test.status}
                     </span>
+                    {canManage && !["live", "closed", "archived"].includes(test.status) ? (
+                      <Button
+                        asChild
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        title="Edit test"
+                      >
+                        <Link href={`/teacher/workspaces/${workspaceId}/tests/${test.id}/edit`}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Link>
+                      </Button>
+                    ) : null}
                     {canManage && test.status !== "live" ? (
                       <Button
                         variant="ghost"

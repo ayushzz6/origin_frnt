@@ -14,6 +14,7 @@ import {
   listTests,
   updateTest,
   addQuestionToTest,
+  clearTestQuestions,
   deleteTest,
   listAttemptResults,
   getTestLeaderboard,
@@ -29,19 +30,88 @@ import type {
   TestWithQuestions,
 } from "./types";
 
+export type TestQuestionInput = {
+  position: number;
+  sourceBank: QuestionSourceBank;
+  ogcodeQuestionId?: string | null;
+  contentQuestionId?: string | null;
+  contentQuestionVersionId?: string | null;
+  marks?: number;
+  negativeMarks?: number;
+};
+
 export type CreateTeacherTestInput = Omit<CreateTestInput, "totalQuestions"> & {
   actorUserId: string;
-  questions: Array<{
-    position: number;
-    sourceBank: QuestionSourceBank;
-    ogcodeQuestionId?: string | null;
-    contentQuestionId?: string | null;
-    contentQuestionVersionId?: string | null;
-    marks?: number;
-    negativeMarks?: number;
-  }>;
+  questions: TestQuestionInput[];
   requestId?: string | null;
 };
+
+/**
+ * Validates a question set (ogcode ids exist; workspace_bag rows are ready and
+ * carry a version id) and writes it onto a test. All validation runs BEFORE any
+ * write, so `replace` can clear the existing rows without risking partial loss on
+ * a validation failure. Shared by create + edit so both behave identically.
+ */
+async function applyTestQuestions(
+  testId: string,
+  workspaceId: string,
+  questions: TestQuestionInput[],
+  opts?: { replace?: boolean },
+): Promise<void> {
+  // Batch-validate ogcode ids exist (one query — the bank has thousands of rows).
+  const ogcodeIds = questions
+    .filter((q) => q.sourceBank === "ogcode")
+    .map((q) => q.ogcodeQuestionId)
+    .filter((id): id is string => Boolean(id));
+  const ogcodeMap = ogcodeIds.length ? await getOgcodeCatalogQuestionMap(ogcodeIds) : new Map();
+  for (const id of ogcodeIds) {
+    if (!ogcodeMap.has(id)) throw new AuthzError(400, `OG Code question ${id} not found.`);
+  }
+
+  // Resolve/validate every row (no writes yet).
+  const resolved: Array<TestQuestionInput & { contentQuestionVersionId: string | null }> = [];
+  for (const q of questions) {
+    if (q.sourceBank === "ogcode" && !q.ogcodeQuestionId) {
+      throw new AuthzError(400, "An OG Code question is missing its question id.");
+    }
+    let contentQuestionVersionId = q.contentQuestionVersionId ?? null;
+    if (q.sourceBank === "workspace_bag") {
+      if (!q.contentQuestionId) {
+        throw new AuthzError(400, "A Question-Bag question is missing its question id.");
+      }
+      const question = await getQuestionWithVersion(q.contentQuestionId);
+      if (!question) {
+        throw new AuthzError(400, `Question ${q.contentQuestionId} not found.`);
+      }
+      if (question.workspaceId !== workspaceId) {
+        throw new AuthzError(403, `Question ${q.contentQuestionId} does not belong to this workspace.`);
+      }
+      if (question.status !== "ready" && question.status !== "published_private") {
+        throw new AuthzError(400, `Question ${q.contentQuestionId} is not ready for use in tests.`);
+      }
+      contentQuestionVersionId = contentQuestionVersionId ?? question.currentVersionId;
+      if (!contentQuestionVersionId) {
+        throw new AuthzError(400, `Question ${q.contentQuestionId} has no published version.`);
+      }
+    }
+    resolved.push({ ...q, contentQuestionVersionId });
+  }
+
+  // Commit: replace existing rows only after validation succeeds.
+  if (opts?.replace) await clearTestQuestions(testId);
+  for (const q of resolved) {
+    await addQuestionToTest({
+      testId,
+      position: q.position,
+      sourceBank: q.sourceBank,
+      ogcodeQuestionId: q.ogcodeQuestionId ?? null,
+      contentQuestionId: q.contentQuestionId ?? null,
+      contentQuestionVersionId: q.contentQuestionVersionId,
+      marks: q.marks ?? 4,
+      negativeMarks: q.negativeMarks ?? -1,
+    });
+  }
+}
 
 export async function createTeacherTest(input: CreateTeacherTestInput): Promise<TestWithQuestions> {
   if (!input.title.trim()) {
@@ -68,55 +138,7 @@ export async function createTeacherTest(input: CreateTeacherTestInput): Promise<
     settings: input.settings ?? {},
   });
 
-  // Phase 15: validate every ogcode-sourced id exists, in ONE batch query (the
-  // bank has thousands of rows — never per-question round-trips).
-  const ogcodeIds = input.questions
-    .filter((q) => q.sourceBank === "ogcode")
-    .map((q) => q.ogcodeQuestionId)
-    .filter((id): id is string => Boolean(id));
-  const ogcodeMap = ogcodeIds.length ? await getOgcodeCatalogQuestionMap(ogcodeIds) : new Map();
-  for (const id of ogcodeIds) {
-    if (!ogcodeMap.has(id)) throw new AuthzError(400, `OG Code question ${id} not found.`);
-  }
-
-  for (const q of input.questions) {
-    // For ogcode rows the id must be present (the CHECK constraint also enforces it).
-    if (q.sourceBank === "ogcode" && !q.ogcodeQuestionId) {
-      throw new AuthzError(400, "An OG Code question is missing its question id.");
-    }
-    // Resolve/validate workspace_bag rows and fill the version id the CHECK
-    // constraint requires (the picker sends only the question id).
-    let contentQuestionVersionId = q.contentQuestionVersionId ?? null;
-    if (q.sourceBank === "workspace_bag") {
-      if (!q.contentQuestionId) {
-        throw new AuthzError(400, "A Question-Bag question is missing its question id.");
-      }
-      const question = await getQuestionWithVersion(q.contentQuestionId);
-      if (!question) {
-        throw new AuthzError(400, `Question ${q.contentQuestionId} not found.`);
-      }
-      if (question.workspaceId !== input.workspaceId) {
-        throw new AuthzError(403, `Question ${q.contentQuestionId} does not belong to this workspace.`);
-      }
-      if (question.status !== "ready" && question.status !== "published_private") {
-        throw new AuthzError(400, `Question ${q.contentQuestionId} is not ready for use in tests.`);
-      }
-      contentQuestionVersionId = contentQuestionVersionId ?? question.currentVersionId;
-      if (!contentQuestionVersionId) {
-        throw new AuthzError(400, `Question ${q.contentQuestionId} has no published version.`);
-      }
-    }
-    await addQuestionToTest({
-      testId: test.id,
-      position: q.position,
-      sourceBank: q.sourceBank,
-      ogcodeQuestionId: q.ogcodeQuestionId ?? null,
-      contentQuestionId: q.contentQuestionId ?? null,
-      contentQuestionVersionId,
-      marks: q.marks ?? 4,
-      negativeMarks: q.negativeMarks ?? -1,
-    });
-  }
+  await applyTestQuestions(test.id, input.workspaceId, input.questions);
 
   await recordAuditEvent({
     actorUserId: input.actorUserId,
@@ -136,6 +158,8 @@ export async function updateTeacherTest(input: {
   workspaceId: string;
   testId: string;
   patch: Partial<CreateTestInput>;
+  /** When provided, the test's questions are fully replaced with this set. */
+  questions?: TestQuestionInput[];
   requestId?: string | null;
 }): Promise<AssessmentTest> {
   const existing = await getTestById(input.testId);
@@ -145,7 +169,16 @@ export async function updateTeacherTest(input: {
     throw new AuthzError(400, "Cannot edit a live, closed, or archived test.");
   }
 
-  const updated = await updateTest(input.testId, input.patch);
+  // Replace questions first (validates before clearing) so totalQuestions matches.
+  if (input.questions) {
+    await applyTestQuestions(input.testId, input.workspaceId, input.questions, { replace: true });
+  }
+
+  const patch: Partial<CreateTestInput> = {
+    ...input.patch,
+    ...(input.questions ? { totalQuestions: input.questions.length } : {}),
+  };
+  const updated = await updateTest(input.testId, patch);
   if (!updated) throw new Error("Failed to update test.");
 
   await recordAuditEvent({

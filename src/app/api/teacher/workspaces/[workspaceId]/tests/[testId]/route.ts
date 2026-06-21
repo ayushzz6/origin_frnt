@@ -21,6 +21,16 @@ import {
   type WorkspaceIdRouteContext,
 } from "@/app/api/teacher/_utils";
 
+const questionInputSchema = z.object({
+  position: z.number().int().min(1),
+  sourceBank: z.enum(["ogcode", "workspace_bag", "platform_content"]),
+  ogcodeQuestionId: z.string().nullish(),
+  contentQuestionId: z.string().nullish(),
+  contentQuestionVersionId: z.string().nullish(),
+  marks: z.number().optional().default(4),
+  negativeMarks: z.number().optional().default(-1),
+});
+
 const updateSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   description: z.string().optional().nullable(),
@@ -31,6 +41,8 @@ const updateSchema = z.object({
   selectionPolicy: z.record(z.string(), z.unknown()).optional(),
   scoringPolicy: z.record(z.string(), z.unknown()).optional(),
   settings: z.record(z.string(), z.unknown()).optional(),
+  // When present, replaces the test's questions (mixed OG Code + Question Bag).
+  questions: z.array(questionInputSchema).optional(),
 });
 
 const scheduleSchema = z.object({
@@ -74,16 +86,14 @@ export async function PATCH(
     ]);
     const { testId } = await context.params;
     const body = await parseJsonBody(request);
-    const parsed = updateSchema.parse(body);
+    const { questions, ...rest } = updateSchema.parse(body);
 
     const updated = await updateTeacherTest({
       actorUserId: ctx.auth.userId,
       workspaceId,
       testId,
-      patch: {
-        ...parsed,
-        durationMinutes: parsed.durationMinutes,
-      },
+      patch: rest,
+      questions,
       requestId: requestIdOf(request),
     });
 
