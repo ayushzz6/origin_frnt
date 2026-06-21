@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { LiveRoomDashboard } from "@/components/teacher/LiveRoomDashboard";
 import { RoomConfigureTestDrawer } from "@/components/teacher/RoomConfigureTestDrawer";
+import { RoomStartControl } from "@/components/teacher/RoomStartControl";
 import { RoomTestBuilderDrawer } from "@/components/teacher/RoomTestBuilderDrawer";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { getTeacherRoomById } from "@/server/workspaces/teacher-rooms";
@@ -53,6 +54,7 @@ export default async function LiveStudyRoomPage({ params }: Props) {
             ogcodeEnabled={ogcodeEnabled}
           />
           <RoomConfigureTestDrawer workspaceId={workspaceId} room={room} />
+          <RoomStartControl workspaceId={workspaceId} room={room} />
         </CardContent>
       </Card>
 

@@ -41,7 +41,7 @@ type Props = {
 };
 
 export function OgcodeQuestionList({ workspaceId, renderAction, selectedIds }: Props) {
-  const { filters, setFilters, items, total, hasMore, loading, error, loadMore } =
+  const { filters, setFilters, chapters, items, total, hasMore, loading, error, loadMore } =
     useOgcodeBrowse(workspaceId);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
@@ -86,10 +86,24 @@ export function OgcodeQuestionList({ workspaceId, renderAction, selectedIds }: P
               {s.label}
             </button>
           ))}
+          {filters.subject && chapters.length > 0 ? (
+            <select
+              value={filters.chapter}
+              onChange={(e) => setFilters((f) => ({ ...f, chapter: e.target.value }))}
+              className="ml-auto max-w-[12rem] rounded-lg border bg-background px-2 py-1 text-xs"
+            >
+              <option value="">All topics</option>
+              {chapters.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          ) : null}
           <select
             value={filters.difficulty}
             onChange={(e) => setFilters((f) => ({ ...f, difficulty: e.target.value }))}
-            className="ml-auto rounded-lg border bg-background px-2 py-1 text-xs capitalize"
+            className={`${filters.subject && chapters.length > 0 ? "" : "ml-auto"} rounded-lg border bg-background px-2 py-1 text-xs capitalize`}
           >
             {DIFFICULTIES.map((d) => (
               <option key={d || "all"} value={d}>

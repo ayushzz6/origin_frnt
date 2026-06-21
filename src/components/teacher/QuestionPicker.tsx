@@ -51,6 +51,17 @@ export function QuestionPicker({
   defaultNegativeMarks = 1,
 }: Props) {
   const [bagSearch, setBagSearch] = useState("");
+  const [bagChapter, setBagChapter] = useState("");
+
+  // Topics present in this workspace's bag (for the topic segregation dropdown).
+  const bagChapters = useMemo(() => {
+    const set = new Set<string>();
+    for (const q of bagQuestions) {
+      const c = q.currentVersion?.chapter?.trim();
+      if (c) set.add(c);
+    }
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [bagQuestions]);
 
   const selectedBagIds = useMemo(
     () => new Set(value.filter((q) => q.sourceBank === "workspace_bag").map((q) => q.id)),
@@ -89,12 +100,14 @@ export function QuestionPicker({
 
   const filteredBag = bagQuestions.filter((q) => {
     if (selectedBagIds.has(q.id)) return false;
+    const v = q.currentVersion;
+    if (bagChapter && v?.chapter !== bagChapter) return false;
     const term = bagSearch.trim().toLowerCase();
     if (!term) return true;
-    const v = q.currentVersion;
     return (
       (v?.stem.toLowerCase().includes(term) ?? false) ||
-      (v?.chapter.toLowerCase().includes(term) ?? false)
+      (v?.chapter.toLowerCase().includes(term) ?? false) ||
+      (v?.concept.toLowerCase().includes(term) ?? false)
     );
   });
 
@@ -111,14 +124,30 @@ export function QuestionPicker({
           </div>
 
           <TabsContent value="bag" className="flex-1 overflow-y-auto p-3">
-            <div className="relative mb-3">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={bagSearch}
-                onChange={(e) => setBagSearch(e.target.value)}
-                placeholder="Search your question bag…"
-                className="h-9 pl-9 text-xs"
-              />
+            <div className="mb-3 space-y-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={bagSearch}
+                  onChange={(e) => setBagSearch(e.target.value)}
+                  placeholder="Search your question bag…"
+                  className="h-9 pl-9 text-xs"
+                />
+              </div>
+              {bagChapters.length > 0 ? (
+                <select
+                  value={bagChapter}
+                  onChange={(e) => setBagChapter(e.target.value)}
+                  className="h-8 w-full rounded-lg border bg-background px-2 text-xs"
+                >
+                  <option value="">All topics</option>
+                  {bagChapters.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
             </div>
             {filteredBag.length === 0 ? (
               <p className="p-6 text-center text-xs text-muted-foreground">
