@@ -10,7 +10,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, Radio } from 'lucide-react';
+import { Building2, Loader2, Radio } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,14 +23,14 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAuth } from '@/context/AuthContext';
-import { getEntitledSubjects } from '@/lib/entitlements';
 import {
   joinConnectRoom,
   listConnectCollaborators,
   listConnectRooms,
+  listMyInstitutes,
   type ConnectCollaborator,
   type ConnectRoom,
+  type StudentInstitute,
 } from '@/features/connect/client';
 
 import { ConnectRedeemPanel } from './ConnectRedeemPanel';
@@ -184,35 +184,123 @@ function JoinableRoomsPanel() {
   );
 }
 
+const ENROLLMENT_STATUS_BADGE: Record<
+  StudentInstitute['enrollmentStatus'],
+  { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }
+> = {
+  active: { label: 'Active', variant: 'default' },
+  unassigned: { label: 'Enrolled', variant: 'secondary' },
+  suspended: { label: 'Suspended', variant: 'destructive' },
+  left: { label: 'Left', variant: 'outline' },
+};
+
+function InstituteCard({ inst }: { inst: StudentInstitute }) {
+  const status = ENROLLMENT_STATUS_BADGE[inst.enrollmentStatus] ?? ENROLLMENT_STATUS_BADGE.unassigned;
+  const location = [inst.city, inst.state, inst.country].filter(Boolean).join(', ') || 'Online';
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-start justify-between gap-2">
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-primary" /> {inst.displayName}
+          </CardTitle>
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+            <Badge variant={status.variant}>{status.label}</Badge>
+            {inst.verified ? <Badge variant="outline">Verified</Badge> : null}
+          </div>
+        </div>
+        <CardDescription>{location}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase">Your batches</p>
+          {inst.batches.length > 0 ? (
+            <div className="flex flex-wrap gap-1">
+              {inst.batches.map((b) => (
+                <Badge key={b.id} variant="outline">
+                  {b.name}
+                  {b.subject ? ` · ${b.subject}` : ''}
+                </Badge>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Awaiting batch assignment by the institute.
+            </p>
+          )}
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase">Unlocked subjects</p>
+          {inst.subjects.length > 0 ? (
+            <div className="flex flex-wrap gap-1">
+              {inst.subjects.map((s) => (
+                <Badge key={s} variant="secondary" className="capitalize">
+                  {s}
+                </Badge>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              No subject unlocked yet — pick one from the “Enter code” tab.
+            </p>
+          )}
+        </div>
+      </CardContent>
+      {inst.isActiveCollaborator ? (
+        <CardFooter>
+          <Button asChild variant="outline" className="w-full">
+            <Link href={`/connect/collaborators/${inst.workspaceId}`}>View institute</Link>
+          </Button>
+        </CardFooter>
+      ) : null}
+    </Card>
+  );
+}
+
 function MyInstitutesPanel() {
-  const { user } = useAuth();
-  const subjects = getEntitledSubjects(user);
+  const [institutes, setInstitutes] = useState<StudentInstitute[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    listMyInstitutes()
+      .then((rows) => {
+        if (!cancelled) setInstitutes(rows);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : 'Could not load your institutes.');
+        setInstitutes([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="space-y-4">
-      {subjects.length === 0 ? (
+      {institutes === null ? (
+        <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading your institutes…
+        </div>
+      ) : error ? (
+        <p className="py-8 text-sm text-destructive">{error}</p>
+      ) : institutes.length === 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>Nothing unlocked yet</CardTitle>
+            <CardTitle>No institutes yet</CardTitle>
             <CardDescription>
-              Redeem an institute code or enroll in a batch to unlock Origin subjects.
+              Redeem an institute code in the “Enter code” tab or browse institutes to connect.
+              Once you join, your institute and batches show up here.
             </CardDescription>
           </CardHeader>
         </Card>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Your unlocked subjects</CardTitle>
-            <CardDescription>Subjects active across your connected institutes and plans.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            {subjects.map((s) => (
-              <Badge key={s} variant="secondary" className="capitalize">
-                {s}
-              </Badge>
-            ))}
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {institutes.map((inst) => (
+            <InstituteCard key={inst.workspaceId} inst={inst} />
+          ))}
+        </div>
       )}
       <JoinableRoomsPanel />
     </div>

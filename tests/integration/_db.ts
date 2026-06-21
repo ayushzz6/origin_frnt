@@ -58,10 +58,13 @@ export async function seedFixtures(): Promise<Fixtures> {
   const studentId = makeId("user_student");
 
   // origin_users rows must exist before workspaces / enrollments insert.
+  // password_hash is NOT NULL (db-users.ts) — seed a placeholder (these fixtures
+  // never authenticate via password) so the insert satisfies the constraint on a
+  // fresh database.
   await pool.query(
-    `INSERT INTO origin_users (id, name, email, role) VALUES
-       ($1, 'Test Owner', $2, 'teacher'),
-       ($3, 'Test Student', $4, 'student')
+    `INSERT INTO origin_users (id, name, email, role, password_hash) VALUES
+       ($1, 'Test Owner', $2, 'teacher', 'test-no-login'),
+       ($3, 'Test Student', $4, 'student', 'test-no-login')
      ON CONFLICT (id) DO NOTHING`,
     [ownerId, `${ownerId}@example.com`, studentId, `${studentId}@example.com`],
   );

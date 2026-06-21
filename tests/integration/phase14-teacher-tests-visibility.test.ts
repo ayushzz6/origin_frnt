@@ -29,7 +29,7 @@ it("phase 14: enrolled students see assigned teacher tests; non-members are gate
   const fx = await seedFixtures();
   const outsiderId = makeId("user_outsider");
   await rawPool().query(
-    `INSERT INTO origin_users (id, name, email, role) VALUES ($1, 'Outsider', $2, 'student')
+    `INSERT INTO origin_users (id, name, email, role, password_hash) VALUES ($1, 'Outsider', $2, 'student', 'test-no-login')
      ON CONFLICT (id) DO NOTHING`,
     [outsiderId, `${outsiderId}@example.com`],
   );

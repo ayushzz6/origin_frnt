@@ -297,6 +297,26 @@ export async function listStudentBatches(
   return result.rows.map(rowToBatch);
 }
 
+/**
+ * Every active batch the student belongs to, across ALL their workspaces (one
+ * query). Powers the student "My institutes" view, where batches are grouped by
+ * institute on the client.
+ */
+export async function listStudentBatchesAcrossWorkspaces(
+  studentId: string,
+): Promise<Batch[]> {
+  await ensureEnrollmentSchema();
+  const result = await pool().query(
+    `SELECT b.*
+     FROM app.batches b
+     INNER JOIN app.batch_members m ON m.batch_id = b.id
+     WHERE m.student_id = $1 AND m.status = 'active'
+     ORDER BY b.created_at DESC`,
+    [studentId],
+  );
+  return result.rows.map(rowToBatch);
+}
+
 export async function isStudentInBatch(
   workspaceId: string,
   batchId: string,

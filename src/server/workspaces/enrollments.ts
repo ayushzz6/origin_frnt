@@ -103,6 +103,53 @@ export async function listEnrollments(
   }));
 }
 
+export type StudentInstituteEnrollment = WorkspaceStudentEnrollment & {
+  workspaceDisplayName: string;
+  workspaceType: string;
+  workspaceStatus: string;
+  city: string | null;
+  state: string | null;
+  country: string;
+  verified: boolean;
+};
+
+/**
+ * Every institute the student has a live (non-`left`) enrollment in, joined to the
+ * workspace record. Powers the student "My institutes" view so a connected student
+ * can see which institutes they belong to — independent of whether they have
+ * unlocked any subject yet.
+ */
+export async function listStudentInstituteEnrollments(
+  studentId: string,
+): Promise<StudentInstituteEnrollment[]> {
+  await ensureEnrollmentSchema();
+  const result = await pool().query(
+    `SELECT e.*,
+            w.display_name AS workspace_display_name,
+            w.workspace_type AS workspace_type,
+            w.status AS workspace_status,
+            w.city AS w_city,
+            w.state AS w_state,
+            w.country AS w_country,
+            w.verification_status AS w_verification_status
+       FROM app.workspace_student_enrollments e
+       INNER JOIN app.teacher_workspaces w ON w.id = e.workspace_id
+      WHERE e.student_id = $1 AND e.status <> 'left'
+      ORDER BY e.enrolled_at DESC`,
+    [studentId],
+  );
+  return result.rows.map((row) => ({
+    ...rowToEnrollment(row),
+    workspaceDisplayName: (row.workspace_display_name as string | null) ?? "",
+    workspaceType: (row.workspace_type as string | null) ?? "",
+    workspaceStatus: (row.workspace_status as string | null) ?? "",
+    city: (row.w_city as string | null) ?? null,
+    state: (row.w_state as string | null) ?? null,
+    country: (row.w_country as string | null) ?? "IN",
+    verified: (row.w_verification_status as string | null) === "verified",
+  }));
+}
+
 export async function getEnrollment(
   workspaceId: string,
   studentId: string,

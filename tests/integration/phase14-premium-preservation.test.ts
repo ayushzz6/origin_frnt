@@ -48,8 +48,8 @@ it("phase 14: existing premium user keeps all-4 entitlement + is_premium after b
   // Remove any stale row for the in-scope email first (CI db is ephemeral).
   await rawPool().query(`DELETE FROM origin_users WHERE email = $1`, [PRESERVED_EMAIL]);
   await rawPool().query(
-    `INSERT INTO origin_users (id, name, email, role, is_premium)
-     VALUES ($1, 'Preserved Premium', $2, 'student', TRUE)`,
+    `INSERT INTO origin_users (id, name, email, role, is_premium, password_hash)
+     VALUES ($1, 'Preserved Premium', $2, 'student', TRUE, 'test-no-login')`,
     [userId, PRESERVED_EMAIL],
   );
 

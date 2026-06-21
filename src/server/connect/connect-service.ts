@@ -18,12 +18,21 @@ import { recordAuditEvent } from "@/server/workspaces/audit";
 import { joinByCode, JoinCodeError } from "@/server/workspaces/join";
 import { normalizeCode } from "@/server/workspaces/codes";
 import { findWorkspaceByActiveStudentJoinCode } from "@/server/workspaces/store";
-import { getEnrollment } from "@/server/workspaces/enrollments";
+import {
+  getEnrollment,
+  listStudentInstituteEnrollments,
+} from "@/server/workspaces/enrollments";
+import { listStudentBatchesAcrossWorkspaces } from "@/server/workspaces/batches";
 import {
   getInstituteProfileService,
   listPublicInstitutesService,
 } from "@/server/workspaces/marketplace-service";
-import type { InstitutePublicProfile, WorkspaceStudentEnrollment, TeacherWorkspace } from "@/server/workspaces/types";
+import type {
+  InstitutePublicProfile,
+  WorkspaceStudentEnrollment,
+  TeacherWorkspace,
+  EnrollmentStatus,
+} from "@/server/workspaces/types";
 import { recomputeUserPremiumFlags } from "@/server/entitlements";
 import { ALL_SUBJECTS, normalizeSubject, type Subject } from "@/lib/entitlements";
 
@@ -32,6 +41,7 @@ import { listActiveCollaborationWorkspaceIds } from "./collaboration-store";
 import {
   getActiveWorkspaceTeacherCodeGrant,
   insertTeacherCodeGrant,
+  listActiveWorkspaceGrantsForUser,
   revokeTeacherCodeGrant,
   type SubjectGrant,
 } from "./subject-grants-store";
@@ -71,6 +81,82 @@ async function assertIsActiveOrNull(workspaceId: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+// ─── My institutes ────────────────────────────────────────────────────────────
+
+export type StudentInstituteBatch = {
+  id: string;
+  name: string;
+  subject: string | null;
+};
+
+/** One institute the student is connected to, with their per-institute context. */
+export type StudentInstitute = {
+  workspaceId: string;
+  displayName: string;
+  city: string | null;
+  state: string | null;
+  country: string;
+  verified: boolean;
+  /** True when the institute is a live ORIGIN collaborator (browse-eligible). */
+  isActiveCollaborator: boolean;
+  /** The student's enrollment lifecycle at this institute. */
+  enrollmentStatus: EnrollmentStatus;
+  enrolledAt: string;
+  /** Active batches the student has been assigned to at this institute. */
+  batches: StudentInstituteBatch[];
+  /** Origin subjects the student has unlocked at this institute (Flow-1 grants). */
+  subjects: Subject[];
+};
+
+/**
+ * The institutes a student is connected to — every workspace they have a live
+ * enrollment in, with their batches and unlocked subjects per institute. This is
+ * the data the student "My institutes" view needs: a connected student sees the
+ * institute the moment they redeem a code (enrollment exists), even before any
+ * subject is unlocked or a batch is assigned.
+ *
+ * Four indexed reads in parallel, assembled in memory (no N+1).
+ */
+export async function listStudentInstitutes(studentId: string): Promise<StudentInstitute[]> {
+  const [enrollments, batches, grants, activeCollabIds] = await Promise.all([
+    listStudentInstituteEnrollments(studentId),
+    listStudentBatchesAcrossWorkspaces(studentId),
+    listActiveWorkspaceGrantsForUser(studentId),
+    listActiveCollaborationWorkspaceIds(),
+  ]);
+  if (enrollments.length === 0) return [];
+
+  const activeSet = new Set(activeCollabIds);
+
+  const batchesByWorkspace = new Map<string, StudentInstituteBatch[]>();
+  for (const batch of batches) {
+    const list = batchesByWorkspace.get(batch.workspaceId) ?? [];
+    list.push({ id: batch.id, name: batch.name, subject: batch.subject });
+    batchesByWorkspace.set(batch.workspaceId, list);
+  }
+
+  const subjectsByWorkspace = new Map<string, Set<Subject>>();
+  for (const grant of grants) {
+    const set = subjectsByWorkspace.get(grant.workspaceId) ?? new Set<Subject>();
+    set.add(grant.subject);
+    subjectsByWorkspace.set(grant.workspaceId, set);
+  }
+
+  return enrollments.map((enrollment) => ({
+    workspaceId: enrollment.workspaceId,
+    displayName: enrollment.workspaceDisplayName,
+    city: enrollment.city,
+    state: enrollment.state,
+    country: enrollment.country,
+    verified: enrollment.verified,
+    isActiveCollaborator: activeSet.has(enrollment.workspaceId),
+    enrollmentStatus: enrollment.status,
+    enrolledAt: enrollment.enrolledAt,
+    batches: batchesByWorkspace.get(enrollment.workspaceId) ?? [],
+    subjects: [...(subjectsByWorkspace.get(enrollment.workspaceId) ?? [])],
+  }));
 }
 
 // ─── Flow 1: redeem code ──────────────────────────────────────────────────────

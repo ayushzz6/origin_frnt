@@ -117,6 +117,33 @@ export async function joinConnectRoom(roomId: string): Promise<{ roomId: string 
   return (await res.json()) as { roomId: string };
 }
 
+export type StudentInstituteBatch = { id: string; name: string; subject: string | null };
+
+export type StudentInstitute = {
+  workspaceId: string;
+  displayName: string;
+  city: string | null;
+  state: string | null;
+  country: string;
+  verified: boolean;
+  isActiveCollaborator: boolean;
+  enrollmentStatus: "unassigned" | "active" | "suspended" | "left";
+  enrolledAt: string;
+  batches: StudentInstituteBatch[];
+  subjects: Subject[];
+};
+
+/** Phase 14: the institutes the student is connected to ("My institutes" tab). */
+export async function listMyInstitutes(): Promise<StudentInstitute[]> {
+  const res = await fetch("/api/connect/my-institutes", {
+    method: "GET",
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  const data = (await res.json()) as { institutes?: StudentInstitute[] };
+  return data.institutes ?? [];
+}
+
 export async function listConnectCollaborators(params?: {
   subject?: string;
   city?: string;
