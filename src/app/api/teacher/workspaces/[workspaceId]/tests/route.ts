@@ -23,9 +23,12 @@ const questionSourceBankEnum = z.enum(["ogcode", "workspace_bag", "platform_cont
 const questionInputSchema = z.object({
   position: z.number().int().min(1),
   sourceBank: questionSourceBankEnum,
-  ogcodeQuestionId: z.string().optional(),
-  contentQuestionId: z.string().optional(),
-  contentQuestionVersionId: z.string().optional(),
+  // The builder sends the inactive source's id as `null` (ogcode rows carry
+  // ogcodeQuestionId, workspace_bag rows carry contentQuestionId). Accept null
+  // as well as omitted; the service enforces the right id per source bank.
+  ogcodeQuestionId: z.string().nullish(),
+  contentQuestionId: z.string().nullish(),
+  contentQuestionVersionId: z.string().nullish(),
   marks: z.number().optional().default(4),
   negativeMarks: z.number().optional().default(-1),
 });
