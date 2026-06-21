@@ -20,7 +20,7 @@ if (process.env.USER_DATABASE_URL) {
 
 import { addStudentsToBatches } from "@/server/workspaces/batches";
 import { getOgcodeCatalogQuestionMap } from "@/server/ogcode-catalog";
-import { createTeacherTest } from "@/server/workspaces/tests-service";
+import { createTeacherTest, deleteTeacherTest } from "@/server/workspaces/tests-service";
 import { getContentQuestionStoredMap } from "@/server/workspaces/test-question-resolver";
 import {
   createAssignment,
@@ -145,6 +145,18 @@ it("phase 15: mixed OG Code + Question Bag test persists and resolves both banks
           ],
         }),
       (e) => (e as { status?: number }).status === 400,
+    );
+
+    // Delete removes the test (cascades questions + assignments).
+    await deleteTeacherTest({
+      actorUserId: fx.ownerId,
+      workspaceId: fx.workspaceId,
+      testId: teacherTest.id,
+    });
+    assert.equal(
+      await getAssignedTestForStudent(fx.studentId, teacherTest.id),
+      null,
+      "deleted test is no longer resolvable",
     );
   } finally {
     await rawPool().query(`DELETE FROM assessment.tests WHERE workspace_id = $1`, [fx.workspaceId]);

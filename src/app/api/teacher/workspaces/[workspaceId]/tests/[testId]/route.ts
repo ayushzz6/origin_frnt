@@ -10,6 +10,7 @@ import {
   publishTeacherTest,
   scheduleTeacherTest,
   closeTeacherTest,
+  deleteTeacherTest,
 } from "@/server/workspaces/tests-service";
 
 import {
@@ -87,6 +88,29 @@ export async function PATCH(
     });
 
     return teacherJson({ test: updated });
+  } catch (error) {
+    return handleTeacherError(error);
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  context: WorkspaceIdRouteContext & { params: Promise<{ workspaceId: string; testId: string }> },
+) {
+  try {
+    requireFeatureEnabled("teacherTests");
+    const workspaceId = await getWorkspaceId(context);
+    const ctx = await requireWorkspaceMember(request, workspaceId, [
+      "owner", "admin", "teacher",
+    ]);
+    const { testId } = await context.params;
+    await deleteTeacherTest({
+      actorUserId: ctx.auth.userId,
+      workspaceId,
+      testId,
+      requestId: requestIdOf(request),
+    });
+    return teacherJson({ ok: true });
   } catch (error) {
     return handleTeacherError(error);
   }

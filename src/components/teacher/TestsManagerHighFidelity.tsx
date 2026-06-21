@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Search, Calendar, Clock, BarChart4, ChevronRight, HelpCircle, BookOpen } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus, Search, Calendar, Clock, HelpCircle, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { apiJson } from "@/lib/teacher-client";
+import { toast } from "sonner";
 import { TestCreatorWizard } from "./TestCreatorWizard";
 import type { QuestionWithVersion, BatchWithCounts, AssessmentTest } from "@/server/workspaces/types";
 
@@ -36,15 +39,34 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function TestsManagerHighFidelity({ workspaceId, initialTests, questions, batches, canManage, ogcodeEnabled }: Props) {
+  const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [tests, setTests] = useState(initialTests);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const filteredTests = initialTests.filter(test => {
+  const filteredTests = tests.filter(test => {
     if (searchQuery.trim()) {
       return test.title.toLowerCase().includes(searchQuery.toLowerCase());
     }
     return true;
   });
+
+  async function handleDelete(testId: string, title: string) {
+    if (!confirm(`Delete test "${title}"? This cannot be undone.`)) return;
+    setDeletingId(testId);
+    const res = await apiJson(`/api/teacher/workspaces/${workspaceId}/tests/${testId}`, {
+      method: "DELETE",
+    });
+    setDeletingId(null);
+    if (res.ok) {
+      setTests((prev) => prev.filter((t) => t.id !== testId));
+      toast.success("Test deleted.");
+      router.refresh();
+    } else {
+      toast.error(res.detail || "Failed to delete test.");
+    }
+  }
 
   if (isCreating) {
     return (
@@ -105,8 +127,26 @@ export function TestsManagerHighFidelity({ workspaceId, initialTests, questions,
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-start justify-between gap-2 text-base">
                   <span className="font-semibold text-sm">{test.title}</span>
-                  <span className={`text-[10px] font-bold uppercase px-2 py-0.5 border rounded-full ${STATUS_COLORS[test.status] || ""}`}>
-                    {STATUS_LABELS[test.status] || test.status}
+                  <span className="flex shrink-0 items-center gap-2">
+                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 border rounded-full ${STATUS_COLORS[test.status] || ""}`}>
+                      {STATUS_LABELS[test.status] || test.status}
+                    </span>
+                    {canManage && test.status !== "live" ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
+                        disabled={deletingId === test.id}
+                        onClick={() => handleDelete(test.id, test.title)}
+                        title="Delete test"
+                      >
+                        {deletingId === test.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    ) : null}
                   </span>
                 </CardTitle>
               </CardHeader>
