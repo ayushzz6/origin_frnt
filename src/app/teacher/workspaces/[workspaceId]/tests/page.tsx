@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { TestsManagerHighFidelity } from "@/components/teacher/TestsManagerHighFidelity";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 import { listTeacherTests } from "@/server/workspaces/tests-service";
 import { listTeacherQuestions } from "@/server/workspaces/questions-service";
 import { listBatches } from "@/server/workspaces/batches";
@@ -35,6 +36,7 @@ export default async function TeacherTestsPage({ params }: Props) {
         questions={questions}
         batches={batches}
         canManage={canManage}
+        ogcodeEnabled={isFeatureEnabled("teacherOgcode")}
       />
     </div>
   );

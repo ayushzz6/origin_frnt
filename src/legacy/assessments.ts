@@ -92,6 +92,7 @@ import {
   listAssignedTestPreviewsForStudent,
   type AssignedTestForStudent,
 } from "@/server/workspaces/tests-store";
+import { getContentQuestionStoredMap } from "@/server/workspaces/test-question-resolver";
 import {
   getOptionDisplayOrder,
   presentOptions,
@@ -1505,6 +1506,18 @@ async function buildQuestionLookup(store: AppStore, questionIds: string[]): Prom
     });
   }
 
+  // Phase 15: ids still unresolved after store + ogcode are Question-Bag
+  // (`content.questions`) ids carried by mixed-source teacher tests. Resolving
+  // them here closes the gap where workspace_bag questions silently dropped on
+  // take/grade. No extra query for the common case (nothing left missing).
+  const stillMissingIds = questionIds.filter((questionId) => !lookup.has(questionId));
+  if (stillMissingIds.length) {
+    const contentLookup = await getContentQuestionStoredMap(stillMissingIds);
+    contentLookup.forEach((question, questionId) => {
+      lookup.set(questionId, question);
+    });
+  }
+
   return lookup;
 }
 
@@ -2887,12 +2900,13 @@ async function withAssignedTeacherTests(
 }
 
 /** Build a synthetic persisted-custom-test record from a teacher-assigned test so
- * the existing detail/grade machinery can render and grade it (ogcode bank). */
+ * the existing detail/grade machinery can render and grade it. Question ids span
+ * all source banks (ogcode + workspace_bag); buildQuestionLookup resolves each. */
 function assignedTeacherTestToRecord(
   userId: string,
   assigned: AssignedTestForStudent,
 ): PersistedCustomTestRecord {
-  const questionIds = assigned.ogcodeQuestionIds;
+  const questionIds = assigned.orderedQuestionIds;
   return {
     id: assigned.test.id,
     userId,

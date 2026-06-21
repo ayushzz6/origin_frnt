@@ -3,22 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Check, 
-  ArrowRight, 
-  ArrowLeft, 
-  Loader2, 
-  Calendar, 
-  Plus, 
-  Minus, 
-  Search, 
-  HelpCircle,
-  Clock,
-  Sparkles,
-  Settings,
-  ShieldCheck,
-  BookOpen
-} from "lucide-react";
+import { Check, ArrowRight, ArrowLeft, Loader2, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -30,17 +15,20 @@ import { apiJson } from "@/lib/teacher-client";
 import type { QuestionWithVersion, BatchWithCounts, AssessmentTest } from "@/server/workspaces/types";
 import { toast } from "sonner";
 
+import { QuestionPicker, type SelectedQuestion } from "./QuestionPicker";
+
 type Props = {
   workspaceId: string;
   questions: QuestionWithVersion[];
   batches: BatchWithCounts[];
+  ogcodeEnabled: boolean;
   onSuccess: () => void;
   onCancel: () => void;
 };
 
 const STEPS = ["Details", "Select Questions", "Target & Schedule"];
 
-export function TestCreatorWizard({ workspaceId, questions, batches, onSuccess, onCancel }: Props) {
+export function TestCreatorWizard({ workspaceId, questions, batches, ogcodeEnabled, onSuccess, onCancel }: Props) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [pending, startTransition] = useTransition();
@@ -54,9 +42,8 @@ export function TestCreatorWizard({ workspaceId, questions, batches, onSuccess, 
   const [marksPositive, setMarksPositive] = useState(4);
   const [marksNegative, setMarksNegative] = useState(1);
 
-  // Step 2: Selected Questions
-  const [selectedQuestions, setSelectedQuestions] = useState<QuestionWithVersion[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  // Step 2: Selected Questions (mixed-source: OG Code + Question Bag)
+  const [selectedQuestions, setSelectedQuestions] = useState<SelectedQuestion[]>([]);
 
   // Step 3: Target & Schedule
   const [selectedBatchId, setSelectedBatchId] = useState("");
@@ -65,27 +52,6 @@ export function TestCreatorWizard({ workspaceId, questions, batches, onSuccess, 
   const [shuffle, setShuffle] = useState(true);
   const [autoSubmit, setAutoSubmit] = useState(true);
   const [hideLeaderboard, setHideLeaderboard] = useState(false);
-
-  // Filter bank questions
-  const filteredBank = questions.filter(q => {
-    // Avoid showing questions already in the cart
-    if (selectedQuestions.some(sq => sq.id === q.id)) return false;
-    
-    if (searchQuery.trim()) {
-      const qText = q.currentVersion?.stem.toLowerCase() || "";
-      const qChapter = q.currentVersion?.chapter.toLowerCase() || "";
-      return qText.includes(searchQuery.toLowerCase()) || qChapter.includes(searchQuery.toLowerCase());
-    }
-    return true;
-  });
-
-  const addQuestionToCart = (q: QuestionWithVersion) => {
-    setSelectedQuestions(prev => [...prev, q]);
-  };
-
-  const removeQuestionFromCart = (questionId: string) => {
-    setSelectedQuestions(prev => prev.filter(q => q.id !== questionId));
-  };
 
   const nextStep = () => {
     if (currentStep === 0) {
@@ -120,13 +86,14 @@ export function TestCreatorWizard({ workspaceId, questions, batches, onSuccess, 
     }
 
     startTransition(async () => {
-      // 1. Create Test
+      // 1. Create Test — per-question source + marks (mixed OG Code + Question Bag).
       const questionsPayload = selectedQuestions.map((q, idx) => ({
         position: idx + 1,
-        sourceBank: "workspace_bag" as const,
-        contentQuestionId: q.id,
-        marks: marksPositive,
-        negativeMarks: marksNegative,
+        sourceBank: q.sourceBank,
+        ogcodeQuestionId: q.sourceBank === "ogcode" ? q.id : null,
+        contentQuestionId: q.sourceBank === "workspace_bag" ? q.id : null,
+        marks: q.marks,
+        negativeMarks: q.negativeMarks,
       }));
 
       const testResult = await apiJson<{ test: AssessmentTest }>(
@@ -284,81 +251,18 @@ export function TestCreatorWizard({ workspaceId, questions, batches, onSuccess, 
           )}
 
           {currentStep === 1 && (
-            /* Step 2: Question Selector Cart Split view */
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[55vh]">
-              {/* Left pane: Bank catalog */}
-              <div className="border rounded-2xl flex flex-col overflow-hidden bg-card h-full">
-                <div className="p-3 border-b space-y-2 shrink-0">
-                  <Label className="text-xs font-bold text-muted-foreground uppercase">Workspace Question Bag</Label>
-                  <div className="relative">
-                    <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-                    <Input 
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search stem..."
-                      className="pl-9 h-9 rounded-xl text-xs"
-                    />
-                  </div>
-                </div>
-                <div className="flex-1 overflow-y-auto divide-y custom-scrollbar bg-muted/5">
-                  {filteredBank.length === 0 ? (
-                    <p className="p-8 text-center text-xs text-muted-foreground">No matching questions in private bag.</p>
-                  ) : (
-                    filteredBank.map(q => (
-                      <div key={q.id} className="p-3 hover:bg-muted/10 flex items-center justify-between gap-3 text-xs">
-                        <div className="space-y-1 flex-1 pr-2">
-                          <p className="font-semibold line-clamp-2">{q.currentVersion?.stem}</p>
-                          <p className="text-[10px] text-muted-foreground">{q.currentVersion?.chapter} · {q.currentVersion?.questionType.toUpperCase()}</p>
-                        </div>
-                        <Button 
-                          onClick={() => addQuestionToCart(q)}
-                          size="sm" 
-                          variant="outline" 
-                          className="h-8 w-8 rounded-lg p-0 shrink-0 text-primary border-primary/20 hover:bg-primary/10"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Right pane: Selection cart */}
-              <div className="border rounded-2xl flex flex-col overflow-hidden bg-card h-full">
-                <div className="p-3 border-b shrink-0 bg-muted/10 flex items-center justify-between">
-                  <Label className="text-xs font-bold text-primary uppercase">Test Question Cart</Label>
-                  <span className="text-[10px] bg-primary/20 text-primary px-2.5 py-0.5 rounded-full font-bold">
-                    {selectedQuestions.length} selected
-                  </span>
-                </div>
-                <div className="flex-1 overflow-y-auto divide-y custom-scrollbar bg-muted/5">
-                  {selectedQuestions.length === 0 ? (
-                    <div className="p-8 text-center text-xs text-muted-foreground py-20">
-                      Cart is empty. Click (+) on the left bank questions to add.
-                    </div>
-                  ) : (
-                    selectedQuestions.map((q, idx) => (
-                      <div key={q.id} className="p-3 flex items-center justify-between gap-3 text-xs">
-                        <div className="flex items-center gap-2 flex-1 pr-2">
-                          <span className="w-5 h-5 rounded-full bg-muted flex items-center justify-center font-bold text-[10px] shrink-0">{idx + 1}</span>
-                          <p className="font-semibold line-clamp-1">{q.currentVersion?.stem}</p>
-                        </div>
-                        <Button 
-                          onClick={() => removeQuestionFromCart(q.id)}
-                          size="sm" 
-                          variant="ghost" 
-                          className="h-8 w-8 rounded-lg p-0 shrink-0 text-destructive hover:bg-destructive/10"
-                        >
-                          <Minus className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <div className="lg:col-span-2 flex justify-between pt-4 border-t">
+            /* Step 2: mixed-source question picker (OG Code + Question Bag) */
+            <div className="space-y-4">
+              <QuestionPicker
+                value={selectedQuestions}
+                onChange={setSelectedQuestions}
+                workspaceId={workspaceId}
+                bagQuestions={questions}
+                ogcodeEnabled={ogcodeEnabled}
+                defaultMarks={marksPositive}
+                defaultNegativeMarks={marksNegative}
+              />
+              <div className="flex justify-between border-t pt-4">
                 <Button variant="outline" onClick={prevStep} className="rounded-xl"><ArrowLeft className="w-4 h-4" /> Back</Button>
                 <Button onClick={nextStep} disabled={selectedQuestions.length === 0} className="bg-primary hover:bg-primary/95 text-black font-bold gap-1 rounded-xl">
                   Schedule Window <ArrowRight className="w-4 h-4" />

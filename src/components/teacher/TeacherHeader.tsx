@@ -23,9 +23,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
+import type { FlagKey } from "@/lib/feature-flags";
 import type { WorkspaceMembershipSummary, WorkspaceMember } from "@/server/workspaces/types";
 
-type NavItem = { href: string; label: string; flag?: "paidEnrollment" };
+type NavItem = { href: string; label: string; flag?: FlagKey };
 
 type Props = {
   workspaceId: string;

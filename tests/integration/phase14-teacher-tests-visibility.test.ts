@@ -78,7 +78,7 @@ it("phase 14: enrolled students see assigned teacher tests; non-members are gate
     assert.ok(resolved, "member can resolve the test");
     assert.equal(resolved?.workspaceId, fx.workspaceId);
     assert.equal(resolved?.batchId, fx.batchId);
-    assert.deepEqual(resolved?.ogcodeQuestionIds, ["ogq_phase14_visibility"]);
+    assert.deepEqual(resolved?.orderedQuestionIds, ["ogq_phase14_visibility"]);
 
     // Non-member is gated: not listed and not resolvable.
     const outsiderPreviews = await listAssignedTestPreviewsForStudent(outsiderId);

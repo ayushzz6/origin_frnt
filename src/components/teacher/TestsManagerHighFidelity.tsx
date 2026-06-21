@@ -14,6 +14,7 @@ type Props = {
   questions: QuestionWithVersion[];
   batches: BatchWithCounts[];
   canManage: boolean;
+  ogcodeEnabled: boolean;
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -34,7 +35,7 @@ const STATUS_COLORS: Record<string, string> = {
   archived: "text-gray-400 bg-muted border-muted",
 };
 
-export function TestsManagerHighFidelity({ workspaceId, initialTests, questions, batches, canManage }: Props) {
+export function TestsManagerHighFidelity({ workspaceId, initialTests, questions, batches, canManage, ogcodeEnabled }: Props) {
   const [isCreating, setIsCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -51,6 +52,7 @@ export function TestsManagerHighFidelity({ workspaceId, initialTests, questions,
         workspaceId={workspaceId}
         questions={questions}
         batches={batches}
+        ogcodeEnabled={ogcodeEnabled}
         onSuccess={() => setIsCreating(false)}
         onCancel={() => setIsCreating(false)}
       />

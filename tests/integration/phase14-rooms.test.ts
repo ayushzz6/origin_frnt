@@ -77,7 +77,7 @@ it("phase 14: teacher-room bridge + membership-gated join + joinable listing", {
     // independent of any assignment (room membership is the gate).
     const resolved = await getTeacherTestForRoom(teacherTest.id);
     assert.ok(resolved, "teacher test resolves for a room");
-    assert.deepEqual(resolved?.ogcodeQuestionIds, ["ogq_phase14_rooms"]);
+    assert.deepEqual(resolved?.orderedQuestionIds, ["ogq_phase14_rooms"]);
 
     // Create a teacher room bound to the batch + test.
     const room = await createTeacherRoom({

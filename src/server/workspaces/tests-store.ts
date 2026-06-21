@@ -398,9 +398,35 @@ export type AssignedTestForStudent = {
   workspaceId: string | null;
   batchId: string | null;
   windowEndsAt: string | null;
-  /** Ordered ogcode-bank question ids backing the test (used to render/grade it). */
-  ogcodeQuestionIds: string[];
+  /**
+   * Ordered question ids backing the test, in position order: the ogcode id for
+   * `ogcode` rows and the content-question id for `workspace_bag` rows. The legacy
+   * taker resolves each via the store → ogcode → content lookup chain.
+   */
+  orderedQuestionIds: string[];
 };
+
+/**
+ * Ordered question reference ids for a test across ALL source banks (ogcode +
+ * workspace_bag), in position order. ogcode rows contribute their
+ * `ogcode_question_id`; workspace_bag rows contribute their `content_question_id`.
+ */
+async function loadOrderedTestQuestionRefIds(testId: string): Promise<string[]> {
+  const res = await pool().query(
+    `SELECT source_bank, ogcode_question_id, content_question_id
+       FROM assessment.test_questions
+      WHERE test_id = $1
+      ORDER BY position ASC`,
+    [testId],
+  );
+  return res.rows
+    .map((r) =>
+      (r.source_bank as string) === "ogcode"
+        ? ((r.ogcode_question_id as string | null) ?? null)
+        : ((r.content_question_id as string | null) ?? null),
+    )
+    .filter((id): id is string => Boolean(id));
+}
 
 const ASSIGNED_TEST_WHERE = `
   t.status IN ('published', 'live')
@@ -484,20 +510,14 @@ export async function getAssignedTestForStudent(
   const row = result.rows[0];
   if (!row) return null;
 
-  const questionsResult = await pool().query(
-    `SELECT ogcode_question_id
-       FROM assessment.test_questions
-      WHERE test_id = $1 AND source_bank = 'ogcode' AND ogcode_question_id IS NOT NULL
-      ORDER BY position ASC`,
-    [testId],
-  );
+  const orderedQuestionIds = await loadOrderedTestQuestionRefIds(testId);
   return {
     test: rowToTest(row),
     assignmentId: row.assignment_id as string,
     workspaceId: (row.workspace_id as string | null) ?? null,
     batchId: (row.assignment_batch_id as string | null) ?? null,
     windowEndsAt: row.scheduled_end_at ? new Date(row.scheduled_end_at as string).toISOString() : null,
-    ogcodeQuestionIds: questionsResult.rows.map((q) => q.ogcode_question_id as string),
+    orderedQuestionIds,
   };
 }
 
@@ -515,20 +535,14 @@ export async function getTeacherTestForRoom(testId: string): Promise<AssignedTes
   const row = testResult.rows[0];
   if (!row) return null;
 
-  const questionsResult = await pool().query(
-    `SELECT ogcode_question_id
-       FROM assessment.test_questions
-      WHERE test_id = $1 AND source_bank = 'ogcode' AND ogcode_question_id IS NOT NULL
-      ORDER BY position ASC`,
-    [testId],
-  );
+  const orderedQuestionIds = await loadOrderedTestQuestionRefIds(testId);
   return {
     test: rowToTest(row),
     assignmentId: "",
     workspaceId: (row.workspace_id as string | null) ?? null,
     batchId: null,
     windowEndsAt: null,
-    ogcodeQuestionIds: questionsResult.rows.map((q) => q.ogcode_question_id as string),
+    orderedQuestionIds,
   };
 }
 

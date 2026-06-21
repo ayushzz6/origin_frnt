@@ -29,7 +29,8 @@ type FlagKey =
   | "adminControlCenter"
   | "paidEnrollment"
   | "premiumSubscriptions"
-  | "teacherConnect";
+  | "teacherConnect"
+  | "teacherOgcode";
 
 type FlagSpec = {
   envSuffix: string;
@@ -58,6 +59,10 @@ const FLAG_SPECS: Record<FlagKey, FlagSpec> = {
   // enrollment flows, teacher tests/rooms → student, teacher analytics). Ships
   // DARK: off in dev and prod until enabled with TEACHER_LAUNCH_TEACHER_CONNECT=1.
   teacherConnect: { envSuffix: "TEACHER_CONNECT", defaultDev: false, defaultProd: false },
+  // Phase 15 — Teacher OG Code bank browse + OG-Code-as-a-source in the test
+  // builder (general + room tests). Ships DARK until TEACHER_LAUNCH_TEACHER_OGCODE=1.
+  // The Phase-0 mixed-source take/grade fix is unflagged (pure correctness).
+  teacherOgcode: { envSuffix: "TEACHER_OGCODE", defaultDev: false, defaultProd: false },
 };
 
 function parseFlag(raw: string | undefined): boolean | null {

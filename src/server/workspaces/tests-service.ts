@@ -19,6 +19,7 @@ import {
   type CreateTestInput,
 } from "./tests-store";
 import { getQuestionWithVersion } from "./questions";
+import { getOgcodeCatalogQuestionMap } from "@/server/ogcode-catalog";
 import type {
   AssessmentTest,
   QuestionSourceBank,
@@ -66,8 +67,29 @@ export async function createTeacherTest(input: CreateTeacherTestInput): Promise<
     settings: input.settings ?? {},
   });
 
+  // Phase 15: validate every ogcode-sourced id exists, in ONE batch query (the
+  // bank has thousands of rows — never per-question round-trips).
+  const ogcodeIds = input.questions
+    .filter((q) => q.sourceBank === "ogcode")
+    .map((q) => q.ogcodeQuestionId)
+    .filter((id): id is string => Boolean(id));
+  const ogcodeMap = ogcodeIds.length ? await getOgcodeCatalogQuestionMap(ogcodeIds) : new Map();
+  for (const id of ogcodeIds) {
+    if (!ogcodeMap.has(id)) throw new AuthzError(400, `OG Code question ${id} not found.`);
+  }
+
   for (const q of input.questions) {
-    if (q.sourceBank === "workspace_bag" && q.contentQuestionId) {
+    // For ogcode rows the id must be present (the CHECK constraint also enforces it).
+    if (q.sourceBank === "ogcode" && !q.ogcodeQuestionId) {
+      throw new AuthzError(400, "An OG Code question is missing its question id.");
+    }
+    // Resolve/validate workspace_bag rows and fill the version id the CHECK
+    // constraint requires (the picker sends only the question id).
+    let contentQuestionVersionId = q.contentQuestionVersionId ?? null;
+    if (q.sourceBank === "workspace_bag") {
+      if (!q.contentQuestionId) {
+        throw new AuthzError(400, "A Question-Bag question is missing its question id.");
+      }
       const question = await getQuestionWithVersion(q.contentQuestionId);
       if (!question) {
         throw new AuthzError(400, `Question ${q.contentQuestionId} not found.`);
@@ -78,6 +100,10 @@ export async function createTeacherTest(input: CreateTeacherTestInput): Promise<
       if (question.status !== "ready" && question.status !== "published_private") {
         throw new AuthzError(400, `Question ${q.contentQuestionId} is not ready for use in tests.`);
       }
+      contentQuestionVersionId = contentQuestionVersionId ?? question.currentVersionId;
+      if (!contentQuestionVersionId) {
+        throw new AuthzError(400, `Question ${q.contentQuestionId} has no published version.`);
+      }
     }
     await addQuestionToTest({
       testId: test.id,
@@ -85,7 +111,7 @@ export async function createTeacherTest(input: CreateTeacherTestInput): Promise<
       sourceBank: q.sourceBank,
       ogcodeQuestionId: q.ogcodeQuestionId ?? null,
       contentQuestionId: q.contentQuestionId ?? null,
-      contentQuestionVersionId: q.contentQuestionVersionId ?? null,
+      contentQuestionVersionId,
       marks: q.marks ?? 4,
       negativeMarks: q.negativeMarks ?? -1,
     });
