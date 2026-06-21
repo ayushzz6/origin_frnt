@@ -17,6 +17,21 @@ import { toast } from "sonner";
 
 import { QuestionPicker, type SelectedQuestion } from "./QuestionPicker";
 
+export type WizardInitial = {
+  title: string;
+  description: string;
+  subject: string;
+  difficulty: string;
+  durationMinutes: number;
+  marksPositive: number;
+  marksNegative: number;
+  selectedQuestions: SelectedQuestion[];
+  status: string;
+  shuffle: boolean;
+  autoSubmit: boolean;
+  hideLeaderboard: boolean;
+};
+
 type Props = {
   workspaceId: string;
   questions: QuestionWithVersion[];
@@ -24,34 +39,39 @@ type Props = {
   ogcodeEnabled: boolean;
   onSuccess: () => void;
   onCancel: () => void;
+  /** "edit" resumes an existing (draft) test, pre-filled from `initial`. */
+  mode?: "create" | "edit";
+  testId?: string;
+  initial?: WizardInitial;
 };
 
 const STEPS = ["Details", "Select Questions", "Target & Schedule"];
 
-export function TestCreatorWizard({ workspaceId, questions, batches, ogcodeEnabled, onSuccess, onCancel }: Props) {
+export function TestCreatorWizard({ workspaceId, questions, batches, ogcodeEnabled, onSuccess, onCancel, mode = "create", testId, initial }: Props) {
   const router = useRouter();
+  const isEdit = mode === "edit";
   const [currentStep, setCurrentStep] = useState(0);
   const [pending, startTransition] = useTransition();
 
-  // Step 1: Details
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [subject, setSubject] = useState("");
-  const [difficulty, setDifficulty] = useState("medium");
-  const [duration, setDuration] = useState(60);
-  const [marksPositive, setMarksPositive] = useState(4);
-  const [marksNegative, setMarksNegative] = useState(1);
+  // Step 1: Details (pre-filled in edit mode)
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [description, setDescription] = useState(initial?.description ?? "");
+  const [subject, setSubject] = useState(initial?.subject ?? "");
+  const [difficulty, setDifficulty] = useState(initial?.difficulty ?? "medium");
+  const [duration, setDuration] = useState(initial?.durationMinutes ?? 60);
+  const [marksPositive, setMarksPositive] = useState(initial?.marksPositive ?? 4);
+  const [marksNegative, setMarksNegative] = useState(initial?.marksNegative ?? 1);
 
   // Step 2: Selected Questions (mixed-source: OG Code + Question Bag)
-  const [selectedQuestions, setSelectedQuestions] = useState<SelectedQuestion[]>([]);
+  const [selectedQuestions, setSelectedQuestions] = useState<SelectedQuestion[]>(initial?.selectedQuestions ?? []);
 
-  // Step 3: Target & Schedule
+  // Step 3: Target & Schedule (drafts have no assignment yet — teacher picks here)
   const [selectedBatchId, setSelectedBatchId] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [shuffle, setShuffle] = useState(true);
-  const [autoSubmit, setAutoSubmit] = useState(true);
-  const [hideLeaderboard, setHideLeaderboard] = useState(false);
+  const [shuffle, setShuffle] = useState(initial?.shuffle ?? true);
+  const [autoSubmit, setAutoSubmit] = useState(initial?.autoSubmit ?? true);
+  const [hideLeaderboard, setHideLeaderboard] = useState(initial?.hideLeaderboard ?? false);
 
   const nextStep = () => {
     if (currentStep === 0) {
@@ -86,7 +106,7 @@ export function TestCreatorWizard({ workspaceId, questions, batches, ogcodeEnabl
     }
 
     startTransition(async () => {
-      // 1. Create Test — per-question source + marks (mixed OG Code + Question Bag).
+      // Per-question source + marks (mixed OG Code + Question Bag).
       const questionsPayload = selectedQuestions.map((q, idx) => ({
         position: idx + 1,
         sourceBank: q.sourceBank,
@@ -96,43 +116,57 @@ export function TestCreatorWizard({ workspaceId, questions, batches, ogcodeEnabl
         negativeMarks: q.negativeMarks,
       }));
 
-      const testResult = await apiJson<{ test: AssessmentTest }>(
-        `/api/teacher/workspaces/${workspaceId}/tests`,
-        {
-          method: "POST",
-          json: {
-            title: title.trim(),
-            description: description.trim() || null,
-            subject: subject.trim(),
-            difficulty,
-            durationMinutes: Number(duration),
-            scoringPolicy: { positive: marksPositive, negative: marksNegative },
-            settings: { shuffle, autoSubmit, hideLeaderboard },
-            questions: questionsPayload
-          }
-        }
-      );
+      const testPayload = {
+        title: title.trim(),
+        description: description.trim() || null,
+        subject: subject.trim(),
+        difficulty,
+        durationMinutes: Number(duration),
+        scoringPolicy: { positive: marksPositive, negative: marksNegative },
+        settings: { shuffle, autoSubmit, hideLeaderboard },
+        questions: questionsPayload,
+      };
 
-      if (!testResult.ok) {
-        toast.error(testResult.detail || "Failed to create test");
-        return;
+      // 1. Create (new) or update (resume an existing draft) the test + its questions.
+      let resolvedTestId: string;
+      if (isEdit && testId) {
+        const patchResult = await apiJson(
+          `/api/teacher/workspaces/${workspaceId}/tests/${testId}`,
+          { method: "PATCH", json: testPayload },
+        );
+        if (!patchResult.ok) {
+          toast.error(patchResult.detail || "Failed to save test");
+          return;
+        }
+        resolvedTestId = testId;
+      } else {
+        const testResult = await apiJson<{ test: AssessmentTest }>(
+          `/api/teacher/workspaces/${workspaceId}/tests`,
+          { method: "POST", json: testPayload },
+        );
+        if (!testResult.ok) {
+          toast.error(testResult.detail || "Failed to create test");
+          return;
+        }
+        resolvedTestId = testResult.data.test.id;
       }
 
-      const testId = testResult.data.test.id;
-
-      // 2. Publish (draft → published) so enrolled students can see it.
-      const publishResult = await apiJson(
-        `/api/teacher/workspaces/${workspaceId}/tests/${testId}/schedule?action=publish`,
-        { method: "POST" }
-      );
-      if (!publishResult.ok) {
-        toast.error(publishResult.detail || "Failed to publish test");
-        return;
+      // 2. Publish (draft/scheduled → published) so enrolled students can see it.
+      const needsPublish = !isEdit || initial?.status === "draft" || initial?.status === "scheduled";
+      if (needsPublish) {
+        const publishResult = await apiJson(
+          `/api/teacher/workspaces/${workspaceId}/tests/${resolvedTestId}/schedule?action=publish`,
+          { method: "POST" }
+        );
+        if (!publishResult.ok) {
+          toast.error(publishResult.detail || "Failed to publish test");
+          return;
+        }
       }
 
       // 3. Assign to the batch with the scheduled window (batchIds is an array).
       const assignResult = await apiJson(
-        `/api/teacher/workspaces/${workspaceId}/tests/${testId}/assign`,
+        `/api/teacher/workspaces/${workspaceId}/tests/${resolvedTestId}/assign`,
         {
           method: "POST",
           json: {
@@ -159,7 +193,7 @@ export function TestCreatorWizard({ workspaceId, questions, batches, ogcodeEnabl
       
       {/* WizardProgressHeader */}
       <div className="flex items-center justify-between border-b pb-4 shrink-0">
-        <h3 className="font-bold text-lg">Create Scheduled Test</h3>
+        <h3 className="font-bold text-lg">{isEdit ? "Edit Test" : "Create Scheduled Test"}</h3>
         <div className="flex gap-2 text-xs font-semibold text-muted-foreground">
           {STEPS.map((s, idx) => {
             const isActive = currentStep === idx;
