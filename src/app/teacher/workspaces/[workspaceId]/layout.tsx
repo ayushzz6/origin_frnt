@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { TeacherHeader } from "@/components/teacher/TeacherHeader";
-import { isFeatureEnabled } from "@/lib/feature-flags";
+import { isFeatureEnabled, type FlagKey } from "@/lib/feature-flags";
 import {
   loadWorkspaceLayoutData,
 } from "@/server/workspaces/server-loader";
@@ -11,13 +11,14 @@ type Props = {
   params: Promise<{ workspaceId: string }>;
 };
 
-type NavItem = { href: string; label: string; flag?: "paidEnrollment" };
+type NavItem = { href: string; label: string; flag?: FlagKey };
 
 const NAV_ITEMS: NavItem[] = [
   { href: "", label: "Overview" },
   { href: "/students", label: "Students" },
   { href: "/batches", label: "Batches" },
   { href: "/question-bag", label: "Question Bag" },
+  { href: "/ogcode", label: "OG Code", flag: "teacherOgcode" },
   { href: "/tests", label: "Tests" },
   { href: "/rooms", label: "Rooms" },
   // Audit fix R-3 (A-11): Marketplace was reachable only by URL.
