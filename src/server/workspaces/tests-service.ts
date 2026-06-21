@@ -14,6 +14,7 @@ import {
   listTests,
   updateTest,
   addQuestionToTest,
+  deleteTest,
   listAttemptResults,
   getTestLeaderboard,
   type CreateTestInput,
@@ -300,6 +301,34 @@ export async function getTeacherTestResults(
   if (!test) throw new AuthzError(404, "Test not found.");
   if (test.workspaceId !== workspaceId) throw new AuthzError(403, "Access denied.");
   return listAttemptResults(testId);
+}
+
+export async function deleteTeacherTest(input: {
+  actorUserId: string;
+  workspaceId: string;
+  testId: string;
+  requestId?: string | null;
+}): Promise<void> {
+  const test = await getTestById(input.testId);
+  if (!test) throw new AuthzError(404, "Test not found.");
+  if (test.workspaceId !== input.workspaceId) throw new AuthzError(403, "Access denied.");
+  // A live test may have in-flight attempts — make the teacher close it first.
+  if (test.status === "live") {
+    throw new AuthzError(400, "Cannot delete a live test. Close it first.");
+  }
+
+  const deleted = await deleteTest(input.workspaceId, input.testId);
+  if (!deleted) throw new Error("Failed to delete test.");
+
+  await recordAuditEvent({
+    actorUserId: input.actorUserId,
+    workspaceId: input.workspaceId,
+    entityType: "assessment_test",
+    entityId: input.testId,
+    action: "test.deleted",
+    before: test,
+    requestId: input.requestId,
+  });
 }
 
 export async function closeTeacherTest(input: {

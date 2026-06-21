@@ -329,6 +329,19 @@ export type CreateAssignmentInput = {
   assignedBy: string;
 };
 
+/**
+ * Deletes a test and (via ON DELETE CASCADE) its questions, assignments, attempts
+ * and answers. Scoped to the workspace so a teacher can only delete their own tests.
+ */
+export async function deleteTest(workspaceId: string, testId: string): Promise<boolean> {
+  await ensureAssessmentSchema();
+  const result = await pool().query(
+    `DELETE FROM assessment.tests WHERE id = $1 AND workspace_id = $2`,
+    [testId, workspaceId],
+  );
+  return (result.rowCount ?? 0) > 0;
+}
+
 export async function createAssignment(input: CreateAssignmentInput): Promise<TestAssignment> {
   await ensureAssessmentSchema();
   const id = createAssignmentId();

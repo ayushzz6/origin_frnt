@@ -107,6 +107,7 @@ export function TestCreatorWizard({ workspaceId, questions, batches, ogcodeEnabl
             difficulty,
             durationMinutes: Number(duration),
             scoringPolicy: { positive: marksPositive, negative: marksNegative },
+            settings: { shuffle, autoSubmit, hideLeaderboard },
             questions: questionsPayload
           }
         }
@@ -119,12 +120,26 @@ export function TestCreatorWizard({ workspaceId, questions, batches, ogcodeEnabl
 
       const testId = testResult.data.test.id;
 
-      // 2. Assign to Batch
+      // 2. Publish (draft → published) so enrolled students can see it.
+      const publishResult = await apiJson(
+        `/api/teacher/workspaces/${workspaceId}/tests/${testId}/schedule?action=publish`,
+        { method: "POST" }
+      );
+      if (!publishResult.ok) {
+        toast.error(publishResult.detail || "Failed to publish test");
+        return;
+      }
+
+      // 3. Assign to the batch with the scheduled window (batchIds is an array).
       const assignResult = await apiJson(
         `/api/teacher/workspaces/${workspaceId}/tests/${testId}/assign`,
         {
           method: "POST",
-          json: { batchId: selectedBatchId, studentId: null }
+          json: {
+            batchIds: [selectedBatchId],
+            scheduledStartAt: new Date(startDate).toISOString(),
+            scheduledEndAt: new Date(endDate).toISOString(),
+          }
         }
       );
 
@@ -133,25 +148,7 @@ export function TestCreatorWizard({ workspaceId, questions, batches, ogcodeEnabl
         return;
       }
 
-      // 3. Schedule Test Window
-      const scheduleResult = await apiJson(
-        `/api/teacher/workspaces/${workspaceId}/tests/${testId}/schedule`,
-        {
-          method: "POST",
-          json: {
-            scheduledStartAt: new Date(startDate).toISOString(),
-            scheduledEndAt: new Date(endDate).toISOString(),
-            settings: { shuffle, autoSubmit, hideLeaderboard }
-          }
-        }
-      );
-
-      if (!scheduleResult.ok) {
-        toast.error(scheduleResult.detail || "Failed to schedule test");
-        return;
-      }
-
-      toast.success("Mock Test created, assigned, and scheduled successfully!");
+      toast.success("Test published and assigned — your students can see it now.");
       onSuccess();
       router.refresh();
     });
