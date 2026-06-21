@@ -49,8 +49,8 @@ async function insertTaggedResult(opts: {
     `INSERT INTO analytics.test_results (
        id, user_id, test_id, title, subject, difficulty, question_count,
        score, percentage, correct_answers, wrong_answers, unattempted, total_marks,
-       is_malpractice, workspace_id, batch_id
-     ) VALUES ($1,$2,$3,'Cohort Test',$4,'medium',10,$5,$6,5,5,0,40,FALSE,$7,$8)
+       is_malpractice, workspace_id, batch_id, summary
+     ) VALUES ($1,$2,$3,'Cohort Test',$4,'medium',10,$5,$6,5,5,0,40,FALSE,$7,$8,'Cohort test result')
      ON CONFLICT (id) DO NOTHING`,
     [opts.resultId, opts.studentId, makeId("test"), opts.subject, opts.score, opts.percentage, opts.workspaceId, opts.batchId],
   );

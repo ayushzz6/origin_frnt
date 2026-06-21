@@ -88,6 +88,30 @@ export async function getActiveSubjectGrantRows(userId: string): Promise<ActiveG
     }));
 }
 
+/**
+ * Active subject grants tied to a workspace (Flow-1 `teacher_code` unlocks), as
+ * `{workspaceId, subject}` pairs — for the student "My institutes" view, where the
+ * unlocked subjects are shown per institute. Platform `admin_comp` comps (null
+ * workspace) are excluded: they are not a per-institute unlock.
+ */
+export async function listActiveWorkspaceGrantsForUser(
+  userId: string,
+): Promise<Array<{ workspaceId: string; subject: Subject }>> {
+  await ensureSubjectGrantsSchema();
+  const res = await pool().query(
+    `SELECT workspace_id, subject
+       FROM entitlements.subject_grants
+      WHERE user_id = $1
+        AND status = 'active'
+        AND workspace_id IS NOT NULL
+        AND (expires_at IS NULL OR expires_at > NOW())`,
+    [userId],
+  );
+  return res.rows
+    .filter((r) => (ALL_SUBJECTS as string[]).includes(r.subject as string))
+    .map((r) => ({ workspaceId: r.workspace_id as string, subject: r.subject as Subject }));
+}
+
 export async function listUserGrants(userId: string): Promise<SubjectGrant[]> {
   await ensureSubjectGrantsSchema();
   const res = await pool().query(

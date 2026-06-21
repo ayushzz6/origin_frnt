@@ -10,6 +10,8 @@ import {
   AlertTriangle,
   Award,
   TrendingUp,
+  Trophy,
+  X,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -53,14 +55,35 @@ type LeaderboardEntry = {
 
 type LeaderboardSnap = { entries: LeaderboardEntry[]; snapshotAt: string };
 
-type RadarRow = { subject: string; Physics: number; Chemistry: number; Math: number; fullMark: number };
+// One topic row of a single student's profile (analytics/students/[studentId]).
+type StudentTopicProfileRow = {
+  topic: string;
+  subject: string;
+  chapter: string | null;
+  totalAttempts: number;
+  correctAttempts: number;
+  accuracy: number; // 0–1
+  masteryScore: number; // 0–1
+  lastAttemptAt: string | null;
+};
 
-const SUBJECT_KEY: Record<string, "Physics" | "Chemistry" | "Math" | null> = {
+type RadarRow = {
+  subject: string;
+  Physics: number;
+  Chemistry: number;
+  Math: number;
+  Biology: number;
+  fullMark: number;
+};
+
+const SUBJECT_KEY: Record<string, "Physics" | "Chemistry" | "Math" | "Biology" | null> = {
   physics: "Physics",
   chemistry: "Chemistry",
   math: "Math",
   maths: "Math",
   mathematics: "Math",
+  biology: "Biology",
+  bio: "Biology",
 };
 
 /** Most-recent snapshot per topic → a radar row keyed by the topic's subject column. */
@@ -78,6 +101,7 @@ function buildRadarData(snapshots: TopicSnapshot[]): RadarRow[] {
       Physics: key === "Physics" ? pct : 0,
       Chemistry: key === "Chemistry" ? pct : 0,
       Math: key === "Math" ? pct : 0,
+      Biology: key === "Biology" ? pct : 0,
       fullMark: 100,
     };
   });
@@ -89,8 +113,23 @@ export function AnalyticsCenterHighFidelity({ workspaceId, batchId }: Props) {
   const [radarData, setRadarData] = useState<RadarRow[]>([]);
   const [weakConcepts, setWeakConcepts] = useState<TopicSnapshot[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  // Individual-participant drill-down (analytics/students/[studentId]).
+  const [selectedStudent, setSelectedStudent] = useState<LeaderboardEntry | null>(null);
+  const [studentProfile, setStudentProfile] = useState<StudentTopicProfileRow[] | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   const base = `/api/teacher/workspaces/${workspaceId}/analytics/batches/${batchId}`;
+
+  async function openStudent(entry: LeaderboardEntry) {
+    setSelectedStudent(entry);
+    setStudentProfile(null);
+    setProfileLoading(true);
+    const res = await apiJson<{ profiles: StudentTopicProfileRow[] }>(
+      `/api/teacher/workspaces/${workspaceId}/analytics/students/${entry.studentId}`,
+    );
+    setProfileLoading(false);
+    setStudentProfile(res.ok ? res.data.profiles ?? [] : []);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -210,6 +249,7 @@ export function AnalyticsCenterHighFidelity({ workspaceId, batchId }: Props) {
                   <Radar name="Physics" dataKey="Physics" stroke="#38bdf8" fill="#38bdf8" fillOpacity={0.15} />
                   <Radar name="Chemistry" dataKey="Chemistry" stroke="#10b981" fill="#10b981" fillOpacity={0.1} />
                   <Radar name="Mathematics" dataKey="Math" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.1} />
+                  <Radar name="Biology" dataKey="Biology" stroke="#ec4899" fill="#ec4899" fillOpacity={0.1} />
                 </RadarChart>
               </ResponsiveContainer>
             )}
@@ -284,7 +324,11 @@ export function AnalyticsCenterHighFidelity({ workspaceId, batchId }: Props) {
                 </thead>
                 <tbody className="divide-y text-xs">
                   {strugglingStudents.map((student) => (
-                    <tr key={student.studentId} className="hover:bg-muted/10 transition-colors">
+                    <tr
+                      key={student.studentId}
+                      onClick={() => openStudent(student)}
+                      className="cursor-pointer hover:bg-muted/10 transition-colors"
+                    >
                       <td className="p-4 font-semibold text-sm">{student.displayName}</td>
                       <td className="p-4 font-bold text-destructive">{Math.round(student.meanPercentage)}%</td>
                       <td className="p-4 text-center text-muted-foreground font-semibold">{student.attempts}</td>
@@ -301,6 +345,138 @@ export function AnalyticsCenterHighFidelity({ workspaceId, batchId }: Props) {
           )}
         </CardContent>
       </Card>
+
+      {/* BatchLeaderboard — full ranking, click a row to drill into a participant */}
+      <Card className="border">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-primary" /> Batch Leaderboard
+          </CardTitle>
+          <CardDescription>
+            Ranked by trailing-30-day mean test percentage. Click a student to see their individual analytics.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {leaderboard.length === 0 ? (
+            <p className="p-6 text-xs text-muted-foreground">
+              No ranked students yet — the leaderboard needs at least two graded attempts per student.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b bg-muted/20 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="p-4 text-center">Rank</th>
+                    <th className="p-4">Student</th>
+                    <th className="p-4">Mean %</th>
+                    <th className="p-4 text-center">Attempts</th>
+                    <th className="p-4 text-center">Platform Rank</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y text-xs">
+                  {leaderboard.map((student) => (
+                    <tr
+                      key={student.studentId}
+                      onClick={() => openStudent(student)}
+                      className={`cursor-pointer transition-colors ${
+                        selectedStudent?.studentId === student.studentId ? "bg-primary/10" : "hover:bg-muted/10"
+                      }`}
+                    >
+                      <td className="p-4 text-center font-bold">#{student.rank}</td>
+                      <td className="p-4 font-semibold text-sm">{student.displayName}</td>
+                      <td className="p-4 font-bold">{Math.round(student.meanPercentage)}%</td>
+                      <td className="p-4 text-center text-muted-foreground font-semibold">{student.attempts}</td>
+                      <td className="p-4 text-center text-muted-foreground">
+                        {student.platformRank > 0 ? `#${student.platformRank}` : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* IndividualParticipantAnalytics — per-student topic profile drill-down */}
+      {selectedStudent ? (
+        <Card className="border border-primary/30">
+          <CardHeader>
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Users className="w-5 h-5 text-primary" /> {selectedStudent.displayName} — Individual Analytics
+                </CardTitle>
+                <CardDescription>
+                  Mean {Math.round(selectedStudent.meanPercentage)}% · {selectedStudent.attempts} attempts · batch rank
+                  #{selectedStudent.rank}. Topics ordered weakest first.
+                </CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => {
+                  setSelectedStudent(null);
+                  setStudentProfile(null);
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {profileLoading ? (
+              <div className="flex items-center gap-2 p-6 text-xs text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading individual analytics…
+              </div>
+            ) : !studentProfile || studentProfile.length === 0 ? (
+              <p className="p-6 text-xs text-muted-foreground">
+                No topic-level analytics yet for this student. Profiles populate after they submit a graded test in
+                this batch.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b bg-muted/20 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      <th className="p-4">Topic</th>
+                      <th className="p-4">Subject</th>
+                      <th className="p-4 text-center">Accuracy</th>
+                      <th className="p-4 text-center">Attempts</th>
+                      <th className="p-4 text-center">Mastery</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y text-xs">
+                    {studentProfile.map((row) => {
+                      const acc = Math.round((row.accuracy ?? 0) * 100);
+                      return (
+                        <tr key={`${row.subject}-${row.topic}`} className="hover:bg-muted/10 transition-colors">
+                          <td className="p-4 font-semibold text-sm">{row.topic}</td>
+                          <td className="p-4 capitalize text-muted-foreground">{row.subject}</td>
+                          <td
+                            className={`p-4 text-center font-bold ${
+                              acc < 50 ? "text-destructive" : acc < 75 ? "text-amber-500" : "text-emerald-500"
+                            }`}
+                          >
+                            {acc}%
+                          </td>
+                          <td className="p-4 text-center text-muted-foreground font-semibold">
+                            {row.correctAttempts}/{row.totalAttempts}
+                          </td>
+                          <td className="p-4 text-center text-muted-foreground">
+                            {Math.round((row.masteryScore ?? 0) * 100)}%
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }

@@ -43,7 +43,7 @@ it("phase 14: teacher-room bridge + membership-gated join + joinable listing", {
   let roomId: string | null = null;
 
   await rawPool().query(
-    `INSERT INTO origin_users (id, name, email, role) VALUES ($1, 'Outsider', $2, 'student')
+    `INSERT INTO origin_users (id, name, email, role, password_hash) VALUES ($1, 'Outsider', $2, 'student', 'test-no-login')
      ON CONFLICT (id) DO NOTHING`,
     [outsiderId, `${outsiderId}@example.com`],
   );
