@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Users,
   BarChart4,
   Check,
-  Sparkles,
   Loader2,
   AlertTriangle,
   Award,
@@ -20,10 +19,12 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
   Radar,
+  Legend,
 } from "recharts";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { apiJson } from "@/lib/teacher-client";
 import { toast } from "sonner";
 
@@ -42,6 +43,7 @@ type TopicSnapshot = {
   attempts: number;
   severity: "high" | "medium" | "low";
   snapshotAt: string;
+  covered: boolean;
 };
 
 type LeaderboardEntry = {
@@ -68,49 +70,36 @@ type StudentTopicProfileRow = {
 };
 
 type RadarRow = {
-  subject: string;
-  Physics: number;
-  Chemistry: number;
-  Math: number;
-  Biology: number;
+  topic: string;
+  needsCoverage: number;
+  covered: number;
   fullMark: number;
 };
 
-const SUBJECT_KEY: Record<string, "Physics" | "Chemistry" | "Math" | "Biology" | null> = {
-  physics: "Physics",
-  chemistry: "Chemistry",
-  math: "Math",
-  maths: "Math",
-  mathematics: "Math",
-  biology: "Biology",
-  bio: "Biology",
-};
-
-/** Most-recent snapshot per topic → a radar row keyed by the topic's subject column. */
+/**
+ * One radar spoke per topic (cap 8). A topic's accuracy plots on the green
+ * "Covered" series when the teacher has marked it covered, otherwise on the red
+ * "Needs coverage" series — so the radar flips live as boxes are ticked.
+ */
 function buildRadarData(snapshots: TopicSnapshot[]): RadarRow[] {
   const byTopic = new Map<string, TopicSnapshot>();
   for (const snap of snapshots) {
-    // snapshots arrive newest-first; keep the first (latest) per topic.
     if (!byTopic.has(snap.topic)) byTopic.set(snap.topic, snap);
   }
   return [...byTopic.values()].slice(0, 8).map((snap) => {
-    const key = SUBJECT_KEY[snap.subject?.toLowerCase()] ?? null;
     const pct = Math.round((snap.accuracy ?? 0) * 100);
     return {
-      subject: snap.topic,
-      Physics: key === "Physics" ? pct : 0,
-      Chemistry: key === "Chemistry" ? pct : 0,
-      Math: key === "Math" ? pct : 0,
-      Biology: key === "Biology" ? pct : 0,
+      topic: snap.topic,
+      needsCoverage: snap.covered ? 0 : pct,
+      covered: snap.covered ? pct : 0,
       fullMark: 100,
     };
   });
 }
 
 export function AnalyticsCenterHighFidelity({ workspaceId, batchId }: Props) {
-  const [pending, startTransition] = useTransition();
   const [loading, setLoading] = useState(true);
-  const [radarData, setRadarData] = useState<RadarRow[]>([]);
+  const [snapshots, setSnapshots] = useState<TopicSnapshot[]>([]);
   const [weakConcepts, setWeakConcepts] = useState<TopicSnapshot[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   // Individual-participant drill-down (analytics/students/[studentId]).
@@ -119,6 +108,8 @@ export function AnalyticsCenterHighFidelity({ workspaceId, batchId }: Props) {
   const [profileLoading, setProfileLoading] = useState(false);
 
   const base = `/api/teacher/workspaces/${workspaceId}/analytics/batches/${batchId}`;
+  // Radar re-derives whenever a coverage toggle updates the snapshots.
+  const radarData = useMemo(() => buildRadarData(snapshots), [snapshots]);
 
   async function openStudent(entry: LeaderboardEntry) {
     setSelectedStudent(entry);
@@ -142,7 +133,7 @@ export function AnalyticsCenterHighFidelity({ workspaceId, batchId }: Props) {
     ])
       .then(([snapshotsRes, weakRes, leaderboardRes]) => {
         if (cancelled) return;
-        if (snapshotsRes.ok) setRadarData(buildRadarData(snapshotsRes.data.snapshots ?? []));
+        if (snapshotsRes.ok) setSnapshots(snapshotsRes.data.snapshots ?? []);
         if (weakRes.ok) setWeakConcepts(weakRes.data.weakTopics ?? []);
         // Newest snapshot wins; entries are pre-ranked by mean percentage.
         if (leaderboardRes.ok) setLeaderboard(leaderboardRes.data.leaderboardHistory?.[0]?.entries ?? []);
@@ -155,19 +146,26 @@ export function AnalyticsCenterHighFidelity({ workspaceId, batchId }: Props) {
     };
   }, [base]);
 
-  async function handleAssignRemedial(conceptId: string, conceptName: string) {
-    startTransition(async () => {
-      const result = await apiJson(`/api/teacher/workspaces/${workspaceId}/batches/${batchId}`, {
-        method: "PATCH",
-        json: { settings: { triggerRemedialWorksheet: true, conceptName } },
-      });
-      if (result.ok) {
-        toast.success(`Remedial DPP assigned to struggling students for ${conceptName}!`);
-        setWeakConcepts((prev) => prev.filter((c) => c.id !== conceptId));
-      } else {
-        toast.error("Failed to assign remedial DPP");
-      }
+  // Mark a weak topic covered/uncovered for the next class. Persisted per batch so
+  // it survives a refresh; the radar spoke flips red↔green from the same state.
+  async function toggleCovered(concept: TopicSnapshot, next: boolean) {
+    const flip = (covered: boolean) => {
+      setWeakConcepts((prev) => prev.map((c) => (c.id === concept.id ? { ...c, covered } : c)));
+      setSnapshots((prev) =>
+        prev.map((s) =>
+          s.subject === concept.subject && s.topic === concept.topic ? { ...s, covered } : s,
+        ),
+      );
+    };
+    flip(next); // optimistic
+    const result = await apiJson(`${base}/coverage`, {
+      method: "PATCH",
+      json: { subject: concept.subject, topic: concept.topic, covered: next },
     });
+    if (!result.ok) {
+      flip(!next); // revert on failure
+      toast.error("Failed to update coverage");
+    }
   }
 
   // Derived overview metrics (all from real data; no fabricated values).
@@ -176,6 +174,8 @@ export function AnalyticsCenterHighFidelity({ workspaceId, batchId }: Props) {
       ? Math.round(leaderboard.reduce((sum, e) => sum + e.meanPercentage, 0) / leaderboard.length)
       : null;
   const topScore = leaderboard.length > 0 ? Math.round(leaderboard[0].meanPercentage) : null;
+  // Weak-concept count reflects what's still UNcovered (so it falls as topics are ticked).
+  const uncoveredWeakCount = weakConcepts.filter((c) => !c.covered).length;
   // Struggling roster = ranked students with the lowest mean percentage (accuracy ASC).
   const strugglingStudents = [...leaderboard].sort((a, b) => a.meanPercentage - b.meanPercentage).slice(0, 5);
 
@@ -221,7 +221,7 @@ export function AnalyticsCenterHighFidelity({ workspaceId, batchId }: Props) {
           <CardContent className="p-4 flex flex-col justify-between h-24">
             <span className="text-xs font-semibold text-muted-foreground uppercase">Weak Concepts</span>
             <div className="flex items-baseline justify-between mt-1">
-              <span className="text-2xl font-bold text-destructive">{weakConcepts.length} Topics</span>
+              <span className="text-2xl font-bold text-destructive">{uncoveredWeakCount} Topics</span>
               <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
             </div>
           </CardContent>
@@ -235,7 +235,10 @@ export function AnalyticsCenterHighFidelity({ workspaceId, batchId }: Props) {
             <CardTitle className="text-base flex items-center gap-2">
               <BarChart4 className="w-5 h-5 text-primary" /> Mastery Radar Chart
             </CardTitle>
-            <CardDescription>Topic accuracy across the batch, by subject.</CardDescription>
+            <CardDescription>
+              Topic accuracy across the batch. <span className="text-emerald-500">Green = covered</span> in the next
+              class, <span className="text-destructive">red = still to cover</span>.
+            </CardDescription>
           </CardHeader>
           <CardContent className="h-80 flex items-center justify-center p-2">
             {radarData.length === 0 ? (
@@ -244,12 +247,11 @@ export function AnalyticsCenterHighFidelity({ workspaceId, batchId }: Props) {
               <ResponsiveContainer width="100%" height="90%">
                 <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
                   <PolarGrid stroke="rgba(255,255,255,0.08)" />
-                  <PolarAngleAxis dataKey="subject" stroke="#a3a3a3" style={{ fontSize: "10px", fontWeight: "bold" }} />
+                  <PolarAngleAxis dataKey="topic" stroke="#a3a3a3" style={{ fontSize: "10px", fontWeight: "bold" }} />
                   <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="#737373" style={{ fontSize: "8px" }} />
-                  <Radar name="Physics" dataKey="Physics" stroke="#38bdf8" fill="#38bdf8" fillOpacity={0.15} />
-                  <Radar name="Chemistry" dataKey="Chemistry" stroke="#10b981" fill="#10b981" fillOpacity={0.1} />
-                  <Radar name="Mathematics" dataKey="Math" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.1} />
-                  <Radar name="Biology" dataKey="Biology" stroke="#ec4899" fill="#ec4899" fillOpacity={0.1} />
+                  <Radar name="Needs coverage" dataKey="needsCoverage" stroke="#ef4444" fill="#ef4444" fillOpacity={0.2} />
+                  <Radar name="Covered" dataKey="covered" stroke="#10b981" fill="#10b981" fillOpacity={0.25} />
+                  <Legend wrapperStyle={{ fontSize: "11px" }} />
                 </RadarChart>
               </ResponsiveContainer>
             )}
@@ -260,9 +262,9 @@ export function AnalyticsCenterHighFidelity({ workspaceId, batchId }: Props) {
         <Card className="lg:col-span-1 border flex flex-col">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-primary" /> Weak Concept Interventions
+              <AlertTriangle className="w-5 h-5 text-primary" /> Weak Concepts
             </CardTitle>
-            <CardDescription>Topics the batch is struggling with</CardDescription>
+            <CardDescription>Tick a topic once you&apos;ve covered it in your next class.</CardDescription>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto divide-y pr-1">
             {weakConcepts.length === 0 ? (
@@ -271,27 +273,39 @@ export function AnalyticsCenterHighFidelity({ workspaceId, batchId }: Props) {
               </div>
             ) : (
               weakConcepts.map((concept) => (
-                <div key={concept.id} className="py-4 space-y-3">
-                  <div className="flex justify-between items-start">
+                <label
+                  key={concept.id}
+                  htmlFor={`cov-${concept.id}`}
+                  className="flex items-start justify-between gap-3 py-4 cursor-pointer"
+                >
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      id={`cov-${concept.id}`}
+                      checked={concept.covered}
+                      onCheckedChange={(v) => toggleCovered(concept, v === true)}
+                      className="mt-0.5"
+                    />
                     <div className="space-y-0.5">
-                      <h4 className="font-semibold text-sm">{concept.topic}</h4>
+                      <h4
+                        className={`font-semibold text-sm ${
+                          concept.covered ? "line-through text-muted-foreground" : ""
+                        }`}
+                      >
+                        {concept.topic}
+                      </h4>
                       <p className="text-[10px] text-muted-foreground capitalize">
-                        {concept.subject} · {concept.attempts} attempts
+                        {concept.subject} · {concept.attempts} attempts{concept.covered ? " · covered" : ""}
                       </p>
                     </div>
-                    <span className="text-xs font-mono font-bold text-destructive">
-                      {Math.round((concept.accuracy ?? 0) * 100)}%
-                    </span>
                   </div>
-                  <Button
-                    onClick={() => handleAssignRemedial(concept.id, concept.topic)}
-                    disabled={pending}
-                    className="w-full bg-primary/10 border border-primary/20 text-primary hover:bg-primary/25 font-bold h-8 text-xs rounded-lg gap-1.5"
+                  <span
+                    className={`text-xs font-mono font-bold ${
+                      concept.covered ? "text-emerald-500" : "text-destructive"
+                    }`}
                   >
-                    {pending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                    Assign Remedial DPP
-                  </Button>
-                </div>
+                    {Math.round((concept.accuracy ?? 0) * 100)}%
+                  </span>
+                </label>
               ))
             )}
           </CardContent>
