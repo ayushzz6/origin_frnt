@@ -28,7 +28,6 @@ const listeners = new Set<Listener>();
 const selectionListeners = new Set<SelectionListener>();
 
 let isMouseDown = false;
-let heavyExtractionTimeout: NodeJS.Timeout | null = null;
 
 // ─── CSS Highlight API helpers ──────────────────────────────────────────────
 
@@ -70,18 +69,11 @@ function removeCSShighlight(): void {
 function emitChange() {
   listeners.forEach((l) => l(currentHighlight));
   selectionListeners.forEach((l) => l({ text: currentHighlight, rect: currentHighlightRect }));
-
-  // React re-renders may replace DOM nodes, invalidating lockedRange's container.
-  // Double-rAF fires AFTER React's own rAF-batched DOM flush, reliably
-  // re-applying the CSS Highlight API mark post-reconciliation.
-  // Guard: skip during active drag — lockedRange still holds the PREVIOUS selection,
-  // so re-applying it would paint the old large highlight over the new in-progress drag,
-  // making it look like the whole block is selected.
-  if (!isMouseDown && currentHighlight && lockedRange) {
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      if (!isMouseDown && currentHighlight && lockedRange) applyCSShighlight();
-    }));
-  }
+  // NOTE: the persistent CSS Highlight mark is painted explicitly in
+  // captureSelection() at finalise time — it is never re-applied here. The old
+  // double-rAF re-application repainted a stale/expanded lockedRange after React
+  // reconciliation, which is what made the highlight grow to cover a whole
+  // block. The browser's native ::selection already tracks the live drag.
 }
 
 // ─── Geometry ───────────────────────────────────────────────────────────────
@@ -193,19 +185,25 @@ export function wrapUnwrappedMath(text: string): string {
   return text.includes('\n') ? `$$\n${text}\n$$` : `$${text}$`;
 }
 
-// ─── Selection change handler ─────────────────────────────────────────────────
+// ─── Selection capture ────────────────────────────────────────────────────────
 
-function handleSelectionChange() {
+/**
+ * Capture the current selection in a single pass: KaTeX-aware text, the pill
+ * anchor rect, and — when `paint` is set — the persistent CSS Highlight mark.
+ * Called once when a selection is finalised (mouseup/touchend), never on every
+ * intermediate selectionchange during a drag.
+ */
+function captureSelection(paint: boolean): void {
   const selection = window.getSelection();
-  const lightText = selection?.toString().trim() || null;
+  const text = selection?.toString().trim() || null;
 
-  if (!lightText) {
-    // Selection became empty (e.g., cursor moved to a text field).
+  if (!text) {
+    // Empty selection (e.g. focus moved to a text field).
     // Do NOT clear currentHighlight here — let handleGlobalClick decide.
     return;
   }
 
-  // Selections that originate inside the Origin AI panel are not page context.
+  // Selections that originate inside the Origin AI panel are chat content, not page context.
   const anchorNode = selection?.anchorNode;
   const anchorEl = anchorNode instanceof Element ? anchorNode : anchorNode?.parentElement ?? null;
   if (anchorEl?.closest('[data-origin-ai-root="true"]')) {
@@ -213,53 +211,64 @@ function handleSelectionChange() {
     return;
   }
 
-  // Phase 1: lightweight update — show text in the pill immediately.
-  // We intentionally do NOT update the CSS Highlight API here to avoid
-  // flicker during drag. The browser's native selection handles the visual.
-  if (lightText !== currentHighlight) {
-    currentHighlight = lightText;
-    currentHighlightRect = getSelectionRect(selection);
-    emitChange();
-  }
+  // extractSelectionText returns the verbatim string for plain-text selections
+  // and only does KaTeX surgery when the selection actually contains math.
+  currentHighlight = extractSelectionText(selection) || text;
+  currentHighlightRect = getSelectionRect(selection);
 
-  // Phase 2: rich KaTeX extraction, debounced to avoid DOM mutations during drag.
-  // Only runs for selections that actually contain math — plain text was already
-  // captured exactly in phase 1, so there is nothing to refine (and re-running
-  // would risk swapping in a mangled value).
-  if (heavyExtractionTimeout) clearTimeout(heavyExtractionTimeout);
-  heavyExtractionTimeout = setTimeout(() => {
-    if (isMouseDown) return;
-    const richSel = window.getSelection();
-    if (!selectionHasKatex(richSel)) return;
-    const richText = extractSelectionText(richSel);
-    if (richText && richText !== currentHighlight) {
-      currentHighlight = richText;
-      currentHighlightRect = getSelectionRect(richSel);
-      emitChange();
-    }
-  }, 200);
-}
-
-// ─── Mouse lifecycle ──────────────────────────────────────────────────────────
-
-function handleMouseDown() {
-  isMouseDown = true;
-}
-
-function finaliseSelection(): void {
-  isMouseDown = false;
-  const selection = window.getSelection();
-  const selectedText = selection?.toString().trim();
-
-  if (selectedText && selection && selection.rangeCount > 0) {
-    // Lock in a live Range. We do NOT clone it here so the browser continues
-    // tracking the text position even if the surrounding DOM shifts slightly.
+  if (paint && selection && selection.rangeCount > 0) {
+    // Lock in a live Range and paint the persistent mark ONCE, over exactly the
+    // finalised selection. It is never re-applied on later emits.
     lockedRange = selection.getRangeAt(0);
     applyCSShighlight(lockedRange);
   }
 
-  // Trigger rich extraction for the finalised selection.
-  handleSelectionChange();
+  emitChange();
+}
+
+// ─── Selection change handler ─────────────────────────────────────────────────
+
+function handleSelectionChange() {
+  // During an active mouse/touch drag we deliberately neither capture nor emit.
+  // Notifying subscribers on every selectionchange re-renders heavy consumers
+  // (DoubtSolver / OriginAiMentor → ReactMarkdown + KaTeX) mid-drag; that reflows
+  // the very text being dragged over and makes the native selection jump to a
+  // whole block. The browser's ::selection shows the drag live; we finalise on
+  // mouseup/touchend (finaliseSelection). Keyboard selection has no drag, so it
+  // still captures here (without painting the persistent mark).
+  if (isMouseDown) return;
+  captureSelection(false);
+}
+
+// ─── Mouse lifecycle ──────────────────────────────────────────────────────────
+
+// Marks a selection interaction as in-progress so handleSelectionChange stops
+// capturing/emitting until it finalises. Shared by mouse and touch so neither
+// desktop drags nor mobile selection-handle drags churn React mid-selection.
+function beginInteraction(target: Element | null): void {
+  isMouseDown = true;
+
+  // Starting a fresh drag on the page: drop the previous persistent highlight
+  // now so it can never linger as a stale rose "block" behind the new selection.
+  // Presses on the pill / AI panel are left alone — the pill relies on the
+  // snapshot taken in its own onMouseDown handler.
+  if (target?.closest('[data-origin-ai-root="true"]')) return;
+  if (currentHighlight || lockedRange) clearHighlightedText();
+}
+
+function handleMouseDown(event: MouseEvent) {
+  beginInteraction(event.target as Element | null);
+}
+
+function handleTouchStart(event: TouchEvent) {
+  beginInteraction(event.target as Element | null);
+}
+
+function finaliseSelection(): void {
+  isMouseDown = false;
+  // Capture once, now that the drag is finished: text + pill rect + the
+  // persistent highlight mark, all from the final selection in a single pass.
+  captureSelection(true);
 }
 
 function handleMouseUp() {
@@ -335,6 +344,7 @@ export function startHighlightCapture(): void {
   document.addEventListener('selectionchange', handleSelectionChange);
   window.addEventListener('mousedown', handleMouseDown);
   window.addEventListener('mouseup', handleMouseUp);
+  window.addEventListener('touchstart', handleTouchStart, { passive: true });
   window.addEventListener('touchend', handleTouchEnd, { passive: true });
   window.addEventListener('click', handleGlobalClick);
 }
@@ -345,6 +355,7 @@ export function stopHighlightCapture(): void {
   document.removeEventListener('selectionchange', handleSelectionChange);
   window.removeEventListener('mousedown', handleMouseDown);
   window.removeEventListener('mouseup', handleMouseUp);
+  window.removeEventListener('touchstart', handleTouchStart);
   window.removeEventListener('touchend', handleTouchEnd);
   window.removeEventListener('click', handleGlobalClick);
   clearHighlightedText();

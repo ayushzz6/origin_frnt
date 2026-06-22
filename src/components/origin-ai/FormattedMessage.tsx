@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -418,7 +419,7 @@ type LiProps = ClassAttributes<HTMLLIElement> & LiHTMLAttributes<HTMLLIElement> 
 type StrongProps = ClassAttributes<HTMLElement> & HTMLAttributes<HTMLElement> & ExtraProps;
 type DivProps = ClassAttributes<HTMLDivElement> & HTMLAttributes<HTMLDivElement> & ExtraProps;
 
-export function FormattedMessage({ content, className, isAssistant = true, inline = false }: FormattedMessageProps) {
+function FormattedMessageImpl({ content, className, isAssistant = true, inline = false }: FormattedMessageProps) {
   const normalizedContent = normalizeDelimiters(content);
   const Wrapper = inline ? 'span' : 'div';
 
@@ -454,3 +455,9 @@ export function FormattedMessage({ content, className, isAssistant = true, inlin
     </Wrapper>
   );
 }
+
+// Memoised: pure function of its primitive props. Without this, every parent
+// re-render (e.g. a selectionchange or a keystroke in the chat input) re-parses
+// Markdown and re-runs KaTeX for every rendered message, which reflows the DOM
+// under an in-progress text selection.
+export const FormattedMessage = memo(FormattedMessageImpl);
