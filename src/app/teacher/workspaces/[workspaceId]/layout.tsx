@@ -20,6 +20,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/question-bag", label: "Question Bag" },
   { href: "/ogcode", label: "OG Code", flag: "teacherOgcode" },
   { href: "/tests", label: "Tests" },
+  { href: "/analytics", label: "Analytics", flag: "teacherAnalytics" },
   { href: "/rooms", label: "Rooms" },
   // Audit fix R-3 (A-11): Marketplace was reachable only by URL.
   // The /offerings page exists and is functional; expose it.

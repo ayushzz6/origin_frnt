@@ -22,6 +22,14 @@ import {
 } from "./tests-store";
 import { getQuestionWithVersion } from "./questions";
 import { getOgcodeCatalogQuestionMap } from "@/server/ogcode-catalog";
+import {
+  getTestAttemptCohort,
+  getTestTopicWeakness,
+  getCohortResultOwner,
+  type TestCohortAttempt,
+  type TestTopicWeakness,
+} from "./test-cohort-store";
+import { getSingleResultForRender } from "@/server/render-loaders";
 import type {
   AssessmentTest,
   QuestionSourceBank,
@@ -334,6 +342,41 @@ export async function getTeacherTestResults(
   if (!test) throw new AuthzError(404, "Test not found.");
   if (test.workspaceId !== workspaceId) throw new AuthzError(403, "Access denied.");
   return listAttemptResults(testId);
+}
+
+// ─── Per-test cohort analytics (reads analytics.test_results) ──────────────────
+
+/** Students who attempted a teacher test (live source: analytics.test_results). */
+export async function getTestCohort(
+  workspaceId: string,
+  testId: string,
+  opts?: { batchId?: string },
+): Promise<TestCohortAttempt[]> {
+  const test = await getTestById(testId);
+  if (!test) throw new AuthzError(404, "Test not found.");
+  if (test.workspaceId !== workspaceId) throw new AuthzError(403, "Access denied.");
+  return getTestAttemptCohort(workspaceId, testId, opts);
+}
+
+/** Cumulative per-topic weakness for a teacher test (backs the per-test radar). */
+export async function getTestWeakTopics(
+  workspaceId: string,
+  testId: string,
+): Promise<TestTopicWeakness[]> {
+  const test = await getTestById(testId);
+  if (!test) throw new AuthzError(404, "Test not found.");
+  if (test.workspaceId !== workspaceId) throw new AuthzError(403, "Access denied.");
+  return getTestTopicWeakness(workspaceId, testId);
+}
+
+/**
+ * A single student's individual test analysis for the teacher, scoped to the
+ * workspace — reuses the student-side serializer so it renders in TestResultView.
+ */
+export async function getCohortStudentResult(workspaceId: string, resultId: string) {
+  const ownerId = await getCohortResultOwner(workspaceId, resultId);
+  if (!ownerId) throw new AuthzError(404, "Result not found.");
+  return getSingleResultForRender(ownerId, resultId);
 }
 
 export async function deleteTeacherTest(input: {

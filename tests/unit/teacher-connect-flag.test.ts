@@ -1,6 +1,8 @@
 /**
- * Phase 14 unit — the teacherConnect feature flag ships dark (off in dev + prod)
- * and is enable-able via TEACHER_LAUNCH_TEACHER_CONNECT. No DB.
+ * Phase 14 unit — the teacherConnect feature flag. After the teacher-launch
+ * phases shipped and were enabled in production, its default was flipped ON
+ * (dev + prod) to remove the silent dark default; the env var still overrides
+ * per-environment. No DB.
  */
 
 import test from "node:test";
@@ -20,13 +22,13 @@ function withEnv(value: string | undefined, fn: () => void) {
   }
 }
 
-test("teacherConnect ships dark by default (off in dev)", () => {
+test("teacherConnect is enabled by default (no longer dark)", () => {
   withEnv(undefined, () => {
-    assert.equal(isFeatureEnabled("teacherConnect"), false);
+    assert.equal(isFeatureEnabled("teacherConnect"), true);
   });
 });
 
-test("teacherConnect can be enabled via the env var", () => {
+test("teacherConnect can be overridden via the env var", () => {
   withEnv("1", () => {
     assert.equal(isFeatureEnabled("teacherConnect"), true);
   });
