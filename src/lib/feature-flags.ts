@@ -52,17 +52,18 @@ const FLAG_SPECS: Record<FlagKey, FlagSpec> = {
   documentImport:    { envSuffix: "DOCUMENT_IMPORT",     defaultDev: true,  defaultProd: true },
   adminControlCenter:{ envSuffix: "ADMIN_CONTROL",       defaultDev: true,  defaultProd: true },
   paidEnrollment:    { envSuffix: "PAID_ENROLLMENT",     defaultDev: true,  defaultProd: true },
-  // Phase 13 — Free vs Premium per-subject subscriptions. Ships DARK: off in
-  // dev and prod until explicitly enabled with TEACHER_LAUNCH_PREMIUM_SUBSCRIPTIONS=1.
-  premiumSubscriptions: { envSuffix: "PREMIUM_SUBSCRIPTIONS", defaultDev: false, defaultProd: false },
+  // Phase 13 — Free vs Premium per-subject subscriptions. Shipped + enabled in
+  // production (TEACHER_LAUNCH_PREMIUM_SUBSCRIPTIONS=1); defaults flipped ON to
+  // match prod and remove the silent dark default. Per-env env var still overrides.
+  premiumSubscriptions: { envSuffix: "PREMIUM_SUBSCRIPTIONS", defaultDev: true, defaultProd: true },
   // Phase 14 — Student ↔ teacher connection (collaborations, /connect, both
-  // enrollment flows, teacher tests/rooms → student, teacher analytics). Ships
-  // DARK: off in dev and prod until enabled with TEACHER_LAUNCH_TEACHER_CONNECT=1.
-  teacherConnect: { envSuffix: "TEACHER_CONNECT", defaultDev: false, defaultProd: false },
+  // enrollment flows, teacher tests/rooms → student, teacher analytics). Shipped +
+  // enabled in production (TEACHER_LAUNCH_TEACHER_CONNECT=1); defaults flipped ON.
+  teacherConnect: { envSuffix: "TEACHER_CONNECT", defaultDev: true, defaultProd: true },
   // Phase 15 — Teacher OG Code bank browse + OG-Code-as-a-source in the test
-  // builder (general + room tests). Ships DARK until TEACHER_LAUNCH_TEACHER_OGCODE=1.
-  // The Phase-0 mixed-source take/grade fix is unflagged (pure correctness).
-  teacherOgcode: { envSuffix: "TEACHER_OGCODE", defaultDev: false, defaultProd: false },
+  // builder (general + room tests). Shipped + enabled in production; defaults
+  // flipped ON. The Phase-0 mixed-source take/grade fix is unflagged (correctness).
+  teacherOgcode: { envSuffix: "TEACHER_OGCODE", defaultDev: true, defaultProd: true },
 };
 
 function parseFlag(raw: string | undefined): boolean | null {
