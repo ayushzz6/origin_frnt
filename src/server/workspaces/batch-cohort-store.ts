@@ -20,6 +20,7 @@ import { getOgcodePostgresPool } from "@/server/postgres";
 import { ensureAnalyticsTables } from "@/server/analytics-store";
 
 import { fetchDisplayNames } from "./test-cohort-store";
+import { getBatchTopicCoverage, coverageKey } from "./batch-topic-coverage-store";
 
 function analyticsPool(): Pool {
   const p = getOgcodePostgresPool();
@@ -43,6 +44,8 @@ export type BatchTopicSnapshotLite = {
   attempts: number;
   severity: "high" | "medium" | "low";
   snapshotAt: string;
+  /** Teacher marked this topic as covered in the next class. */
+  covered: boolean;
 };
 
 export type BatchLeaderboardEntryLite = {
@@ -92,18 +95,22 @@ export async function getBatchTopicAccuracyLive(
       ORDER BY avg_accuracy ASC`,
     params,
   );
+  const coverage = await getBatchTopicCoverage(workspaceId, batchId);
   const now = new Date().toISOString();
   const rows = result.rows.map((row) => {
     const accuracyPct = Number(row.avg_accuracy) || 0;
+    const subject = row.subject as string;
+    const topic = row.topic as string;
     return {
-      id: `${row.subject}-${row.topic}`,
-      topic: row.topic as string,
-      subject: row.subject as string,
+      id: `${subject}-${topic}`,
+      topic,
+      subject,
       chapter: (row.chapter as string | null) ?? null,
       accuracy: Math.round(accuracyPct) / 100,
       attempts: Number(row.attempts) || 0,
       severity: severityFromAccuracy(accuracyPct),
       snapshotAt: now,
+      covered: coverage.get(coverageKey(subject, topic)) ?? false,
     };
   });
   return opts?.weakOnly ? rows.filter((r) => r.severity !== "low") : rows;
