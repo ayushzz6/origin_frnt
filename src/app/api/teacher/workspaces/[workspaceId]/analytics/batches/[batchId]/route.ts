@@ -3,13 +3,11 @@ import type { NextRequest } from "next/server";
 import { requireFeatureEnabled } from "@/lib/feature-flags";
 import { requireWorkspaceMember } from "@/server/workspaces/authz";
 import {
-  getBatchTopicSnapshots,
-  getBatchWeakTopics,
-  getLeaderboardHistory,
-} from "@/server/workspaces/analytics-store";
+  getBatchTopicAccuracyLive,
+  getBatchLeaderboardLive,
+} from "@/server/workspaces/batch-cohort-store";
 
 import {
-  getWorkspaceId,
   handleTeacherError,
   teacherJson,
   type WorkspaceIdRouteContext,
@@ -26,26 +24,26 @@ export async function GET(
     const url = new URL(request.url);
     const subject = url.searchParams.get("subject");
     const type = url.searchParams.get("type");
-    const limit = parseInt(url.searchParams.get("limit") ?? "50", 10);
 
     if (type === "weak-topics") {
-      const weakTopics = await getBatchWeakTopics(workspaceId, batchId, {
+      const weakTopics = await getBatchTopicAccuracyLive(workspaceId, batchId, {
         subject: subject ?? undefined,
+        weakOnly: true,
       });
       return teacherJson({ weakTopics });
     }
 
     if (type === "leaderboard") {
-      const history = await getLeaderboardHistory(workspaceId, {
-        batchId,
-        limit: Math.min(limit, 50),
-      });
-      return teacherJson({ leaderboardHistory: history });
+      const entries = await getBatchLeaderboardLive(workspaceId, batchId);
+      // Match the historical snapshot shape the client expects ([0].entries).
+      const leaderboardHistory = entries.length
+        ? [{ entries, snapshotAt: new Date().toISOString() }]
+        : [];
+      return teacherJson({ leaderboardHistory });
     }
 
-    const snapshots = await getBatchTopicSnapshots(workspaceId, batchId, {
+    const snapshots = await getBatchTopicAccuracyLive(workspaceId, batchId, {
       subject: subject ?? undefined,
-      limit: Math.min(limit, 100),
     });
     return teacherJson({ snapshots });
   } catch (error) {

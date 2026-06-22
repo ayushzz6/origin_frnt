@@ -40,7 +40,7 @@ function severityFromAccuracy(accuracyPct: number): "high" | "medium" | "low" {
  * Resolve student display names from origin_users (USER pool) for a set of ids.
  * Best-effort: on any failure (or no USER pool) callers fall back to "Student".
  */
-async function fetchDisplayNames(userIds: string[]): Promise<Map<string, string>> {
+export async function fetchDisplayNames(userIds: string[]): Promise<Map<string, string>> {
   const names = new Map<string, string>();
   const ids = [...new Set(userIds)];
   if (ids.length === 0) return names;

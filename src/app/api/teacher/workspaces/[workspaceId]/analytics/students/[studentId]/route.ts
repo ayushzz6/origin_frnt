@@ -2,10 +2,9 @@ import type { NextRequest } from "next/server";
 
 import { requireFeatureEnabled } from "@/lib/feature-flags";
 import { requireWorkspaceMember } from "@/server/workspaces/authz";
-import { getStudentTopicProfile } from "@/server/workspaces/analytics-store";
+import { getStudentTopicProfileLive } from "@/server/workspaces/batch-cohort-store";
 
 import {
-  getWorkspaceId,
   handleTeacherError,
   teacherJson,
   type WorkspaceIdRouteContext,
@@ -21,7 +20,7 @@ export async function GET(
     await requireWorkspaceMember(request, workspaceId);
     const url = new URL(request.url);
     const subject = url.searchParams.get("subject");
-    const profiles = await getStudentTopicProfile(workspaceId, studentId, subject ?? undefined);
+    const profiles = await getStudentTopicProfileLive(workspaceId, studentId, subject ?? undefined);
     return teacherJson({ profiles });
   } catch (error) {
     return handleTeacherError(error);
