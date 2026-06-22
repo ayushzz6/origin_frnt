@@ -5,21 +5,27 @@
  * for every assigned-test submission, and which the analytics-service populates with
  * per-topic signals via the analysis job.
  *
+ * IMPORTANT — pool topology: the `analytics.*` tables live in the **OGCODE database**
+ * (the legacy analytics store writes them via getOgcodePostgresPool). In production
+ * OGCODE and USER are SEPARATE Neon databases (`origin_ogcode` vs `origin_users`), so
+ * analytics rows must be read from the OGCODE pool, and student display names (in
+ * `origin_users`, USER pool) are fetched separately and merged in app code — never a
+ * cross-database JOIN. In dev both pools point at one DB, so the same code path works.
+ *
  * NOTE: the parallel `assessment.test_attempts` table (tests-store startAttempt/
  * submitAttempt) is currently unwired — these readers intentionally do NOT use it.
- *
- * Cross-pool reads (`analytics.* ⋈ origin_users`) are valid only under the
- * same-physical-DB invariant — guarded by assertCohortAnalyticsDbInvariant().
  */
 
+import type { Pool } from "pg";
+
+import { getOgcodePostgresPool } from "@/server/postgres";
 import { getUserPostgresPool } from "@/server/user-postgres";
-import { assertCohortAnalyticsDbInvariant } from "@/server/db-invariant";
+import { ensureAnalyticsTables } from "@/server/analytics-store";
 
-import { ensureAnalyticsSchema } from "./analytics-schema";
-
-function pool() {
-  const p = getUserPostgresPool();
-  if (!p) throw new Error("USER_DATABASE_URL is not configured");
+/** OGCODE pool — owns the analytics.* tables. */
+function analyticsPool(): Pool {
+  const p = getOgcodePostgresPool();
+  if (!p) throw new Error("OGCODE_DATABASE_URL is not configured");
   return p;
 }
 
@@ -28,6 +34,30 @@ function severityFromAccuracy(accuracyPct: number): "high" | "medium" | "low" {
   if (accuracyPct < 35) return "high";
   if (accuracyPct < 60) return "medium";
   return "low";
+}
+
+/**
+ * Resolve student display names from origin_users (USER pool) for a set of ids.
+ * Best-effort: on any failure (or no USER pool) callers fall back to "Student".
+ */
+async function fetchDisplayNames(userIds: string[]): Promise<Map<string, string>> {
+  const names = new Map<string, string>();
+  const ids = [...new Set(userIds)];
+  if (ids.length === 0) return names;
+  const userPool = getUserPostgresPool();
+  if (!userPool) return names;
+  try {
+    const res = await userPool.query(
+      `SELECT id, name FROM origin_users WHERE id = ANY($1::text[])`,
+      [ids],
+    );
+    for (const row of res.rows) {
+      if (row.name) names.set(row.id as string, row.name as string);
+    }
+  } catch {
+    // Names are non-essential; the cohort still renders with the fallback label.
+  }
+  return names;
 }
 
 /** One student's submission of a teacher test (the "who attempted this test" row). */
@@ -70,30 +100,28 @@ export async function getTestAttemptCohort(
   testId: string,
   opts?: { batchId?: string },
 ): Promise<TestCohortAttempt[]> {
-  if (!assertCohortAnalyticsDbInvariant()) return [];
-  await ensureAnalyticsSchema();
+  await ensureAnalyticsTables();
   const params: unknown[] = [testId, workspaceId];
   let extra = "";
   if (opts?.batchId) {
     params.push(opts.batchId);
-    extra = ` AND tr.batch_id = $${params.length}`;
+    extra = ` AND batch_id = $${params.length}`;
   }
-  const result = await pool().query(
-    `SELECT tr.id AS result_id, tr.user_id, COALESCE(u.name, 'Student') AS display_name,
-            tr.batch_id, tr.percentage, tr.score, tr.total_marks,
-            tr.correct_answers, tr.wrong_answers, tr.unattempted,
-            tr.time_taken_seconds, tr.analysis_status, tr.created_at
-       FROM analytics.test_results tr
-       LEFT JOIN origin_users u ON u.id = tr.user_id
-      WHERE tr.test_id = $1 AND tr.workspace_id = $2 AND tr.is_malpractice = FALSE${extra}
-      ORDER BY tr.percentage DESC NULLS LAST, tr.time_taken_seconds ASC`,
+  const result = await analyticsPool().query(
+    `SELECT id AS result_id, user_id, batch_id, percentage, score, total_marks,
+            correct_answers, wrong_answers, unattempted, time_taken_seconds,
+            analysis_status, created_at
+       FROM analytics.test_results
+      WHERE test_id = $1 AND workspace_id = $2 AND is_malpractice = FALSE${extra}
+      ORDER BY percentage DESC NULLS LAST, time_taken_seconds ASC`,
     params,
   );
+  const names = await fetchDisplayNames(result.rows.map((r) => r.user_id as string));
   return result.rows.map((row, i) => ({
     rank: i + 1,
     resultId: row.result_id as string,
     studentId: row.user_id as string,
-    displayName: row.display_name as string,
+    displayName: names.get(row.user_id as string) ?? "Student",
     batchId: (row.batch_id as string | null) ?? null,
     percentage: row.percentage == null ? null : Number(row.percentage),
     score: row.score == null ? null : Number(row.score),
@@ -111,15 +139,15 @@ export async function getTestAttemptCohort(
  * Cumulative per-topic weakness for a teacher test — the mean topic accuracy across
  * every student's submission, weakest first. Backs the per-test mastery radar.
  * Produced by the analytics-service (analytics.test_topic_analytics); empty until
- * submissions have been analysed.
+ * submissions have been analysed. Both tables live in the OGCODE DB, so this JOIN is
+ * single-database.
  */
 export async function getTestTopicWeakness(
   workspaceId: string,
   testId: string,
 ): Promise<TestTopicWeakness[]> {
-  if (!assertCohortAnalyticsDbInvariant()) return [];
-  await ensureAnalyticsSchema();
-  const result = await pool().query(
+  await ensureAnalyticsTables();
+  const result = await analyticsPool().query(
     `SELECT tta.subject, tta.topic, MAX(tta.chapter) AS chapter,
             AVG(tta.accuracy)::float8 AS avg_accuracy,
             SUM(tta.attempts)::int AS attempts,
@@ -154,9 +182,8 @@ export async function getCohortResultOwner(
   workspaceId: string,
   resultId: string,
 ): Promise<string | null> {
-  if (!assertCohortAnalyticsDbInvariant()) return null;
-  await ensureAnalyticsSchema();
-  const result = await pool().query(
+  await ensureAnalyticsTables();
+  const result = await analyticsPool().query(
     `SELECT user_id FROM analytics.test_results
       WHERE id = $1 AND workspace_id = $2`,
     [resultId, workspaceId],
