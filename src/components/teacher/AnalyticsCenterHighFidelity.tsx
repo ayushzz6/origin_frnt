@@ -158,7 +158,7 @@ export function AnalyticsCenterHighFidelity({ workspaceId, batchId }: Props) {
       );
     };
     flip(next); // optimistic
-    const result = await apiJson(`${base}/coverage`, {
+    const result = await apiJson(base, {
       method: "PATCH",
       json: { subject: concept.subject, topic: concept.topic, covered: next },
     });
