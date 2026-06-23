@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { RoomCreateDialog } from "@/components/teacher/RoomCreateDialog";
+import { RoomDeleteButton } from "@/components/teacher/RoomDeleteButton";
 import { listTeacherRooms } from "@/server/workspaces/teacher-rooms";
 import { loadWorkspaceForRender } from "@/server/workspaces/server-loader";
 
@@ -73,10 +74,15 @@ export default async function TeacherRoomsPage({ params }: Props) {
             >
               <Card className="transition-all hover:border-primary/40 hover:shadow-sm">
                 <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center justify-between text-base">
-                    <span>{room.name}</span>
-                    <span className={`text-xs font-mono uppercase tracking-wide ${STATUS_COLORS[room.status] ?? ""}`}>
-                      {STATUS_LABELS[room.status] ?? room.status}
+                  <CardTitle className="flex items-center justify-between gap-2 text-base">
+                    <span className="truncate">{room.name}</span>
+                    <span className="flex shrink-0 items-center gap-2">
+                      <span className={`text-xs font-mono uppercase tracking-wide ${STATUS_COLORS[room.status] ?? ""}`}>
+                        {STATUS_LABELS[room.status] ?? room.status}
+                      </span>
+                      {canCreate && (
+                        <RoomDeleteButton workspaceId={workspaceId} roomId={room.id} roomName={room.name} />
+                      )}
                     </span>
                   </CardTitle>
                 </CardHeader>

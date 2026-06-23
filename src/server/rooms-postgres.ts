@@ -44,6 +44,11 @@ CREATE TABLE IF NOT EXISTS rooms.rooms (
 CREATE INDEX IF NOT EXISTS idx_rooms_admin ON rooms.rooms(admin_user_id);
 CREATE INDEX IF NOT EXISTS idx_rooms_status ON rooms.rooms(status);
 
+-- Teacher Live Rooms: join-code behaviour. rotating = fresh 60s code (strict
+-- cutover); permanent = one non-expiring code. Default rotating; student rooms
+-- ignore this and keep their own 180s flow. Idempotent + additive.
+ALTER TABLE rooms.rooms ADD COLUMN IF NOT EXISTS code_mode TEXT NOT NULL DEFAULT 'rotating';
+
 CREATE TABLE IF NOT EXISTS rooms.room_participants (
   room_id            TEXT NOT NULL REFERENCES rooms.rooms(id) ON DELETE CASCADE,
   user_id            TEXT NOT NULL,
@@ -60,6 +65,13 @@ CREATE TABLE IF NOT EXISTS rooms.room_participants (
   auto_submitted     BOOLEAN NOT NULL DEFAULT FALSE,
   PRIMARY KEY (room_id, user_id)
 );
+
+-- Teacher Live Rooms: live presence signals. entered_test_at marks when a
+-- participant first opened the test surface (distinguishes giving the test
+-- from in the room but not giving it); last_seen_at is the latest heartbeat
+-- (online/offline). Idempotent so the runtime-ensure can re-apply safely.
+ALTER TABLE rooms.room_participants ADD COLUMN IF NOT EXISTS entered_test_at TIMESTAMPTZ;
+ALTER TABLE rooms.room_participants ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ;
 
 CREATE INDEX IF NOT EXISTS idx_rp_room_active ON rooms.room_participants(room_id) WHERE left_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_rp_user ON rooms.room_participants(user_id);

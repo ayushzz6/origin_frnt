@@ -1,20 +1,27 @@
 /**
- * Phase 6: invite code surface for teacher rooms.
+ * Invite code surface for teacher rooms (Phase 6 + Teacher Live Rooms).
  *
- * GET returns the room's currently-active invite code (or null if the
- * admin has not generated one yet). POST regenerates it. Both reuse
- * the legacy study-room invite helpers so the join flow that students
- * already use stays unchanged — the teacher just gets a way to
- * surface the code through the workspace UI.
+ * GET lazily returns the room's current join code, minting a fresh one when the
+ * previous one has expired so the teacher card can simply poll — 60s rotating
+ * codes (strict cutover) or a single permanent code, per the room's `code_mode`.
+ * POST mints a fresh code in the current mode, and (when a `mode` is supplied)
+ * switches the room between rotating and permanent first. All reuse the legacy
+ * study-room invite helpers so the student join flow stays unchanged.
  */
 
 import type { NextRequest } from "next/server";
 
 import { requireFeatureEnabled } from "@/lib/feature-flags";
+import { parseJsonBody } from "@/server/http";
 import { requireWorkspaceMember } from "@/server/workspaces/authz";
 import { recordAuditEvent } from "@/server/workspaces/audit";
 import { getTeacherRoomById } from "@/server/workspaces/teacher-rooms";
-import { generateInviteCode, getCurrentInviteCode } from "@/server/study-rooms";
+import {
+  getOrRotateTeacherRoomCode,
+  regenerateTeacherRoomCode,
+  setTeacherRoomCodeMode,
+  type RoomCodeMode,
+} from "@/server/study-rooms";
 
 import {
   getWorkspaceId,
@@ -39,7 +46,7 @@ export async function GET(
       return teacherJson({ detail: "Room not found." }, { status: 404 });
     }
 
-    const code = await getCurrentInviteCode(roomId, ctx.auth.userId);
+    const code = await getOrRotateTeacherRoomCode(roomId, ctx.auth.userId);
     return teacherJson({ inviteCode: code });
   } catch (error) {
     return handleTeacherError(error);
@@ -53,9 +60,7 @@ export async function POST(
   try {
     requireFeatureEnabled("teacherRooms");
     const workspaceId = await getWorkspaceId(context);
-    const ctx = await requireWorkspaceMember(request, workspaceId, [
-      "owner", "admin", "teacher",
-    ]);
+    const ctx = await requireWorkspaceMember(request, workspaceId, ["owner", "admin", "teacher"]);
     const { roomId } = await context.params;
 
     const room = await getTeacherRoomById(workspaceId, roomId);
@@ -63,14 +68,20 @@ export async function POST(
       return teacherJson({ detail: "Room not found." }, { status: 404 });
     }
 
-    const code = await generateInviteCode(roomId, ctx.auth.userId);
+    const body = await parseJsonBody<{ mode?: RoomCodeMode }>(request).catch(() => ({} as { mode?: RoomCodeMode }));
+    const mode = body.mode === "permanent" || body.mode === "rotating" ? body.mode : null;
+
+    const code = mode
+      ? await setTeacherRoomCodeMode(roomId, ctx.auth.userId, mode)
+      : await regenerateTeacherRoomCode(roomId, ctx.auth.userId);
+
     await recordAuditEvent({
       actorUserId: ctx.auth.userId,
       workspaceId,
       entityType: "teacher_room",
       entityId: roomId,
-      action: "room.invite_code_regenerated",
-      after: { codeExpiresAt: code.expires_at },
+      action: mode ? "room.code_mode_changed" : "room.invite_code_regenerated",
+      after: { codeMode: code.mode ?? null, codeExpiresAt: code.expires_at },
       requestId: requestIdOf(request),
     });
     return teacherJson({ inviteCode: code });

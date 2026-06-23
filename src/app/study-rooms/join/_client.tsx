@@ -23,7 +23,16 @@ export default function JoinStudyRoomClient() {
       });
       router.push(`/study-rooms/${payload.roomId}/lobby`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not join room.');
+      const message = error instanceof Error ? error.message : 'Could not join room.';
+      // Rotating room codes change every 60s — guide the student to the new one.
+      if (/changed/i.test(message)) {
+        setCode('');
+        toast.error('The room code changed', {
+          description: 'Ask your teacher for the new code, then enter it again.',
+        });
+      } else {
+        toast.error(message);
+      }
     } finally {
       setIsJoining(false);
     }

@@ -30,7 +30,8 @@ type FlagKey =
   | "paidEnrollment"
   | "premiumSubscriptions"
   | "teacherConnect"
-  | "teacherOgcode";
+  | "teacherOgcode"
+  | "liveRooms";
 
 type FlagSpec = {
   envSuffix: string;
@@ -64,6 +65,13 @@ const FLAG_SPECS: Record<FlagKey, FlagSpec> = {
   // builder (general + room tests). Shipped + enabled in production; defaults
   // flipped ON. The Phase-0 mixed-source take/grade fix is unflagged (correctness).
   teacherOgcode: { envSuffix: "TEACHER_OGCODE", defaultDev: true, defaultProd: true },
+  // Teacher Live Rooms — real-time room shell (chat + typing + presence),
+  // 60s rotating / permanent join codes, kick + participant search, Start-Test
+  // auto-stop, post-test leaderboard + analytics, and hard delete. Ships **dark**
+  // in prod (TEACHER_LAUNCH_LIVE_ROOMS=1 to enable) until verified end-to-end;
+  // enabled in dev by default. Gates the new live surfaces/routes; the existing
+  // teacherRooms CRUD stays independently flagged.
+  liveRooms: { envSuffix: "LIVE_ROOMS", defaultDev: true, defaultProd: false },
 };
 
 function parseFlag(raw: string | undefined): boolean | null {
