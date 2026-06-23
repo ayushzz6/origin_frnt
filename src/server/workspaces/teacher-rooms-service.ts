@@ -4,7 +4,7 @@
  */
 
 import { AuthzError } from "@/server/authz";
-import { startRoomTest } from "@/server/study-rooms";
+import { deleteRoom, startRoomTest } from "@/server/study-rooms";
 
 import { recordAuditEvent } from "./audit";
 import {
@@ -170,4 +170,39 @@ export async function closeTeacherRoom(input: {
   });
 
   return updated;
+}
+
+/**
+ * Teacher Live Rooms: hard delete (hybrid). Permanently removes the room record
+ * and cascades its chat messages, participants, and codes to reclaim space — but
+ * the cohort analytics (analytics.test_results / test_topic_analytics) and the
+ * auto-assigned DPP plans (analytics.dpp_plans) live in a separate schema keyed
+ * by user_id / test_id and are NOT cascaded, so they survive and stay visible in
+ * the teacher Analytics section. Only the room admin can delete.
+ */
+export async function hardDeleteTeacherRoom(input: {
+  actorUserId: string;
+  workspaceId: string;
+  roomId: string;
+  requestId?: string | null;
+}): Promise<void> {
+  const room = await getTeacherRoomById(input.workspaceId, input.roomId);
+  if (!room) throw new AuthzError(404, "Room not found.");
+  if (room.adminUserId !== input.actorUserId) {
+    throw new AuthzError(403, "Only the room admin can delete the room.");
+  }
+
+  await recordAuditEvent({
+    actorUserId: input.actorUserId,
+    workspaceId: input.workspaceId,
+    entityType: "teacher_room",
+    entityId: input.roomId,
+    action: "room.deleted",
+    before: room,
+    requestId: input.requestId,
+  });
+
+  // Hard delete via the legacy room engine (DELETE FROM rooms.rooms cascades
+  // room_participants / room_messages / room_codes / room_answer_drafts).
+  await deleteRoom(input.roomId, input.actorUserId);
 }

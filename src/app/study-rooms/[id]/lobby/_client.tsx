@@ -100,6 +100,9 @@ function LobbyContent({ currentUserId }: { currentUserId: string }) {
             locked={room.room.status !== 'lobby'}
             currentUserId={currentUserId}
             onSend={room.sendChat}
+            pendingMessages={room.pending}
+            typingUsers={room.typingUsers}
+            onTyping={room.sendTyping}
           />
 
           <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">

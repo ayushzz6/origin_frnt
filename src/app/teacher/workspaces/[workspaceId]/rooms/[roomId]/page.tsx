@@ -10,10 +10,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { LiveRoomDashboard } from "@/components/teacher/LiveRoomDashboard";
+import { LiveRoomDashboardRealtime } from "@/components/teacher/LiveRoomDashboardRealtime";
 import { RoomConfigureTestDrawer } from "@/components/teacher/RoomConfigureTestDrawer";
 import { RoomStartControl } from "@/components/teacher/RoomStartControl";
 import { RoomTestBuilderDrawer } from "@/components/teacher/RoomTestBuilderDrawer";
+import { getServerUser } from "@/lib/auth-server";
 import { isFeatureEnabled } from "@/lib/feature-flags";
+import { getRoomState, StudyRoomError, type RoomState } from "@/server/study-rooms";
 import { getTeacherRoomById } from "@/server/workspaces/teacher-rooms";
 import { listTeacherQuestions } from "@/server/workspaces/questions-service";
 import { loadWorkspaceForRender } from "@/server/workspaces/server-loader";
@@ -33,6 +36,25 @@ export default async function LiveStudyRoomPage({ params }: Props) {
   const ogcodeEnabled = isFeatureEnabled("teacherOgcode");
   // Bag questions power the in-place builder's Question Bag tab.
   const bagQuestions = await listTeacherQuestions(workspaceId, { status: "all" });
+
+  // Teacher Live Rooms: when enabled, seed the real-time dashboard with the
+  // room state (the teacher is the room's admin participant, so getRoomState
+  // succeeds). Falls back to the legacy dashboard if the flag is off or the
+  // teacher is somehow not an active member.
+  let liveState: RoomState | null = null;
+  let liveUserId: string | null = null;
+  if (isFeatureEnabled("liveRooms")) {
+    const user = await getServerUser();
+    if (user) {
+      try {
+        liveState = await getRoomState(roomId, user.id);
+        liveUserId = user.id;
+      } catch (error) {
+        if (!(error instanceof StudyRoomError)) throw error;
+        liveState = null;
+      }
+    }
+  }
 
   return (
     <div className="mx-auto max-w-6xl animate-fade-in space-y-6">
@@ -58,7 +80,16 @@ export default async function LiveStudyRoomPage({ params }: Props) {
         </CardContent>
       </Card>
 
-      <LiveRoomDashboard workspaceId={workspaceId} room={room} />
+      {liveState && liveUserId ? (
+        <LiveRoomDashboardRealtime
+          workspaceId={workspaceId}
+          room={room}
+          currentUserId={liveUserId}
+          initialState={liveState}
+        />
+      ) : (
+        <LiveRoomDashboard workspaceId={workspaceId} room={room} />
+      )}
     </div>
   );
 }

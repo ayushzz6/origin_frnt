@@ -46,6 +46,23 @@ export default function RoomTestClient({
     skewMs: 0,
   };
 
+  // Teacher Live Rooms: stamp `entered_test_at` and keep `last_seen_at` fresh so
+  // the teacher's live student list shows this student as "giving the test".
+  useEffect(() => {
+    let cancelled = false;
+    const ping = (): void => {
+      void apiCall(`/study-rooms/${roomId}`, { method: 'POST', body: JSON.stringify({ on_test: true }) }).catch(() => undefined);
+    };
+    ping();
+    const interval = window.setInterval(() => {
+      if (!cancelled) ping();
+    }, 15000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [roomId]);
+
   useEffect(() => {
     let isDisposed = false;
     let didRedirect = false;

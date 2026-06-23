@@ -1,20 +1,13 @@
 import type { NextRequest } from "next/server";
-import { z } from "zod";
 
-import { parseJsonBody } from "@/server/http";
 import { requireFeatureEnabled } from "@/lib/feature-flags";
 import { requireWorkspaceMember } from "@/server/workspaces/authz";
+import { getTeacherRoomById } from "@/server/workspaces/teacher-rooms";
 import {
-  getTeacherRoomById,
-  listTeacherRooms,
-} from "@/server/workspaces/teacher-rooms";
-import {
-  configureRoomTest,
   closeTeacherRoom,
+  hardDeleteTeacherRoom,
 } from "@/server/workspaces/teacher-rooms-service";
-import {
-  getTeacherTestLeaderboard,
-} from "@/server/workspaces/tests-service";
+import { clearRoomEvents, publishRoomEvent } from "@/server/rooms-pubsub";
 
 import {
   getWorkspaceId,
@@ -54,6 +47,21 @@ export async function DELETE(
       "owner", "admin", "teacher",
     ]);
     const { roomId } = await context.params;
+
+    // ?hard=1 → hybrid hard delete (reclaims space; analytics + DPPs survive).
+    // Default → soft close (status = closed, room record kept).
+    const hard = ["1", "true"].includes(new URL(request.url).searchParams.get("hard") ?? "");
+    if (hard) {
+      await hardDeleteTeacherRoom({
+        actorUserId: ctx.auth.userId,
+        workspaceId,
+        roomId,
+        requestId: requestIdOf(request),
+      });
+      await publishRoomEvent(roomId, { type: "room_closed" });
+      await clearRoomEvents(roomId);
+      return teacherJson({ deleted: true });
+    }
 
     const room = await closeTeacherRoom({
       actorUserId: ctx.auth.userId,

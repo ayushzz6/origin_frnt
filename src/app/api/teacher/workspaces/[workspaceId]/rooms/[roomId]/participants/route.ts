@@ -12,6 +12,7 @@ import type { NextRequest } from "next/server";
 import { requireFeatureEnabled } from "@/lib/feature-flags";
 import { requireWorkspaceMember } from "@/server/workspaces/authz";
 import { getTeacherRoomById } from "@/server/workspaces/teacher-rooms";
+import { getParticipantSearchProvider } from "@/server/workspaces/participant-search";
 import { getRoomParticipants } from "@/server/study-rooms";
 
 import {
@@ -36,7 +37,12 @@ export async function GET(
       return teacherJson({ detail: "Room not found." }, { status: 404 });
     }
 
-    const participants = await getRoomParticipants(roomId);
+    // Optional server-side search (pg_trgm) for larger cohorts; the dashboard
+    // also narrows the already-loaded list client-side for instant typing.
+    const query = request.nextUrl.searchParams.get("q")?.trim();
+    const participants = query
+      ? await getParticipantSearchProvider().search(roomId, query)
+      : await getRoomParticipants(roomId);
     return teacherJson({ participants });
   } catch (error) {
     return handleTeacherError(error);

@@ -52,7 +52,13 @@ export type RoomSummary = {
   workspace_id: string | null;
   batch_id: string | null;
   room_kind: RoomKind;
+  // Teacher Live Rooms: how the join code behaves. `rotating` issues a fresh
+  // 60s code (strict cutover) for teacher rooms; `permanent` keeps a single
+  // non-expiring code. Student rooms keep their own 180s flow regardless.
+  code_mode: RoomCodeMode;
 };
+
+export type RoomCodeMode = "rotating" | "permanent";
 
 /**
  * The test id backing a room's run: a student room uses `custom_test_id`
@@ -79,7 +85,14 @@ export type RoomInviteCode = {
   code: string;
   ttl_seconds: number;
   expires_at: string;
+  // Set for teacher rooms so the UI knows whether to show a rotation countdown.
+  mode?: RoomCodeMode;
 };
+
+/** Rotating teacher-room codes live for 60s, then a fresh code is issued. */
+export const ROOM_CODE_ROTATING_TTL_SECONDS = 60;
+/** Permanent teacher-room codes use a long-lived token (~5 years). */
+export const ROOM_CODE_PERMANENT_TTL_SECONDS = 60 * 60 * 24 * 365 * 5;
 
 export type RoomLeaderboardRow = {
   rank: number;
@@ -144,6 +157,7 @@ function mapRoom(row: any): RoomSummary {
     workspace_id: row.workspace_id ?? null,
     batch_id: row.batch_id ?? null,
     room_kind: (row.room_kind as RoomKind) ?? "student_room",
+    code_mode: (row.code_mode as RoomCodeMode) ?? "rotating",
   };
 }
 
@@ -163,6 +177,8 @@ function mapParticipant(row: any): ParticipantSummary {
     time_taken_seconds: row.time_taken_seconds ?? null,
     test_result_id: row.test_result_id ?? null,
     auto_submitted: Boolean(row.auto_submitted),
+    entered_test_at: toIso(row.entered_test_at),
+    last_seen_at: toIso(row.last_seen_at),
   };
 }
 
@@ -297,6 +313,60 @@ export async function getRoomParticipants(roomId: string): Promise<ParticipantSu
   });
 }
 
+/**
+ * Teacher Live Rooms: server-side participant search. Ranks prefix matches
+ * first, then any substring (case-insensitive). Uses ILIKE so it works with or
+ * without the pg_trgm GIN index (the migration adds the index to keep it fast
+ * at institution scale). An empty query returns the active participants.
+ */
+export async function searchRoomParticipants(roomId: string, query: string, limit = 50): Promise<ParticipantSummary[]> {
+  const q = query.trim();
+  if (!q) {
+    const all = await getRoomParticipants(roomId);
+    return all.filter((p) => !p.left_at && !p.kicked).slice(0, limit);
+  }
+  return withClient(async (client) => {
+    const result = await client.query(
+      `SELECT * FROM rooms.room_participants
+       WHERE room_id = $1 AND left_at IS NULL AND kicked = FALSE
+         AND display_name ILIKE '%' || $2 || '%'
+       ORDER BY (display_name ILIKE $2 || '%') DESC, display_name ASC
+       LIMIT $3`,
+      [roomId, q, Math.min(Math.max(limit, 1), 100)],
+    );
+    return result.rows.map(mapParticipant);
+  });
+}
+
+/**
+ * Teacher Live Rooms: record a presence heartbeat for an active participant.
+ * Updates `last_seen_at` (drives online/offline) and, when the caller is on the
+ * test surface, stamps `entered_test_at` once — this is what distinguishes
+ * "giving the test" from "in the room but not giving it" in the teacher's live
+ * student list. No-ops (returns false) for non-members. Cheap single-row UPDATE;
+ * does not broadcast (the teacher dashboard reads liveness from the polled
+ * participant list + SSE presence, so a heartbeat does not need to fan out).
+ */
+export async function recordRoomHeartbeat(
+  roomId: string,
+  userId: string,
+  options: { onTest?: boolean } = {},
+): Promise<boolean> {
+  return withClient(async (client) => {
+    const result = await client.query(
+      `UPDATE rooms.room_participants
+       SET last_seen_at = NOW(),
+           entered_test_at = CASE
+             WHEN $3::boolean AND entered_test_at IS NULL THEN NOW()
+             ELSE entered_test_at
+           END
+       WHERE room_id = $1 AND user_id = $2 AND left_at IS NULL AND kicked = FALSE`,
+      [roomId, userId, options.onTest ?? false],
+    );
+    return (result.rowCount ?? 0) > 0;
+  });
+}
+
 export async function getRoomMessages(roomId: string, limit = 50): Promise<RoomMessage[]> {
   return withClient(async (client) => {
     const result = await client.query(
@@ -408,6 +478,37 @@ export async function getRoomState(roomId: string, userId: string): Promise<Room
   });
 }
 
+/**
+ * Teacher Live Rooms: server-side auto-stop safety net. Finalizes any room still
+ * in `in_test` past its deadline (started_at + duration + 10s grace) that no
+ * client has read since — auto-submits stragglers, settles ranks, flips the room
+ * to `finished`. Returns the finalized room ids so the caller can broadcast
+ * `test_ended`. The common case is already handled lazily on read by
+ * {@link getRoomState}; this sweep covers fully-disconnected rooms.
+ */
+export async function sweepExpiredRooms(limit = 100): Promise<string[]> {
+  return transaction(async (client) => {
+    const due = await client.query(
+      `SELECT id FROM rooms.rooms
+       WHERE status = 'in_test'
+         AND started_at IS NOT NULL
+         AND duration_seconds IS NOT NULL
+         AND NOW() > started_at + ((duration_seconds + 10) * INTERVAL '1 second')
+       ORDER BY started_at ASC
+       LIMIT $1
+       FOR UPDATE SKIP LOCKED`,
+      [Math.min(Math.max(limit, 1), 500)],
+    );
+    const finalized: string[] = [];
+    for (const row of due.rows) {
+      const room = await getRoomOrThrow(client, row.id, true);
+      const updated = await autoFinishExpiredRoom(client, room);
+      if (updated.status === "finished") finalized.push(row.id);
+    }
+    return finalized;
+  });
+}
+
 export async function getCurrentInviteCode(roomId: string, userId: string): Promise<RoomInviteCode | null> {
   await requireRoomAdmin(roomId, userId);
   const active = await getActiveRoomCode(roomId);
@@ -420,7 +521,12 @@ export async function getCurrentInviteCode(roomId: string, userId: string): Prom
     : null;
 }
 
-export async function generateInviteCode(roomId: string, userId: string): Promise<RoomInviteCode> {
+export async function generateInviteCode(
+  roomId: string,
+  userId: string,
+  ttlSeconds: number = ROOM_CODE_TTL_SECONDS,
+  mode?: RoomCodeMode,
+): Promise<RoomInviteCode> {
   return transaction(async (client) => {
     const room = await getRoomOrThrow(client, roomId, true);
     if (room.status !== "lobby") {
@@ -454,22 +560,90 @@ export async function generateInviteCode(roomId: string, userId: string): Promis
         room_id: roomId,
         code_id: codeId,
         iat: nowSeconds,
-        exp: nowSeconds + ROOM_CODE_TTL_SECONDS,
+        exp: nowSeconds + ttlSeconds,
         v: 1,
       });
-      const didSet = await setRoomCodeToken(code, jwt, roomId, ROOM_CODE_TTL_SECONDS);
+      const didSet = await setRoomCodeToken(code, jwt, roomId, ttlSeconds);
       if (!didSet) continue;
 
-      const expiresAt = new Date((nowSeconds + ROOM_CODE_TTL_SECONDS) * 1000).toISOString();
+      const expiresAt = new Date((nowSeconds + ttlSeconds) * 1000).toISOString();
       await client.query(
         `INSERT INTO rooms.room_codes (id, room_id, code_hash, expires_at, issued_by)
          VALUES ($1, $2, $3, $4, $5)`,
         [codeId, roomId, hashRoomCode(code), expiresAt, userId],
       );
-      return { code, ttl_seconds: ROOM_CODE_TTL_SECONDS, expires_at: expiresAt };
+      return { code, ttl_seconds: ttlSeconds, expires_at: expiresAt, mode };
     }
 
     throw new StudyRoomError(409, "Could not allocate a unique room code. Please retry.");
+  });
+}
+
+/**
+ * Teacher Live Rooms: current join code for the teacher card, lazily issuing a
+ * fresh one so the client can simply poll. In `rotating` mode a new 60s code is
+ * minted once the previous one expires (strict cutover); in `permanent` mode a
+ * single long-lived code is reused. Codes are only minted while the room is in
+ * the lobby — joins close once the test starts.
+ */
+export async function getOrRotateTeacherRoomCode(roomId: string, userId: string): Promise<RoomInviteCode | null> {
+  await requireRoomAdmin(roomId, userId);
+  const room = await getRoomSummaryById(roomId);
+  if (!room) throw new StudyRoomError(404, "Study room was not found.");
+
+  const active = await getActiveRoomCode(roomId);
+  if (active) {
+    return {
+      code: active.code,
+      ttl_seconds: active.ttlSeconds,
+      expires_at: new Date(Date.now() + active.ttlSeconds * 1000).toISOString(),
+      mode: room.code_mode,
+    };
+  }
+
+  if (room.status !== "lobby") return null;
+  const ttl = room.code_mode === "permanent" ? ROOM_CODE_PERMANENT_TTL_SECONDS : ROOM_CODE_ROTATING_TTL_SECONDS;
+  return generateInviteCode(roomId, userId, ttl, room.code_mode);
+}
+
+/**
+ * Teacher Live Rooms: switch a room between `rotating` (60s) and `permanent`
+ * join-code modes and immediately mint a fresh code in the new mode. Lobby-only.
+ */
+export async function setTeacherRoomCodeMode(roomId: string, userId: string, mode: RoomCodeMode): Promise<RoomInviteCode> {
+  await requireRoomAdmin(roomId, userId);
+  await withClient(async (client) => {
+    const result = await client.query(
+      `UPDATE rooms.rooms SET code_mode = $2, updated_at = NOW()
+       WHERE id = $1 AND status = 'lobby'
+       RETURNING id`,
+      [roomId, mode],
+    );
+    if (!result.rows[0]) {
+      throw new StudyRoomError(423, "The room code mode can only be changed in the lobby.");
+    }
+  });
+  const ttl = mode === "permanent" ? ROOM_CODE_PERMANENT_TTL_SECONDS : ROOM_CODE_ROTATING_TTL_SECONDS;
+  return generateInviteCode(roomId, userId, ttl, mode);
+}
+
+/** Teacher Live Rooms: mint a fresh code in the room's current mode (manual regenerate). */
+export async function regenerateTeacherRoomCode(roomId: string, userId: string): Promise<RoomInviteCode> {
+  await requireRoomAdmin(roomId, userId);
+  const room = await getRoomSummaryById(roomId);
+  if (!room) throw new StudyRoomError(404, "Study room was not found.");
+  const ttl = room.code_mode === "permanent" ? ROOM_CODE_PERMANENT_TTL_SECONDS : ROOM_CODE_ROTATING_TTL_SECONDS;
+  return generateInviteCode(roomId, userId, ttl, room.code_mode);
+}
+
+/** Whether a code hash was ever issued for some room (used to tell "changed" from "wrong"). */
+async function isKnownRoomCodeHash(normalizedCode: string): Promise<boolean> {
+  return withClient(async (client) => {
+    const result = await client.query(
+      `SELECT 1 FROM rooms.room_codes WHERE code_hash = $1 LIMIT 1`,
+      [hashRoomCode(normalizedCode)],
+    );
+    return Boolean(result.rows[0]);
   });
 }
 
@@ -480,15 +654,16 @@ export async function verifyInviteCode(code: string): Promise<{ roomId: string; 
   }
 
   const token = await getRoomCodeToken(normalized);
-  if (!token) {
+  if (!token || !verifyRoomCodeToken(token)) {
+    // A code we recognise but can no longer accept means it rotated/expired —
+    // tell the student to ask for the new one rather than "invalid".
+    if (await isKnownRoomCodeHash(normalized)) {
+      throw new StudyRoomError(409, "This room code has changed. Ask your teacher for the latest code.");
+    }
     throw new StudyRoomError(404, "Room code is invalid or expired.");
   }
 
-  const payload = verifyRoomCodeToken(token);
-  if (!payload) {
-    throw new StudyRoomError(404, "Room code is invalid or expired.");
-  }
-
+  const payload = verifyRoomCodeToken(token)!;
   return { roomId: payload.room_id, codeId: payload.code_id };
 }
 
