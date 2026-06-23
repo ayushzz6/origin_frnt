@@ -46,7 +46,6 @@ export default function StudentSearch({ autoFocus, placeholder }: StudentSearchP
     <div className="space-y-4">
       <div className="relative">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
         <input
           autoFocus={autoFocus}
           value={query}

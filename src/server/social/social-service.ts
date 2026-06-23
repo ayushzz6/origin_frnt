@@ -15,7 +15,7 @@ import { readStoreAsync } from "@/server/store";
 import type { AppStore, StoredUser } from "@/server/store";
 import { buildUserStatsSnapshot, type UserStatsSnapshot } from "@/server/users";
 import { buildContributionData, getOrCreateStreak } from "@/server/gamification";
-import { getUserPostgresPool, isUserPostgresConfigured } from "@/server/user-postgres";
+import { getUserPostgresPool } from "@/server/user-postgres";
 import { ensureSocialSchema } from "@/server/social/social-schema";
 
 export type SocialUserCard = {
