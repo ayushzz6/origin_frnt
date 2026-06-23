@@ -42,6 +42,7 @@ interface ProfileProps {
   onUpgrade: () => void;
   initialProfileStats?: ProfileStats | null;
   premiumEnabled?: boolean;
+  socialEnabled?: boolean;
 }
 
 interface ProfileStats {
@@ -61,6 +62,7 @@ interface ProfileStats {
 }
 
 import { getUserTitle } from '@/lib/achievements';
+import SocialSettingsCard from '@/components/social/SocialSettingsCard';
 
 export default function Profile({
   user,
@@ -69,6 +71,7 @@ export default function Profile({
   onUpgrade,
   initialProfileStats = null,
   premiumEnabled = false,
+  socialEnabled = false,
 }: ProfileProps) {
   const { refreshUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
@@ -554,6 +557,12 @@ export default function Profile({
 
             <TabsContent value="settings">
               <div className="space-y-2.5">
+                {socialEnabled && (
+                  <SocialSettingsCard
+                    initialUsername={user.username ?? ''}
+                    initialPrivate={Boolean(user.profilePrivate)}
+                  />
+                )}
                 {[
                   { icon: User, label: 'Personal Information', desc: 'Update your name, email, and bio', iconBg: 'bg-primary/10', iconColor: 'text-primary' },
                   { icon: Bell, label: 'Notifications', desc: 'Manage your alert preferences', iconBg: 'bg-blue-500/10', iconColor: 'text-blue-500' },

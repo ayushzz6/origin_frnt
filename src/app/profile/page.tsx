@@ -28,6 +28,7 @@ async function ProfileGate() {
     <ProfileClient
       initialProfileStats={initialProfileStats}
       premiumEnabled={isFeatureEnabled('premiumSubscriptions')}
+      socialEnabled={isFeatureEnabled('studentSocial')}
     />
   );
 }

@@ -24,9 +24,10 @@ interface ProfileStats {
 interface ProfileClientProps {
   initialProfileStats: ProfileStats | null;
   premiumEnabled?: boolean;
+  socialEnabled?: boolean;
 }
 
-export default function ProfileClient({ initialProfileStats, premiumEnabled }: ProfileClientProps) {
+export default function ProfileClient({ initialProfileStats, premiumEnabled, socialEnabled }: ProfileClientProps) {
   const { user, streakData, logout } = useAuth();
   const router = useRouter();
 
@@ -48,6 +49,7 @@ export default function ProfileClient({ initialProfileStats, premiumEnabled }: P
       initialProfileStats={initialProfileStats}
       streakData={streakData}
       premiumEnabled={premiumEnabled}
+      socialEnabled={socialEnabled}
       onBack={() => router.push('/dashboard')}
       onUpgrade={() => router.push('/premium')}
     />

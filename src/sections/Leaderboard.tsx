@@ -23,23 +23,63 @@ import {
 } from 'lucide-react';
 import { apiCall } from '@/lib/api';
 import type { User } from '@/types';
+import type { SocialUserCard } from '@/server/social/social-service';
+import StudentList from '@/components/social/StudentList';
 
 interface LeaderboardProps {
   currentUser: User;
   /** Pre-loaded by the Server Component for the 'overall' subject */
   initialLeaderboard?: unknown[];
   initialMyRank?: number | null;
+  /** Student-social feature flag — enables clickable profiles + the Following tab. */
+  socialEnabled?: boolean;
 }
 
 import { useLayout } from '@/context/LayoutContext';
 import { cn } from '@/lib/utils';
 
-export default function Leaderboard({ currentUser, initialLeaderboard, initialMyRank }: LeaderboardProps) {
+export default function Leaderboard({ currentUser, initialLeaderboard, initialMyRank, socialEnabled }: LeaderboardProps) {
   const { availableWidth } = useLayout();
   const isConstrained = availableWidth < 1024;
   const isMobile = availableWidth < 640;
 
   const [activeTab, setActiveTab] = useState('global');
+  const [followingList, setFollowingList] = useState<SocialUserCard[]>([]);
+  const [followingLoading, setFollowingLoading] = useState(false);
+  const [followingLoaded, setFollowingLoaded] = useState(false);
+
+  // Lazily load the viewer's following list when the social "Following" tab opens.
+  useEffect(() => {
+    if (!socialEnabled || activeTab !== 'friends' || !currentUser.username || followingLoaded) return;
+    let cancelled = false;
+    (async () => {
+      setFollowingLoading(true);
+      try {
+        const data = await apiCall(`/social/following/${encodeURIComponent(currentUser.username!)}`);
+        if (!cancelled) setFollowingList(Array.isArray(data?.items) ? data.items : []);
+      } catch {
+        if (!cancelled) setFollowingList([]);
+      } finally {
+        if (!cancelled) {
+          setFollowingLoading(false);
+          setFollowingLoaded(true);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, socialEnabled, currentUser.username, followingLoaded]);
+
+  // Renders a student's name as a profile link when social is enabled.
+  const renderName = (entry: any, className: string) =>
+    socialEnabled && entry.username ? (
+      <Link href={`/u/${entry.username}`} className={cn(className, 'hover:text-primary transition-colors')}>
+        {entry.name}
+      </Link>
+    ) : (
+      <span className={className}>{entry.name}</span>
+    );
   const [selectedSubject, setSelectedSubject] = useState<string>('overall');
   const [leaderboard, setLeaderboard] = useState<any[]>((initialLeaderboard as any[]) ?? []);
   const [myRank, setMyRank] = useState<number | null>(initialMyRank ?? null);
@@ -184,7 +224,7 @@ export default function Leaderboard({ currentUser, initialLeaderboard, initialMy
               className="flex-1 h-full rounded-[1.5rem] data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-lg text-muted-foreground font-black text-xs uppercase tracking-widest transition-all gap-2"
             >
               <Users className="w-4 h-4" />
-              Circle
+              {socialEnabled ? 'Following' : 'Circle'}
             </TabsTrigger>
           </TabsList>
 
@@ -298,7 +338,7 @@ export default function Leaderboard({ currentUser, initialLeaderboard, initialMy
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3">
-                      <span className={cn("font-black tracking-tight truncate", isMobile ? "text-sm" : "text-lg")}>{entry.name}</span>
+                      {renderName(entry, cn("font-black tracking-tight truncate", isMobile ? "text-sm" : "text-lg"))}
                       {entry.isMe && (
                         <Badge className="bg-primary hover:bg-primary text-white text-[10px] h-5 font-black uppercase tracking-wider px-2">YOU</Badge>
                       )}
@@ -404,7 +444,7 @@ export default function Leaderboard({ currentUser, initialLeaderboard, initialMy
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3">
-                        <span className={cn("font-black tracking-tight truncate", isMobile ? "text-sm" : "text-lg")}>{entry.name}</span>
+                        {renderName(entry, cn("font-black tracking-tight truncate", isMobile ? "text-sm" : "text-lg"))}
                         {entry.isMe && (
                           <Badge className="bg-primary hover:bg-primary text-white text-[10px] h-5 font-black uppercase tracking-wider px-2">YOU</Badge>
                         )}
@@ -429,26 +469,54 @@ export default function Leaderboard({ currentUser, initialLeaderboard, initialMy
           </TabsContent>
 
           <TabsContent value="friends" className="mt-8">
-            <Card className="border border-border shadow-xl bg-card/60 backdrop-blur-xl ring-1 ring-border relative overflow-hidden">
-              <div className="absolute inset-0 bg-background/60 backdrop-blur-sm z-10 flex flex-col items-center justify-center p-6 text-center">
-                <Badge variant="secondary" className="mb-4 font-black tracking-widest px-4 py-1.5">COMING SOON</Badge>
-                <h3 className="text-xl font-black mb-2">Social Circles</h3>
-                <p className="text-sm text-muted-foreground max-w-[280px]">Challenge your friends and build a community for collective growth.</p>
-              </div>
-              <CardContent className="p-12 text-center opacity-40 grayscale">
-                <div className="w-20 h-20 mx-auto rounded-3xl bg-secondary/20 flex items-center justify-center mb-6 transition-transform hover:scale-110">
-                  <Users className="w-10 h-10 text-primary" />
+            {socialEnabled ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2 text-primary font-black uppercase text-[10px] tracking-[0.2em]">
+                    <Users className="w-3.5 h-3.5" />
+                    People you follow
+                  </div>
+                  <Link href="/social">
+                    <Button variant="outline" size="sm" className="rounded-xl font-bold gap-2 text-xs h-9">
+                      <Users className="w-3.5 h-3.5" />
+                      Find students
+                    </Button>
+                  </Link>
                 </div>
-                <h3 className="text-2xl font-black tracking-tight mb-2">Social Circle</h3>
-                <p className="text-muted-foreground mb-8 max-w-sm mx-auto font-medium leading-relaxed">
-                   Competing with friends increases learning efficiency by 40%. Start your journey together.
-                </p>
-                <Button disabled className="rounded-xl px-8 h-12 bg-primary text-primary-foreground font-black hover:scale-105 transition-all shadow-lg shadow-primary/20">
-                  <Zap className="w-5 h-5 mr-3" />
-                  Invite Friends
-                </Button>
-              </CardContent>
-            </Card>
+                {followingLoading ? (
+                  <div className="flex flex-col items-center justify-center py-24 gap-6">
+                    <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+                    <p className="text-muted-foreground font-black uppercase text-xs tracking-[0.3em] animate-pulse">Loading your circle</p>
+                  </div>
+                ) : (
+                  <StudentList
+                    users={followingList}
+                    emptyLabel="You're not following anyone yet — tap “Find students” to get started."
+                  />
+                )}
+              </div>
+            ) : (
+              <Card className="border border-border shadow-xl bg-card/60 backdrop-blur-xl ring-1 ring-border relative overflow-hidden">
+                <div className="absolute inset-0 bg-background/60 backdrop-blur-sm z-10 flex flex-col items-center justify-center p-6 text-center">
+                  <Badge variant="secondary" className="mb-4 font-black tracking-widest px-4 py-1.5">COMING SOON</Badge>
+                  <h3 className="text-xl font-black mb-2">Social Circles</h3>
+                  <p className="text-sm text-muted-foreground max-w-[280px]">Challenge your friends and build a community for collective growth.</p>
+                </div>
+                <CardContent className="p-12 text-center opacity-40 grayscale">
+                  <div className="w-20 h-20 mx-auto rounded-3xl bg-secondary/20 flex items-center justify-center mb-6 transition-transform hover:scale-110">
+                    <Users className="w-10 h-10 text-primary" />
+                  </div>
+                  <h3 className="text-2xl font-black tracking-tight mb-2">Social Circle</h3>
+                  <p className="text-muted-foreground mb-8 max-w-sm mx-auto font-medium leading-relaxed">
+                     Competing with friends increases learning efficiency by 40%. Start your journey together.
+                  </p>
+                  <Button disabled className="rounded-xl px-8 h-12 bg-primary text-primary-foreground font-black hover:scale-105 transition-all shadow-lg shadow-primary/20">
+                    <Zap className="w-5 h-5 mr-3" />
+                    Invite Friends
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </main>

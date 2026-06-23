@@ -4045,10 +4045,10 @@ async function buildLeaderboardEntriesFromDb(user: StoredUser, subject: string |
   if (!userPool || !ogcodePool) return [];
 
   // 1. Get all students from user pool
-  let users: Array<{ id: string; name: string; avatar?: string | null; total_study_time?: number; streak?: number; location?: string | null }>;
+  let users: Array<{ id: string; name: string; username?: string | null; avatar?: string | null; total_study_time?: number; streak?: number; location?: string | null }>;
   try {
     const usersResult = await userPool.query(`
-      SELECT id, name, avatar, total_study_time, streak, location
+      SELECT id, name, username, avatar, total_study_time, streak, location
       FROM origin_users
       WHERE role = 'student' ${location ? "AND location = $1" : ""}
     `, location ? [location] : []);
@@ -4060,7 +4060,7 @@ async function buildLeaderboardEntriesFromDb(user: StoredUser, subject: string |
         throw new Error("Regional leaderboard is currently unavailable (location data not configured in database).");
       }
       const usersResult = await userPool.query(`
-        SELECT id, name, avatar, total_study_time, streak
+        SELECT id, name, username, avatar, total_study_time, streak
         FROM origin_users
         WHERE role = 'student'
       `);
@@ -4121,6 +4121,7 @@ async function buildLeaderboardEntriesFromDb(user: StoredUser, subject: string |
     return {
       userId: u.id,
       name: u.name,
+      username: u.username ?? null,
       avatar: u.avatar || undefined,
       rankScore: rankScore,
       rank_score: rankScore,
@@ -4174,6 +4175,7 @@ export async function getOgcodeLeaderboard(store: AppStore, user: StoredUser, su
         return {
           userId,
           name: u?.name ?? "Unknown",
+          username: u?.username ?? null,
           avatar: u?.avatar ?? null,
           location: u?.location ?? null,
           questionsSolved: stats.solved,
