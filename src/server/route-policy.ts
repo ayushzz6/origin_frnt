@@ -47,6 +47,7 @@ export const AUTHENTICATED_API_PREFIXES = [
   "/api/marketplace",
   "/api/subscriptions",
   "/api/connect",
+  "/api/social",
 ] as const;
 
 export const MEMBERSHIP_API_PREFIXES = ["/api/study-rooms/[id]"] as const;
@@ -84,6 +85,8 @@ export const AUTHENTICATED_APP_PREFIXES = [
   "/teacher",
   "/marketplace",
   "/connect",
+  "/u",
+  "/social",
 ] as const;
 
 export const ROLE_APP_PREFIXES = [
