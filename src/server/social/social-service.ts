@@ -245,5 +245,178 @@ export async function getPublicProfile(
   };
 }
 
-// ─── Phase 2: follow / unfollow / lists / search (wired in the next phase) ─────
 export { resolveByUsername, followExists, followState };
+
+// ─── Follow / unfollow / lists / search ───────────────────────────────────────
+
+export class SocialServiceError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
+const FOLLOW_PAGE_SIZE = 30;
+const SEARCH_LIMIT_MAX = 25;
+
+export type FollowMutationResult = {
+  following: boolean;
+  followerCount: number;
+};
+
+export type FollowListResult = {
+  items: SocialUserCard[];
+  /** True when the target profile is private and the viewer is not the owner. */
+  hidden: boolean;
+  hasMore: boolean;
+};
+
+/** Lightweight DB resolve (no full store hydration) for write/list paths. */
+async function resolveStudentByUsername(
+  username: string,
+): Promise<{ id: string; username: string; profilePrivate: boolean } | null> {
+  const p = pool();
+  if (!p) return null;
+  const result = await p.query(
+    `SELECT id, username, profile_private FROM origin_users
+       WHERE LOWER(username) = LOWER($1) AND role = 'student' LIMIT 1`,
+    [username.trim()],
+  );
+  const row = result.rows[0];
+  return row ? { id: row.id, username: row.username, profilePrivate: Boolean(row.profile_private) } : null;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapCardRow(row: any, viewerId: string): SocialUserCard {
+  return {
+    id: row.id,
+    username: row.username,
+    name: row.name,
+    avatar: row.avatar ?? null,
+    isMe: row.id === viewerId,
+    isFollowedByMe: Boolean(row.is_followed_by_me),
+    followsMe: Boolean(row.follows_me),
+  };
+}
+
+export async function followUser(
+  followerId: string,
+  username: string,
+): Promise<FollowMutationResult> {
+  await ensureSocialSchema();
+  const p = pool();
+  if (!p) throw new SocialServiceError(503, "Social features are unavailable.");
+  const target = await resolveStudentByUsername(username);
+  if (!target) throw new SocialServiceError(404, "Profile not found.");
+  if (target.id === followerId) throw new SocialServiceError(400, "You cannot follow yourself.");
+
+  await p.query(
+    `INSERT INTO social.follows (follower_id, following_id)
+       VALUES ($1, $2) ON CONFLICT (follower_id, following_id) DO NOTHING`,
+    [followerId, target.id],
+  );
+  const counts = await getFollowCounts(target.id);
+  return { following: true, followerCount: counts.followerCount };
+}
+
+export async function unfollowUser(
+  followerId: string,
+  username: string,
+): Promise<FollowMutationResult> {
+  await ensureSocialSchema();
+  const p = pool();
+  if (!p) throw new SocialServiceError(503, "Social features are unavailable.");
+  const target = await resolveStudentByUsername(username);
+  if (!target) throw new SocialServiceError(404, "Profile not found.");
+
+  await p.query(
+    "DELETE FROM social.follows WHERE follower_id = $1 AND following_id = $2",
+    [followerId, target.id],
+  );
+  const counts = await getFollowCounts(target.id);
+  return { following: false, followerCount: counts.followerCount };
+}
+
+async function listFollowEdges(
+  targetId: string,
+  viewerId: string,
+  direction: "followers" | "following",
+  page: number,
+): Promise<{ items: SocialUserCard[]; hasMore: boolean }> {
+  const p = pool();
+  if (!p) return { items: [], hasMore: false };
+  const offset = Math.max(0, page) * FOLLOW_PAGE_SIZE;
+  // followers → people whose edge points AT the target (join on follower_id);
+  // following → people the target points to (join on following_id).
+  const joinCol = direction === "followers" ? "f.follower_id" : "f.following_id";
+  const whereCol = direction === "followers" ? "f.following_id" : "f.follower_id";
+  const result = await p.query(
+    `SELECT u.id, u.username, u.name, u.avatar,
+       EXISTS(SELECT 1 FROM social.follows fa WHERE fa.follower_id = $2 AND fa.following_id = u.id) AS is_followed_by_me,
+       EXISTS(SELECT 1 FROM social.follows fb WHERE fb.follower_id = u.id AND fb.following_id = $2) AS follows_me
+     FROM social.follows f
+     JOIN origin_users u ON u.id = ${joinCol}
+     WHERE ${whereCol} = $1 AND u.username IS NOT NULL
+     ORDER BY f.created_at DESC
+     LIMIT $3 OFFSET $4`,
+    [targetId, viewerId, FOLLOW_PAGE_SIZE + 1, offset],
+  );
+  const rows = result.rows;
+  const hasMore = rows.length > FOLLOW_PAGE_SIZE;
+  return {
+    items: rows.slice(0, FOLLOW_PAGE_SIZE).map((row) => mapCardRow(row, viewerId)),
+    hasMore,
+  };
+}
+
+async function listFollowList(
+  username: string,
+  viewerId: string,
+  direction: "followers" | "following",
+  page: number,
+): Promise<FollowListResult> {
+  await ensureSocialSchema();
+  const target = await resolveStudentByUsername(username);
+  if (!target) throw new SocialServiceError(404, "Profile not found.");
+  // Private accounts hide their follow lists from everyone but the owner.
+  if (target.profilePrivate && target.id !== viewerId) {
+    return { items: [], hidden: true, hasMore: false };
+  }
+  const { items, hasMore } = await listFollowEdges(target.id, viewerId, direction, page);
+  return { items, hidden: false, hasMore };
+}
+
+export function listFollowers(username: string, viewerId: string, page = 0): Promise<FollowListResult> {
+  return listFollowList(username, viewerId, "followers", page);
+}
+
+export function listFollowing(username: string, viewerId: string, page = 0): Promise<FollowListResult> {
+  return listFollowList(username, viewerId, "following", page);
+}
+
+/** Student search by @username or display name, annotated with follow state. */
+export async function searchStudents(
+  viewerId: string,
+  query: string,
+  limit = 12,
+): Promise<SocialUserCard[]> {
+  await ensureSocialSchema();
+  const p = pool();
+  const q = query.trim().toLowerCase();
+  if (!p || q.length < 1) return [];
+  const capped = Math.min(Math.max(1, limit), SEARCH_LIMIT_MAX);
+  const like = `%${q}%`;
+  const result = await p.query(
+    `SELECT u.id, u.username, u.name, u.avatar,
+       EXISTS(SELECT 1 FROM social.follows fa WHERE fa.follower_id = $1 AND fa.following_id = u.id) AS is_followed_by_me,
+       EXISTS(SELECT 1 FROM social.follows fb WHERE fb.follower_id = u.id AND fb.following_id = $1) AS follows_me
+     FROM origin_users u
+     WHERE u.role = 'student' AND u.id <> $1 AND u.username IS NOT NULL
+       AND (LOWER(u.username) LIKE $2 OR LOWER(u.name) LIKE $2)
+     ORDER BY (LOWER(u.username) = $3) DESC, LENGTH(u.name) ASC, u.name ASC
+     LIMIT $4`,
+    [viewerId, like, q, capped],
+  );
+  return result.rows.map((row) => mapCardRow(row, viewerId));
+}
