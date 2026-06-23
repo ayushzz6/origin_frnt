@@ -54,6 +54,10 @@ export interface StoredUser {
   tokensUsedToday: number;
   usageResetAt: string;
   authTokenVersion: number;
+  /** Public @handle for the student-social surface. Unique (case-insensitive). */
+  username: string | null;
+  /** When true the public profile shows only the minimal card (Phase: student social). */
+  profilePrivate: boolean;
 }
 
 export interface StoredStreakData {
@@ -504,7 +508,13 @@ function nowIso(): string {
 
 type StoredUserDefaultFields = Pick<
   StoredUser,
-  "location" | "voiceMinutesUsedToday" | "tokensUsedToday" | "usageResetAt" | "authTokenVersion"
+  | "location"
+  | "voiceMinutesUsedToday"
+  | "tokensUsedToday"
+  | "usageResetAt"
+  | "authTokenVersion"
+  | "username"
+  | "profilePrivate"
 >;
 
 export type StoredUserWithOptionalDefaults = Omit<StoredUser, keyof StoredUserDefaultFields> &
@@ -518,6 +528,8 @@ export function withStoredUserDefaults(user: StoredUserWithOptionalDefaults): St
     tokensUsedToday: user.tokensUsedToday ?? 0,
     usageResetAt: user.usageResetAt ?? nowIso(),
     authTokenVersion: user.authTokenVersion ?? 0,
+    username: user.username ?? null,
+    profilePrivate: user.profilePrivate ?? false,
   };
 }
 

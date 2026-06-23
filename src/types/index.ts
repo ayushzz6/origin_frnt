@@ -42,6 +42,10 @@ export interface User {
   voiceMinutesUsedToday?: number;
   tokensUsedToday?: number;
   usageResetAt?: string;
+  /** Public @handle for the student-social surface (unique, case-insensitive). */
+  username?: string;
+  /** When true the public profile shows only the minimal card. */
+  profilePrivate?: boolean;
 }
 
 export interface Classroom {

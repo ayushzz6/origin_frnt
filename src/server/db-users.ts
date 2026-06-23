@@ -11,6 +11,7 @@ import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import type { Pool } from "pg";
 import { withStoredUserDefaults, type StoredAuthSession, type StoredTask, type StoredUser, type StoredUserWithOptionalDefaults } from "@/server/store";
+import { defaultUsernameFor } from "@/server/social/username";
 import { getUserPostgresPool } from "@/server/user-postgres";
 import {
   createRefreshToken,
@@ -96,6 +97,8 @@ export async function ensureUserSchema(): Promise<void> {
           ALTER TABLE origin_users ADD COLUMN IF NOT EXISTS tokens_used_today INTEGER NOT NULL DEFAULT 0;
           ALTER TABLE origin_users ADD COLUMN IF NOT EXISTS usage_reset_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
           ALTER TABLE origin_users ADD COLUMN IF NOT EXISTS auth_token_version INTEGER NOT NULL DEFAULT 0;
+          ALTER TABLE origin_users ADD COLUMN IF NOT EXISTS username TEXT;
+          ALTER TABLE origin_users ADD COLUMN IF NOT EXISTS profile_private BOOLEAN NOT NULL DEFAULT FALSE;
 
           CREATE TABLE IF NOT EXISTS origin_auth_sessions (
             id                        TEXT PRIMARY KEY,
@@ -262,6 +265,8 @@ function rowToUser(row: any): StoredUser {
     tokensUsedToday: Number(row.tokens_used_today ?? 0),
     usageResetAt: row.usage_reset_at instanceof Date ? row.usage_reset_at.toISOString() : String(row.usage_reset_at),
     authTokenVersion: Number(row.auth_token_version ?? 0),
+    username: row.username ?? null,
+    profilePrivate: Boolean(row.profile_private),
   };
 }
 
@@ -327,14 +332,18 @@ export async function dbCreateUser(data: DbCreateUserInput): Promise<StoredUser>
   await ensureUserSchema();
   const id = data.id ?? createId("user");
   const user = withStoredUserDefaults({ ...data, id });
+  // Every user gets a default @handle at creation (unique by the id suffix);
+  // they can change it later from their profile. See src/server/social/username.ts.
+  user.username = user.username ?? defaultUsernameFor(user.name, user.id);
   await pool().query(
     `INSERT INTO origin_users
        (id, name, email, password_hash, role, student_class, field_of_interest,
         referral_source, avatar, streak, total_study_time, joined_at, is_premium,
         premium_expiry, is_onboarded, selected_course, is_dropper,
         years_of_experience, subjects, student_capacity, location,
-        voice_minutes_used_today, tokens_used_today, usage_reset_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)`,
+        voice_minutes_used_today, tokens_used_today, usage_reset_at,
+        username, profile_private)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26)`,
     [
       user.id, user.name, user.email, user.password, user.role,
       user.studentClass, user.fieldOfInterest, user.referralSource, user.avatar,
@@ -342,6 +351,7 @@ export async function dbCreateUser(data: DbCreateUserInput): Promise<StoredUser>
       user.premiumExpiry, user.isOnboarded, user.selectedCourse, user.isDropper,
       user.yearsOfExperience, user.subjects, user.studentCapacity, user.location,
       user.voiceMinutesUsedToday, user.tokensUsedToday, user.usageResetAt,
+      user.username, user.profilePrivate,
     ],
   );
   return user;
@@ -364,6 +374,7 @@ export async function dbUpdateUser(id: string, patch: Partial<StoredUser>): Prom
     studentCapacity: "student_capacity", location: "location",
     voiceMinutesUsedToday: "voice_minutes_used_today", tokensUsedToday: "tokens_used_today",
     usageResetAt: "usage_reset_at", authTokenVersion: "auth_token_version",
+    username: "username", profilePrivate: "profile_private",
   };
 
   for (const [key, col] of Object.entries(mapping)) {

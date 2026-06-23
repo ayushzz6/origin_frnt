@@ -31,7 +31,8 @@ type FlagKey =
   | "premiumSubscriptions"
   | "teacherConnect"
   | "teacherOgcode"
-  | "liveRooms";
+  | "liveRooms"
+  | "studentSocial";
 
 type FlagSpec = {
   envSuffix: string;
@@ -72,6 +73,12 @@ const FLAG_SPECS: Record<FlagKey, FlagSpec> = {
   // enabled in dev by default. Gates the new live surfaces/routes; the existing
   // teacherRooms CRUD stays independently flagged.
   liveRooms: { envSuffix: "LIVE_ROOMS", defaultDev: true, defaultProd: false },
+  // Student Social — LeetCode/GitHub-style follow: @username handles, public
+  // profiles at /u/<username> (rank + badges + Activity Vault + recent activity),
+  // one-way follow/unfollow, follower/following lists, and student search.
+  // Gates /u/[username], /social, and all /api/social/* routes. Ships dark in
+  // prod (TEACHER_LAUNCH_STUDENT_SOCIAL=1 to enable); on by default in dev.
+  studentSocial: { envSuffix: "STUDENT_SOCIAL", defaultDev: true, defaultProd: false },
 };
 
 function parseFlag(raw: string | undefined): boolean | null {
