@@ -43,10 +43,11 @@ interface NavbarProps {
     setTheme: (theme: "dark" | "light" | "system") => void;
     connectEnabled?: boolean;
     premiumEnabled?: boolean;
+    socialEnabled?: boolean;
     leftOffset?: number;
 }
 
-export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLogout, theme, setTheme, connectEnabled, premiumEnabled, leftOffset = 0 }: NavbarProps) {
+export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLogout, theme, setTheme, connectEnabled, premiumEnabled, socialEnabled, leftOffset = 0 }: NavbarProps) {
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [showExploreMenu, setShowExploreMenu] = useState(false);
     const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -92,6 +93,7 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
         { label: 'DPP', icon: Target, view: 'dpp' as ViewState },
         { label: 'Goals', icon: ListTodo, view: 'tasks-goals' as ViewState },
         { label: 'Explore', icon: LayoutGrid, view: 'explore' as ViewState },
+        ...(socialEnabled ? [{ label: 'Social', icon: UserPlus, view: 'social' as ViewState }] : []),
         ...(connectEnabled ? [{ label: 'Connect', icon: Building2, view: 'connect' as ViewState }] : []),
     ];
 

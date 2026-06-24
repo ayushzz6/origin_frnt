@@ -36,6 +36,7 @@ const ROUTES: Record<string, string> = {
   'tasks-goals': '/tasks',
   'explore': '/explore',
   'connect': '/connect',
+  'social': '/social',
   'profile': '/profile',
   'premium': '/premium',
   'study-corner': '/study-corner',
@@ -49,7 +50,7 @@ function resolveRoute(view: string) {
   return ROUTES[view] || `/${view}`;
 }
 
-function ClientShellInner({ children, connectEnabled, premiumEnabled }: { children: React.ReactNode; connectEnabled?: boolean; premiumEnabled?: boolean }) {
+function ClientShellInner({ children, connectEnabled, premiumEnabled, socialEnabled }: { children: React.ReactNode; connectEnabled?: boolean; premiumEnabled?: boolean; socialEnabled?: boolean }) {
   const { user, logout, isNavigationLocked } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
@@ -230,6 +231,7 @@ function ClientShellInner({ children, connectEnabled, premiumEnabled }: { childr
               setTheme={setTheme}
               connectEnabled={connectEnabled}
               premiumEnabled={premiumEnabled}
+              socialEnabled={socialEnabled}
               leftOffset={aiSide === 'left' && isAiOpen ? aiWidth : 0}
             />
           )}
@@ -279,11 +281,11 @@ function ClientShellInner({ children, connectEnabled, premiumEnabled }: { childr
   );
 }
 
-export default function ClientShell({ children, connectEnabled, premiumEnabled }: { children: React.ReactNode; connectEnabled?: boolean; premiumEnabled?: boolean }) {
+export default function ClientShell({ children, connectEnabled, premiumEnabled, socialEnabled }: { children: React.ReactNode; connectEnabled?: boolean; premiumEnabled?: boolean; socialEnabled?: boolean }) {
   return (
     <LayoutProvider>
       <TimeTrackerProvider>
-        <ClientShellInner connectEnabled={connectEnabled} premiumEnabled={premiumEnabled}>{children}</ClientShellInner>
+        <ClientShellInner connectEnabled={connectEnabled} premiumEnabled={premiumEnabled} socialEnabled={socialEnabled}>{children}</ClientShellInner>
       </TimeTrackerProvider>
     </LayoutProvider>
   );

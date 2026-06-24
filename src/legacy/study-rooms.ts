@@ -10,6 +10,7 @@ import {
 } from "@/server/assessments";
 import { getPersistedCustomTestById, persistGeneratedCustomTest } from "@/server/analytics-store";
 import { getRoomsPostgresPoolOrThrow, ensureRoomsSchema } from "@/server/rooms-postgres";
+import { getUserPostgresPool } from "@/server/user-postgres";
 import {
   deleteActiveRoomCode,
   deleteRoomCode,
@@ -1075,15 +1076,28 @@ export async function startRoomTest(roomId: string, userId: string) {
       throw new StudyRoomError(400, "A room needs at least one active participant.");
     }
 
-    // Phase 14: a teacher room resolves its duration from assessment.tests (USER
-    // schema, same physical Neon DB as the rooms pool — see AGENTS.md), a student
-    // room from analytics.custom_tests. The cross-schema read is valid only under
-    // the same-physical-DB invariant, which the rooms→assessment FK already asserts.
-    const durationMinutes = room.custom_test_id
-      ? (await client.query(`SELECT duration_minutes FROM analytics.custom_tests WHERE id = $1`, [room.custom_test_id]))
-          .rows[0]?.duration_minutes
-      : (await client.query(`SELECT duration_minutes FROM assessment.tests WHERE id = $1`, [room.teacher_test_id]))
-          .rows[0]?.duration_minutes;
+    // Resolve the configured test's duration. A student room reads
+    // analytics.custom_tests (same OGCode pool as rooms.rooms). A teacher room
+    // reads assessment.tests, which lives in the USER database — and in
+    // production the USER and OGCode pools are SEPARATE physical DBs (the
+    // rooms→assessment FK is added NOT VALID and skipped when undefined; see
+    // teacher-rooms-schema.ts). Reading assessment.tests via the rooms (OGCode)
+    // `client` therefore fails with `relation "assessment.tests" does not exist`,
+    // so the teacher-room read must go through the USER pool.
+    let durationMinutes: number | undefined;
+    if (room.custom_test_id) {
+      durationMinutes = (
+        await client.query(`SELECT duration_minutes FROM analytics.custom_tests WHERE id = $1`, [room.custom_test_id])
+      ).rows[0]?.duration_minutes;
+    } else {
+      const userPool = getUserPostgresPool();
+      if (!userPool) {
+        throw new StudyRoomError(500, "User database is not configured for teacher room tests.");
+      }
+      durationMinutes = (
+        await userPool.query(`SELECT duration_minutes FROM assessment.tests WHERE id = $1`, [room.teacher_test_id])
+      ).rows[0]?.duration_minutes;
+    }
     if (durationMinutes === undefined) {
       throw new StudyRoomError(404, "Configured test was not found.");
     }

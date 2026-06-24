@@ -405,6 +405,7 @@ export type ViewState =
   | 'study-corner'
   | 'explore'
   | 'connect'
+  | 'social'
   | 'tasks-goals'
   | 'prestige-milestones';
 

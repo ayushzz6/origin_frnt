@@ -78,6 +78,9 @@ export default function RootLayout({
   // Same pattern for the premium surface: when the flag is off (default), the
   // premium nav/upsell entry points stay hidden, mirroring the dark server gate.
   const premiumEnabled = isFeatureEnabled("premiumSubscriptions");
+  // Gates the student "Social" nav entry (follow + public profiles), mirroring
+  // the server `studentSocial` gate on /social and /api/social/*.
+  const socialEnabled = isFeatureEnabled("studentSocial");
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable} ${syne.variable} ${instrumentSerif.variable}`}>
       <head />
@@ -92,7 +95,7 @@ export default function RootLayout({
             <AuthProvider initialUser={null}>
               <NotificationProvider>
                 <QuotaProvider>
-                  <ClientShell connectEnabled={connectEnabled} premiumEnabled={premiumEnabled}>{children}</ClientShell>
+                  <ClientShell connectEnabled={connectEnabled} premiumEnabled={premiumEnabled} socialEnabled={socialEnabled}>{children}</ClientShell>
                 </QuotaProvider>
               </NotificationProvider>
             </AuthProvider>
