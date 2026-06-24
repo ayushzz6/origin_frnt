@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getServerUser } from '@/lib/auth-server';
 import { getOgcodeLeaderboardForRender } from '@/server/render-loaders';
+import { isFeatureEnabled } from '@/lib/feature-flags';
 import LeaderboardClient from './_client';
 import LeaderboardLoading from './loading';
 
@@ -32,6 +33,7 @@ async function LeaderboardContent() {
     <LeaderboardClient
       initialLeaderboard={initialLeaderboard}
       initialMyRank={initialMyRank}
+      socialEnabled={isFeatureEnabled('studentSocial')}
     />
   );
 }
