@@ -136,6 +136,14 @@ export async function middleware(request: NextRequest) {
     return withRequestId(NextResponse.redirect(canonicalUrl, 308), requestId);
   }
 
+  // DEV-ONLY: the mascot sandbox (`/dev/*`) is reachable without auth in
+  // development for visual tuning. This branch can never run in production
+  // (NODE_ENV === "production"), and is removed together with the sandbox in
+  // Phase 5 — see MASCOT_3D_PLAN.md. Does not touch route-policy or its test.
+  if (process.env.NODE_ENV !== "production" && request.nextUrl.pathname.startsWith("/dev")) {
+    return withRequestId(NextResponse.next(), requestId);
+  }
+
   const pathname = normalizePathname(request.nextUrl.pathname);
   const isApi = pathname.startsWith("/api/");
   const policy = isApi ? getApiRoutePolicy(pathname) : getAppRoutePolicy(pathname);

@@ -1,7 +1,10 @@
 'use client';
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { ChevronLeft, Trophy, Star, Zap, Check, BookOpen, Target, MessageCircle, TrendingUp, Crown } from 'lucide-react';
 import { motion } from 'framer-motion';
+
+const OriMascot = dynamic(() => import('@/features/mascot/Ori2D'), { ssr: false });
 
 interface MilestonesPageProps {
   onBack: () => void;
@@ -40,9 +43,9 @@ export default function MilestonesPage({ onBack, userPoints }: MilestonesPagePro
   const currentTier = [...TIER_THRESHOLDS].reverse().find(t => totalPoints >= t.min) || TIER_THRESHOLDS[0];
 
   return (
-    <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
+    <div className="min-h-screen bg-background text-foreground relative overflow-x-hidden">
       {/* Background */}
-      <div className="absolute inset-0 pointer-events-none">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-indigo-600/10 blur-[120px]" />
         <div className="absolute bottom-0 right-0 w-80 h-80 bg-purple-600/10 blur-[100px]" />
       </div>
@@ -78,8 +81,8 @@ export default function MilestonesPage({ onBack, userPoints }: MilestonesPagePro
         >
           <div className="absolute top-0 right-0 w-40 h-40 blur-[60px] opacity-30 bg-current pointer-events-none" />
           <div className="flex items-center gap-4 mb-4">
-            <div className={`w-16 h-16 rounded-2xl ${currentTier.bg} border ${currentTier.border} flex items-center justify-center`}>
-              <currentTier.icon className={`w-8 h-8 ${currentTier.color}`} />
+            <div className="w-16 h-16 shrink-0">
+              <OriMascot expression="proud" title="Origin AI" />
             </div>
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Current Rank</p>

@@ -616,32 +616,31 @@ interface TestCardProps {
   getDifficultyColor: (difficulty: string) => string;
 }
 
-function TestCard({ test, onStart, onViewAnalysis, user, getSubjectIcon, getSubjectColor, getDifficultyColor }: TestCardProps) {
+function TestCard({ test, onStart, onViewAnalysis, user, getDifficultyColor }: TestCardProps) {
   const isLocked = false;
 
   return (
     <Card className={`group relative border-2 border-border/60 hover:border-primary/40 bg-card/40 dark:bg-white/5 backdrop-blur-xl shadow-sm hover:shadow-md hover:shadow-primary/10 transition-all duration-500 rounded-[2rem] sm:rounded-[32px] overflow-hidden ${isLocked ? 'grayscale opacity-80' : ''}`}>
       <CardContent className="p-5 sm:p-8">
-        {/* Header Section */}
-        <div className="flex items-start justify-between mb-4 sm:mb-8">
-          <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl ${getSubjectColor(test.subject)} flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500`}>
-            {getSubjectIcon(test.subject)}
+        {/* Header Section — status badges only (subject icon removed) */}
+        {(test.attempted || isLocked) && (
+          <div className="flex justify-end mb-4 sm:mb-8">
+            <div className="flex flex-col items-end gap-2">
+              {test.attempted && (
+                <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 px-3 py-1 rounded-full font-black text-[9px] uppercase tracking-widest">
+                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                  Completed
+                </Badge>
+              )}
+              {isLocked && (
+                <Badge className="bg-amber-500 text-white border-0 px-3 py-1 rounded-full font-black text-[9px] uppercase tracking-widest shadow-lg shadow-amber-500/20">
+                  <Lock className="w-3 h-3 mr-1" />
+                  Premium
+                </Badge>
+              )}
+            </div>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            {test.attempted && (
-              <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 px-3 py-1 rounded-full font-black text-[9px] uppercase tracking-widest">
-                <CheckCircle2 className="w-3 h-3 mr-1" />
-                Completed
-              </Badge>
-            )}
-            {isLocked && (
-              <Badge className="bg-amber-500 text-white border-0 px-3 py-1 rounded-full font-black text-[9px] uppercase tracking-widest shadow-lg shadow-amber-500/20">
-                <Lock className="w-3 h-3 mr-1" />
-                Premium
-              </Badge>
-            )}
-          </div>
-        </div>
+        )}
 
         {/* Content Section */}
         <div className="mb-4 sm:mb-6">

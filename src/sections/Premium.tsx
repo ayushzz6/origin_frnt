@@ -9,7 +9,10 @@
  */
 
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { ChevronLeft, Atom, FlaskConical, Sigma, Dna, Shield, Check } from 'lucide-react';
+
+const OriMascot = dynamic(() => import('@/features/mascot/Ori2D'), { ssr: false });
 
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
@@ -59,6 +62,11 @@ export default function Premium({ onBack }: PremiumProps) {
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center mb-10">
+          <div className="mb-4 flex justify-center">
+            <div className="h-24 w-24 sm:h-28 sm:w-28">
+              <OriMascot expression="thumbsup" title="Origin AI" />
+            </div>
+          </div>
           <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-4">
             Subscribe by subject
           </h2>

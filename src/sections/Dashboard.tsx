@@ -1,7 +1,10 @@
 'use client';
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { Zap } from 'lucide-react';
+
+const OriMascot = dynamic(() => import('@/features/mascot/Ori2D'), { ssr: false });
 import type { Task, User, ViewState } from '@/types';
 import DailyTracker from '@/components/dashboard/DailyTracker';
 import PastWeekProgress from '@/components/dashboard/PastWeekProgress';
@@ -300,15 +303,20 @@ export default function Dashboard({
             </button>
           </motion.div>
         )}
-        <div className="text-center">
-          <h1 className="text-2xl sm:text-4xl font-black text-[#334155] dark:text-white tracking-tight">
-            {getGreeting()}, {displayName}!
-          </h1>
-          <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 font-medium mt-1">
-            {pointsData?.pointsToNext && pointsData.pointsToNext > 0
-              ? `You're just ${pointsData.pointsToNext.toLocaleString()} pts away from becoming a ${pointsData.nextTier}!`
-              : "You've reached the absolute peak of excellence!"}
-          </p>
+        <div className="flex items-center justify-center gap-3 sm:gap-5">
+          <div className="text-center sm:text-left">
+            <h1 className="text-2xl sm:text-4xl font-black text-[#334155] dark:text-white tracking-tight">
+              {getGreeting()}, {displayName}!
+            </h1>
+            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 font-medium mt-1">
+              {pointsData?.pointsToNext && pointsData.pointsToNext > 0
+                ? `You're just ${pointsData.pointsToNext.toLocaleString()} pts away from becoming a ${pointsData.nextTier}!`
+                : "You've reached the absolute peak of excellence!"}
+            </p>
+          </div>
+          <div className="h-20 w-20 shrink-0 sm:h-28 sm:w-28">
+            <OriMascot expression="winking" title="Origin AI" />
+          </div>
         </div>
 
         <motion.div

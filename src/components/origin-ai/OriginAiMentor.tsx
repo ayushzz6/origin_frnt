@@ -26,6 +26,12 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Progress } from '@/components/ui/progress';
+import dynamic from 'next/dynamic';
+import OriMascotStatic from '@/features/mascot/OriMascotStatic';
+import { useMentorMascotState } from '@/features/mascot/useMentorMascotState';
+
+// Live 3D mascot (WebGL) — client-only; procedural body + PNG fallback handle SSR/no-WebGL.
+const OriMascot = dynamic(() => import('@/features/mascot/OriMascot'), { ssr: false });
 
 interface OriginAiMentorProps {
   compact?: boolean;
@@ -115,7 +121,7 @@ function MessageList({ snapshot }: { snapshot: OriginAiSnapshot }) {
             <div className={cn('flex max-w-[88%] gap-3', isAssistant ? 'flex-row' : 'flex-row-reverse')}>
               {isAssistant ? (
                 <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border border-primary/20 bg-primary/10 p-1">
-                  <img src="/Dipraj-ChatBot.png" alt="Origin AI" className="h-full w-full object-contain" />
+                  <OriMascotStatic className="h-full w-full" />
                 </div>
               ) : null}
               <div
@@ -204,6 +210,15 @@ export default function OriginAiMentor({
 
   const remainingText = Math.max(0, textLimitTokens - textTokensUsed);
   const remainingVoiceMins = Math.max(0, Math.ceil((voiceLimitSeconds - voiceSecondsUsed) / 60));
+
+  // Drive the 3D mascot from the live conversation state.
+  const mascotState = useMentorMascotState({
+    isLoading,
+    isSending,
+    voiceStatus,
+    message,
+    messageCount: snapshot?.session.messages.length ?? 0,
+  });
 
   const loadSnapshot = React.useCallback(async () => {
     setIsLoading(true);
@@ -411,7 +426,7 @@ export default function OriginAiMentor({
         <div className="flex items-center justify-between border-b border-border/40 bg-indigo-500/10 px-4 py-3">
           <div className="flex min-w-0 items-center gap-3">
             <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-border/20 bg-muted p-1">
-              <img src="/Dipraj-ChatBot.png" alt="Origin AI" className="h-full w-full object-contain drop-shadow-md" />
+              <OriMascot state={mascotState} title="Origin AI" className="h-full w-full" />
             </div>
             {onSideToggle && (
               <button
@@ -624,7 +639,7 @@ export default function OriginAiMentor({
       <div className={cn('flex items-center justify-between border-b border-border/40 bg-primary/10', compact ? 'px-4 py-3' : 'px-5 py-4')}>
         <div className="flex items-center gap-3">
           <div className={cn('relative flex items-center justify-center overflow-hidden rounded-full border border-border/20 bg-muted p-1', compact ? 'h-10 w-10' : 'h-11 w-11')}>
-            <img src="/Dipraj-ChatBot.png" alt="Origin AI" className="h-full w-full object-contain drop-shadow-md" />
+            <OriMascot state={mascotState} title="Origin AI" className="h-full w-full" />
           </div>
           <div>
             <div className="flex items-center gap-2">

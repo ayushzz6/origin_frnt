@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { FormattedMessage } from '@/components/origin-ai/FormattedMessage';
 import {
-    CheckCircle2, Code2, Search,
+    CheckCircle2, Search,
     Trophy, Zap, Flame, Brain, Circle,
     TrendingUp, Atom, Beaker, Calculator, Leaf,
     ChevronRight, Target, Shuffle, ArrowRight, X
@@ -595,10 +595,6 @@ export default function OGCodeList({
                             transition={{ duration: 0.6, ease: "easeOut" }}
                             className="space-y-3"
                         >
-                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/20 backdrop-blur-md mb-2">
-                                <Code2 className="w-4 h-4 text-primary dark:text-primary" />
-                                <span className="text-[10px] font-bold tracking-[0.2em] text-primary dark:text-primary uppercase">Practice Arena</span>
-                            </div>
                             <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-slate-900 dark:text-white leading-tight">
                                 OG<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/60 dark:from-primary dark:to-primary/60">CODE</span> WORKSPACE
                             </h1>

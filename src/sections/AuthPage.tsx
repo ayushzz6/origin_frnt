@@ -23,6 +23,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -40,6 +41,8 @@ import { getRegistrationStatusAction } from '@/server/actions/system-actions';
 import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const OriMascot = dynamic(() => import('@/features/mascot/Ori2D'), { ssr: false });
 
 interface AuthPageProps {
   userRole: 'student' | 'teacher' | 'admin' | null;
@@ -205,15 +208,14 @@ export default function AuthPage({
             <Card className="border-border/40 shadow-2xl bg-card/80 backdrop-blur-2xl">
               <CardHeader className="text-center pb-2">
                 <div className="flex justify-center mb-4">
-                  <img
-                    src={
-                      userRole === 'student' || userRole === 'admin' ? '/origin-new.jpg'
-                        : userRole === 'teacher' ? '/Origin-Teacher-Logo.png'
-                          : '/O3-Origin-Logo.png'
-                    }
-                    alt="ORIGIN"
-                    className="h-16 w-auto rounded-2xl shadow-sm"
-                  />
+                  {userRole === 'teacher' ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src="/Origin-Teacher-Logo.png" alt="ORIGIN" className="h-16 w-auto rounded-2xl shadow-sm" />
+                  ) : (
+                    <div className="h-20 w-20">
+                      <OriMascot expression="happy" title="Origin AI" />
+                    </div>
+                  )}
                 </div>
                 <CardTitle className="text-2xl font-bold text-foreground">
                   {userRole === 'teacher' ? 'Teacher Login' : userRole === 'admin' ? 'Admin Portal' : 'Student Login'}

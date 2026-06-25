@@ -1,10 +1,14 @@
 'use client';
 
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
+import dynamic from 'next/dynamic';
 
 import { useHighlightedSelection, snapshotHighlightedText } from '@/features/origin-ai/highlight-capture';
+import OriMascotStatic from '@/features/mascot/OriMascotStatic';
+
+const OriMascot = dynamic(() => import('@/features/mascot/OriMascot'), { ssr: false });
 
 interface FloatingChatProps {
   onOpen: (options?: { autoAskSelection?: boolean }) => void;
@@ -15,6 +19,7 @@ interface FloatingChatProps {
 export default function FloatingChat({ onOpen, hideMainButton }: FloatingChatProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const highlightedSelection = useHighlightedSelection();
+  const [hovered, setHovered] = useState(false);
 
   const selectionActionStyle = useMemo(() => {
     const rect = highlightedSelection.rect;
@@ -62,7 +67,7 @@ export default function FloatingChat({ onOpen, hideMainButton }: FloatingChatPro
             aria-label="Ask Origin AI about the selected text"
           >
             <div className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-primary/10 p-0.5">
-              <img src="/Dipraj-ChatBot.png" alt="Origin AI" className="h-full w-full object-contain" />
+              <OriMascotStatic className="h-full w-full" />
             </div>
             <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-900 dark:text-primary/80">
               Ask Origin AI
@@ -78,6 +83,8 @@ export default function FloatingChat({ onOpen, hideMainButton }: FloatingChatPro
             data-origin-ai-root="true"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            onHoverStart={() => setHovered(true)}
+            onHoverEnd={() => setHovered(false)}
             onClick={() => onOpen()}
             id="tutorial-mentor-trigger"
             className="relative outline-none"
@@ -88,14 +95,9 @@ export default function FloatingChat({ onOpen, hideMainButton }: FloatingChatPro
               <div className="absolute inset-0 z-0 flex items-center justify-center text-blue-100">
                 <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7" />
               </div>
-              <img
-                src="/Dipraj-ChatBot.png"
-                alt="Origin AI"
-                className="relative z-10 h-16 w-16 object-contain drop-shadow-2xl transition-all duration-300 group-hover:brightness-110 sm:h-20 sm:w-20 lg:h-24 lg:w-24"
-                onError={(event) => {
-                  (event.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
+              <div className="relative z-10 h-16 w-16 drop-shadow-2xl sm:h-24 sm:w-24 lg:h-[118px] lg:w-[118px]">
+                <OriMascot state={hovered ? 'curious' : 'idle'} title="Origin AI" preload={false} />
+              </div>
               <div className="absolute right-2 top-2 z-20 h-3 w-3 rounded-full border-2 border-white bg-primary shadow-md dark:border-slate-900 sm:right-2.5 sm:top-2.5 sm:h-3.5 sm:w-3.5 lg:right-4 lg:top-4 lg:h-4 lg:w-4" />
             </div>
           </motion.button>

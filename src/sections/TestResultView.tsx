@@ -1,6 +1,9 @@
 'use client';
 import { useEffect, useRef, useState, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
+
+const OriMascot = dynamic(() => import('@/features/mascot/Ori2D'), { ssr: false });
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -238,6 +241,9 @@ export default function TestResultView({
               >
                 <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-400" />
               </button>
+              <div className="h-10 w-10 shrink-0 sm:h-12 sm:w-12">
+                <OriMascot expression="thumbsup" title="Origin AI" />
+              </div>
               <div className="truncate">
                 <h1 className="text-base sm:text-lg font-bold text-foreground leading-tight truncate">Report Card</h1>
                 <p className="text-[10px] sm:text-xs text-slate-500 truncate max-w-[150px] sm:max-w-sm">

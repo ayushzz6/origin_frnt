@@ -1,7 +1,10 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
+
+const OriMascot = dynamic(() => import('@/features/mascot/Ori2D'), { ssr: false });
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -183,6 +186,9 @@ export default function Leaderboard({ currentUser, initialLeaderboard, initialMy
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 px-2">
           <h2 className="text-2xl font-black flex items-center gap-3 tracking-tight">
+            <div className="h-12 w-12 shrink-0">
+              <OriMascot expression="thumbsup" title="Origin AI" />
+            </div>
             <div className="w-2 h-8 bg-primary rounded-full" />
             Hall of Fame
           </h2>

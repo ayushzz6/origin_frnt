@@ -6,6 +6,9 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import dynamic from 'next/dynamic';
+
+const OriMascot = dynamic(() => import('@/features/mascot/Ori2D'), { ssr: false });
 import {
   GraduationCap,
   BookOpen,
@@ -296,6 +299,12 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
 
       <Card className="w-full max-w-lg border-0 shadow-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl dark:ring-1 dark:ring-white/10">
         <CardContent className="p-8">
+          {/* Ori greeting */}
+          <div className="mb-6 flex justify-center">
+            <div className="h-20 w-20">
+              <OriMascot expression="curious" title="Origin AI" />
+            </div>
+          </div>
           {/* Progress */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-2">
