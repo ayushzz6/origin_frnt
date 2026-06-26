@@ -290,15 +290,15 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background text-foreground transition-colors duration-300">
+    <div className="min-h-screen flex items-center justify-center p-3 sm:p-6 neu-surface text-foreground transition-colors duration-300">
       {/* Background Decoration */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute top-20 left-10 w-72 h-72 bg-primary/5 dark:bg-primary/10 rounded-full blur-3xl" />
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary/5 dark:bg-primary/10 rounded-full blur-3xl" />
       </div>
 
-      <Card className="w-full max-w-lg border-0 shadow-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl dark:ring-1 dark:ring-white/10">
-        <CardContent className="p-8">
+      <Card className="w-full max-w-lg neu-raised border-0 shadow-none">
+        <CardContent className="p-5 sm:p-8">
           {/* Ori greeting */}
           <div className="mb-6 flex justify-center">
             <div className="h-20 w-20">

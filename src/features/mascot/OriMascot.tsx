@@ -16,6 +16,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 import { createOriScene, type OriSceneHandle } from './ori-scene';
 import { disposeObject, loadOriModel, type LoadedOri } from './ori-model';
@@ -40,6 +41,19 @@ const STATE_MODEL: Record<MascotState, string[]> = {
 
 const ALL_STATES: MascotState[] = ['idle', 'curious', 'thinking', 'answering', 'success', 'error'];
 
+/**
+ * 2D Ori PNG shown as a lightweight placeholder while the (multi-MB) GLB for the
+ * current state streams in. Crossfades out to the live 3D once the model is ready.
+ */
+const STATE_2D: Record<MascotState, string> = {
+  idle: '/ori2d/ori-happy.png',
+  curious: '/ori2d/ori-curious.png',
+  thinking: '/ori2d/ori-thinking.png',
+  answering: '/ori2d/ori-happy.png',
+  success: '/ori2d/ori-thubmsup.png',
+  error: '/ori2d/ori-confused.png',
+};
+
 export interface OriMascotProps {
   state?: MascotState;
   className?: string;
@@ -51,6 +65,13 @@ export interface OriMascotProps {
    * the current state's model loads (much lighter).
    */
   preload?: boolean;
+  /**
+   * Enable full drag-to-orbit rotation (OrbitControls) + scroll-to-zoom. Disables
+   * the built-in cursor-follow so the two don't fight. Used by "Play with Ori".
+   */
+  interactive?: boolean;
+  /** Reports live camera orbit angles (degrees) while the user rotates. */
+  onOrbitChange?: (o: { azimuthDeg: number; polarDeg: number }) => void;
 }
 
 function prefersReducedMotion(): boolean {
@@ -64,8 +85,12 @@ export default function OriMascot({
   style,
   title = 'Origin AI',
   preload = true,
+  interactive = false,
+  onOrbitChange,
 }: OriMascotProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const onOrbitChangeRef = useRef(onOrbitChange);
+  useEffect(() => { onOrbitChangeRef.current = onOrbitChange; }, [onOrbitChange]);
   const stateRef = useRef<MascotState>(state);
   const handleRef = useRef<OriSceneHandle | null>(null);
   const cacheRef = useRef<Map<MascotState, LoadedOri>>(new Map());
@@ -109,6 +134,7 @@ export default function OriMascot({
 
     const handle = createOriScene(initialW, initialH);
     handleRef.current = handle;
+    let controls: OrbitControls | null = null;
 
     // Environment map: the GLB material is metallic (PBR), so without image-based
     // lighting it renders near-black. RoomEnvironment gives soft studio reflections.
@@ -138,6 +164,7 @@ export default function OriMascot({
       raf = requestAnimationFrame(loop);
       const dt = Math.min(clock.getDelta(), 0.05);
       elapsed += dt;
+      if (controls) controls.update();
       renderOnce(dt);
     };
     const start = () => {
@@ -153,6 +180,31 @@ export default function OriMascot({
       if (visible && onScreen) start();
       else stop();
     };
+
+    // Opt-in drag-to-orbit: full rotation + zoom, with a live angle readout.
+    if (interactive) {
+      handle.setMouseTracking(false);
+      controls = new OrbitControls(handle.camera, canvas);
+      controls.target.set(0, 0.18, 0);
+      controls.enablePan = false;
+      controls.enableDamping = !reduced;
+      controls.dampingFactor = 0.08;
+      controls.rotateSpeed = 0.95;
+      controls.zoomSpeed = 0.8;
+      controls.minDistance = 2.6;
+      controls.maxDistance = 8;
+      controls.update();
+      const reportOrbit = () => {
+        onOrbitChangeRef.current?.({
+          azimuthDeg: Math.round((controls!.getAzimuthalAngle() * 180) / Math.PI),
+          polarDeg: Math.round((controls!.getPolarAngle() * 180) / Math.PI),
+        });
+        // Reduced-motion users have no RAF loop — render on each drag step.
+        if (reduced) renderOnce(0.016);
+      };
+      controls.addEventListener('change', reportOrbit);
+      reportOrbit();
+    }
 
     if (reduced) renderOnce(0.016);
     else start();
@@ -192,6 +244,7 @@ export default function OriMascot({
     return () => {
       disposedRef.current = true;
       stop();
+      controls?.dispose();
       document.removeEventListener('visibilitychange', onVisibility);
       canvas.removeEventListener('webglcontextlost', onContextLost);
       io.disconnect();
@@ -286,9 +339,21 @@ export default function OriMascot({
     <div className={className} style={{ position: 'relative', width: '100%', height: '100%', ...style }}>
       <canvas
         ref={canvasRef}
-        style={{ display: 'block', width: '100%', height: '100%' }}
+        style={{ display: 'block', width: '100%', height: '100%', cursor: interactive ? 'grab' : undefined, touchAction: interactive ? 'none' : undefined }}
         role="img"
         aria-label={title}
+      />
+      {/* 2D placeholder: visible until the 3D model finishes loading, then crossfades
+          out to reveal the live mascot. Stays mounted (opacity 0) so the fade is smooth;
+          pointer-events-none so it never blocks drag-to-orbit. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={STATE_2D[state]}
+        alt={title}
+        aria-hidden={modelActive}
+        draggable={false}
+        className="pointer-events-none absolute inset-0 m-auto h-full w-full select-none object-contain transition-opacity duration-500"
+        style={{ opacity: modelActive ? 0 : 1 }}
       />
       {modelActive ? null : <OriExpressionPop state={state} />}
     </div>

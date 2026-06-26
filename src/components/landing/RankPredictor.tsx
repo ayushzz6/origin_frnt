@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Slider } from '@/components/ui/slider';
-import { ArrowRight } from 'lucide-react';
+import LandingCTABtn from '@/components/landing/LandingCTABtn';
 
 // JEE Main ~11 lakh candidates; AIR derived from percentile
 function estimateAIR(percentile: number): number {
@@ -125,7 +125,7 @@ export default function RankPredictor() {
   const zoneColor = percentile >= 90 ? 'text-emerald-400' : percentile >= 70 ? 'text-primary' : percentile >= 50 ? 'text-amber-400' : 'text-red-400';
 
   return (
-    <section id="rank-predictor" className="py-24 lg:py-32 relative z-10">
+    <section id="rank-predictor" className="py-14 sm:py-24 lg:py-32 relative z-10">
       <div className="max-w-4xl mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -156,7 +156,7 @@ export default function RankPredictor() {
           className="grid md:grid-cols-2 gap-8 items-center"
         >
           {/* Sliders */}
-          <div className="space-y-8 rounded-2xl border border-black/10 dark:border-white/10 bg-gray-100 dark:bg-white/[0.03] backdrop-blur-xl p-6 sm:p-8">
+          <div className="space-y-8 rounded-2xl neu-raised p-6 sm:p-8">
             <SliderField
               label="Study hours / day"
               value={hours}
@@ -199,14 +199,12 @@ export default function RankPredictor() {
               </p>
             </motion.div>
 
-            <motion.a
+            <LandingCTABtn
+              label="See the full curve"
               href="/auth/register"
-              whileHover={{ scale: 1.04, y: -1 }}
-              whileTap={{ scale: 0.97 }}
-              className="inline-flex items-center gap-2 mt-2 px-6 py-3 rounded-full bg-primary text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/30"
-            >
-              See the full curve <ArrowRight className="w-3.5 h-3.5" />
-            </motion.a>
+              variant="sm"
+              className="mt-2"
+            />
           </div>
         </motion.div>
       </div>

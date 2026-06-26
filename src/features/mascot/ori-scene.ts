@@ -27,6 +27,11 @@ export interface OriSceneHandle {
    * crossfade (reduced motion).
    */
   setModel(loaded: LoadedOri | null, instant?: boolean): boolean;
+  /**
+   * Toggle the built-in cursor-follow. Disable it when an external camera
+   * control (OrbitControls) drives rotation so the two don't fight.
+   */
+  setMouseTracking(enabled: boolean): void;
   resize(width: number, height: number): void;
   dispose(): void;
 }
@@ -108,6 +113,35 @@ export function createOriScene(width: number, height: number): OriSceneHandle {
 
   const root = new THREE.Group();
   scene.add(root);
+
+  // Mouse tracking variables
+  const mouse = { x: 0, y: 0 };
+  const targetMouse = { x: 0, y: 0 };
+  let mouseTracking = true;
+
+  const onMouseMove = (e: MouseEvent) => {
+    if (!mouseTracking) return;
+    targetMouse.x = (e.clientX / window.innerWidth - 0.5) * 0.8;  // max +-0.4 rad yaw
+    targetMouse.y = (e.clientY / window.innerHeight - 0.5) * 0.5; // max +-0.25 rad pitch
+  };
+
+  const onTouchMove = (e: TouchEvent) => {
+    if (!mouseTracking) return;
+    if (e.touches[0]) {
+      targetMouse.x = (e.touches[0].clientX / window.innerWidth - 0.5) * 0.8;
+      targetMouse.y = (e.touches[0].clientY / window.innerHeight - 0.5) * 0.5;
+    }
+  };
+
+  function setMouseTracking(enabled: boolean): void {
+    mouseTracking = enabled;
+    if (!enabled) { targetMouse.x = 0; targetMouse.y = 0; }
+  }
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+  }
 
   // headGroup holds the body + face so we can tilt / squash the "head" without
   // disturbing the electron orbits.
@@ -466,19 +500,24 @@ export function createOriScene(width: number, height: number): OriSceneHandle {
       }
     }
 
-    // Root float + sway.
+    // Smoothly interpolate mouse position towards target
+    const easeSpeed = reducedMotion ? 0 : 0.08;
+    mouse.x += (targetMouse.x - mouse.x) * easeSpeed;
+    mouse.y += (targetMouse.y - mouse.y) * easeSpeed;
+
+    // Root float + sway + mouse tracking
     root.position.y = Math.sin(elapsed * 1.3) * cur.bob;
-    root.rotation.y = Math.sin(elapsed * 0.55) * cur.sway;
+    root.rotation.y = Math.sin(elapsed * 0.55) * cur.sway + mouse.x;
     root.rotation.z = Math.sin(elapsed * 0.4) * cur.sway * 0.15;
 
-    // Head tilt / lean / squash (+ success pop + model-swap pop bounce).
+    // Head tilt / lean / squash (+ success pop + model-swap pop bounce) + mouse tracking
     modelPop = Math.max(0, modelPop - d * 2.2);
     const pop = Math.sin(popLife * Math.PI) * 0.22 + Math.sin(modelPop * Math.PI) * 0.12;
     const sy = cur.squashY * (1 + pop);
     const sxz = (1 + (1 - cur.squashY) * 0.55) * (1 + pop * 0.5);
     head.scale.set(sxz, sy, sxz);
     head.rotation.z = cur.headTilt + Math.sin(elapsed * 0.9) * 0.012;
-    head.rotation.x = -cur.lean;
+    head.rotation.x = -cur.lean + mouse.y;
 
     // Electron orbits (accumulated angle → no jump when speed eases).
     orbits.forEach((inner, i) => {
@@ -526,6 +565,10 @@ export function createOriScene(width: number, height: number): OriSceneHandle {
   }
 
   function dispose(): void {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('touchmove', onTouchMove);
+    }
     scene.traverse((obj) => {
       const mesh = obj as THREE.Mesh;
       if (mesh.geometry) mesh.geometry.dispose();
@@ -537,5 +580,5 @@ export function createOriScene(width: number, height: number): OriSceneHandle {
     qTex.dispose();
   }
 
-  return { scene, camera, update, setModel, resize, dispose };
+  return { scene, camera, update, setModel, setMouseTracking, resize, dispose };
 }

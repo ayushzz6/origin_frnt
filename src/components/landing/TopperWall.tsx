@@ -82,12 +82,14 @@ function MiniHeatmap({ days }: { days: number }) {
 function Card({ topper }: { topper: TopperCard }) {
   return (
     <div
-      className={`flex-none w-72 sm:w-80 rounded-2xl border border-black/10 dark:border-white/10 bg-gradient-to-br ${topper.accentColor} backdrop-blur-sm p-6 space-y-4 select-none`}
+      className={`relative flex-none w-72 sm:w-80 rounded-2xl neu-raised p-6 space-y-4 select-none overflow-hidden`}
     >
+      {/* Accent tint over the neumorphic surface */}
+      <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${topper.accentColor} opacity-40 pointer-events-none`} />
       {/* Avatar + name */}
-      <div className="flex items-center gap-3">
+      <div className="relative flex items-center gap-3">
         {/* Placeholder for real photo */}
-        <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-white/10 border border-black/20 dark:border-white/20 flex items-center justify-center relative overflow-hidden flex-none">
+        <div className="w-12 h-12 rounded-full neu-knob flex items-center justify-center relative overflow-hidden flex-none">
           <span className="text-base font-black text-gray-700 dark:text-white/70">{topper.initials}</span>
           {/* Tooltip-style photo note on hover */}
           <div className="absolute inset-0 bg-black/70 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200 rounded-full p-1">
@@ -101,10 +103,10 @@ function Card({ topper }: { topper: TopperCard }) {
       </div>
 
       {/* Quote */}
-      <p className="text-xs text-gray-700 dark:text-white/70 leading-relaxed font-medium italic">{topper.quote}</p>
+      <p className="relative text-xs text-gray-700 dark:text-white/70 leading-relaxed font-medium italic">{topper.quote}</p>
 
       {/* Streak heatmap */}
-      <div className="space-y-1.5">
+      <div className="relative space-y-1.5">
         <div className="flex items-center justify-between text-[9px] text-gray-500 dark:text-white/30 font-semibold uppercase tracking-wider">
           <span>Streak calendar</span>
           <span>🔥 {topper.streakDays} days</span>
@@ -120,7 +122,7 @@ export default function TopperWall() {
   const x = useMotionValue(0);
 
   return (
-    <section className="py-24 lg:py-32 relative z-10 overflow-hidden">
+    <section className="py-14 sm:py-24 lg:py-32 relative z-10 overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 mb-12">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -139,7 +141,7 @@ export default function TopperWall() {
           </p>
 
           {/* Notice for user to replace placeholder data */}
-          <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20">
+          <div className="mt-4 hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20">
             <span className="text-[10px] font-black text-amber-400 uppercase tracking-wider">
               Replace with real student quotes + photos — see ADDICT.md §5
             </span>

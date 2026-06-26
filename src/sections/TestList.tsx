@@ -162,7 +162,7 @@ export default function TestList({ onStartTest, onViewAnalysis, onBack, user, in
   };
 
   return (
-    <div id="tutorial-test-hub" className="min-h-screen bg-background text-foreground transition-colors duration-300">
+    <div id="tutorial-test-hub" className="min-h-screen neu-surface text-foreground transition-colors duration-300">
       {/* Header */}
       <header className="sticky top-0 z-40 glass border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -190,7 +190,7 @@ export default function TestList({ onStartTest, onViewAnalysis, onBack, user, in
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 pb-24 md:pb-10">
 
         {loading ? (
           <div className="text-center py-16 text-slate-500">Loading tests...</div>
@@ -407,7 +407,7 @@ export default function TestList({ onStartTest, onViewAnalysis, onBack, user, in
               {/* Build Lab (The Creator UI) */}
               <TabsContent value="build" className="mt-0 outline-none">
                 <div className="max-w-4xl mx-auto">
-                    <Card className="border-0 bg-white/40 dark:bg-white/5 backdrop-blur-xl shadow-soft rounded-[40px] overflow-hidden">
+                    <Card className="neu-raised border-0 shadow-none rounded-[40px] overflow-hidden">
                         <div className="p-6 sm:p-10 border-b border-border/40 bg-primary text-white relative">
                             <div className="relative z-10">
                                 <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter mb-2">Test Builder</h2>
@@ -501,7 +501,7 @@ export default function TestList({ onStartTest, onViewAnalysis, onBack, user, in
 
               {/* Search Laboratory (Filters) */}
               <TabsContent value="search" className="mt-0 outline-none">
-                <Card className="border-0 bg-white/40 dark:bg-white/5 backdrop-blur-xl shadow-soft rounded-[2rem] sm:rounded-[40px] p-6 sm:p-10">
+                <Card className="neu-raised border-0 shadow-none rounded-[2rem] sm:rounded-[40px] p-6 sm:p-10">
                   <div className="space-y-8">
                     <div className="space-y-4">
                       <Label className="text-[10px] uppercase font-black tracking-widest text-slate-500">Query Input</Label>
@@ -620,7 +620,7 @@ function TestCard({ test, onStart, onViewAnalysis, user, getDifficultyColor }: T
   const isLocked = false;
 
   return (
-    <Card className={`group relative border-2 border-border/60 hover:border-primary/40 bg-card/40 dark:bg-white/5 backdrop-blur-xl shadow-sm hover:shadow-md hover:shadow-primary/10 transition-all duration-500 rounded-[2rem] sm:rounded-[32px] overflow-hidden ${isLocked ? 'grayscale opacity-80' : ''}`}>
+    <Card className={`group relative border-0 neu-raised neu-pressable transition-all duration-500 overflow-hidden ${isLocked ? 'grayscale opacity-80' : ''}`}>
       <CardContent className="p-5 sm:p-8">
         {/* Header Section — status badges only (subject icon removed) */}
         {(test.attempted || isLocked) && (

@@ -96,11 +96,8 @@ export default function DailyTracker({ user }: DailyTrackerProps) {
     };
 
     return (
-        <Card className="border border-border/50 bg-card/50 backdrop-blur-2xl relative overflow-hidden group">
-            {/* Animated Background Glow */}
-            <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/10 dark:bg-primary/5 rounded-full blur-[100px] pointer-events-none group-hover:bg-primary/20 transition-colors duration-700" />
-            
-            <CardHeader className={cn("relative z-10 space-y-4", isMobile ? "p-4" : "p-6")}>
+        <Card className="neu-raised border-0">
+            <CardHeader className={cn("space-y-4", isMobile ? "p-4" : "p-5")}>
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                     <div className="space-y-1.5">
                         <div className="flex items-center gap-2 sm:gap-3">
@@ -140,7 +137,7 @@ export default function DailyTracker({ user }: DailyTrackerProps) {
                 </div>
             </CardHeader>
 
-            <CardContent className="relative z-10">
+            <CardContent>
                 <div 
                     ref={scrollRef}
                     className="overflow-x-auto pb-4 cursor-grab active:cursor-grabbing no-scrollbar"

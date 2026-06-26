@@ -371,8 +371,8 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
   const correctCount = checkResults.filter((result) => Boolean(result?.isCorrect ?? result?.is_correct)).length;
 
   return (
-    <div id="tutorial-dpp-hub" className="min-h-screen bg-background text-foreground transition-colors duration-300">
-      <header className="z-40 bg-background/80 border-b border-border backdrop-blur-md">
+    <div id="tutorial-dpp-hub" className="min-h-screen neu-surface text-foreground transition-colors duration-300">
+      <header className="z-40 bg-[hsl(var(--neu-bg)/0.9)] border-b border-border/40 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14 sm:h-16">
             <div className="flex items-center gap-2 sm:gap-4 truncate">
@@ -403,18 +403,18 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
 
       <main className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
         {loading ? (
-          <Card className="border-0 shadow-lg dark:bg-slate-900/60 dark:ring-1 dark:ring-white/10">
+          <Card className="neu-raised border-0 shadow-none">
             <CardContent className="p-8 flex items-center justify-center gap-3 text-slate-500">
               <Loader2 className="w-5 h-5 animate-spin" />
               Loading DPPs...
             </CardContent>
           </Card>
         ) : error ? (
-          <Card className="border-0 shadow-lg dark:bg-slate-900/60 dark:ring-1 dark:ring-white/10">
+          <Card className="neu-raised border-0 shadow-none">
             <CardContent className="p-8 text-center text-red-500">{error}</CardContent>
           </Card>
         ) : dpps.length === 0 ? (
-          <Card className="border-0 shadow-lg dark:bg-slate-900/60 dark:ring-1 dark:ring-white/10">
+          <Card className="neu-raised border-0 shadow-none">
             <CardContent className="p-8 text-center space-y-3">
               <Target className="w-10 h-10 text-primary mx-auto" />
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white">No DPPs generated yet</h2>
@@ -426,14 +426,14 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
         ) : !selectedDppId ? (
           <DppSelectionGrid dpps={dpps} onSelect={setSelectedDppId} />
         ) : !currentDpp ? (
-          <Card className="border-0 shadow-lg dark:bg-slate-900/60 dark:ring-1 dark:ring-white/10">
+          <Card className="neu-raised border-0 shadow-none">
             <CardContent className="p-8 flex items-center justify-center gap-3 text-slate-500">
               <Loader2 className="w-5 h-5 animate-spin" />
               Loading DPP...
             </CardContent>
           </Card>
         ) : isCompleted ? (
-          <Card className="border-0 shadow-lg dark:bg-slate-900/60 dark:ring-1 dark:ring-white/10">
+          <Card className="neu-raised border-0 shadow-none">
             <CardContent className="p-8 text-center">
               {submissionAnalysisStatus === 'pending' ? (
                 <div className="mb-6 text-left">
@@ -507,7 +507,7 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
         ) : (
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
-              <Card className="border-0 shadow-lg dark:bg-slate-900/60 dark:ring-1 dark:ring-white/10">
+              <Card className="neu-raised border-0 shadow-none">
                 <CardContent className="p-6 sm:p-8">
                   <div className="flex items-center gap-3 mb-6">
                     <Badge className="bg-primary/10 text-primary">
@@ -634,7 +634,7 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
             </div>
 
             <div className="space-y-4">
-              <Card className="border-0 shadow-soft dark:bg-slate-900/60 dark:ring-1 dark:ring-white/10">
+              <Card className="neu-raised border-0 shadow-none">
                 <CardContent className="p-4">
                   <h3 className="font-semibold text-slate-900 dark:text-white mb-3">{currentDpp.title}</h3>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
@@ -674,7 +674,7 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
                 </CardContent>
               </Card>
 
-              <Card className="border-0 shadow-soft dark:bg-slate-900/60 dark:ring-1 dark:ring-white/10">
+              <Card className="neu-raised border-0 shadow-none">
                 <CardContent className="p-4">
                   <h3 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
                     <Target className="w-5 h-5 text-primary" />
@@ -750,7 +750,7 @@ function DppSelectionGrid({
                   onSelect(dpp.id);
                 }
               }}
-              className="h-full cursor-pointer border-0 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl dark:bg-slate-900/60 dark:ring-1 dark:ring-white/10"
+              className="h-full cursor-pointer neu-raised neu-pressable border-0 shadow-none"
             >
               <CardContent className="p-6 space-y-4">
                   <div className="flex items-start justify-between gap-3">

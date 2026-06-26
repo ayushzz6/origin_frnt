@@ -757,7 +757,7 @@ export default function Pomodoro({ onBack, user, setTimeMode, onNavigate: _onNav
   const progress = ((currentMode.defaultTime - timeRemaining) / currentMode.defaultTime) * 100;
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-background text-foreground transition-colors duration-500 relative overflow-hidden flex flex-col">
+    <div ref={containerRef} className="min-h-screen neu-surface text-foreground transition-colors duration-500 relative overflow-hidden flex flex-col">
       
       {/* ── ATMOSPHERE BACKGROUND ── */}
       <AnimatePresence>

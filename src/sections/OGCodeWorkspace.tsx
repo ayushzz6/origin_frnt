@@ -2,10 +2,12 @@
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from 'react';
 import {
     ArrowLeft, Play, Clock, Loader2, CheckCircle2,
-    XCircle, RotateCcw, Trophy, X, HelpCircle
+    XCircle, RotateCcw, Trophy, X, HelpCircle, ChevronLeft, ChevronRight
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { apiCall } from '@/lib/api';
 import { usePublishOriginAiPageContext } from '@/features/origin-ai/page-context-store';
+import { readOgcodeNavQueue, saveOgcodeNavQueue, getOgcodeNeighbours, type OgcodeNavQueue } from '@/features/ogcode/nav-queue';
 import {
     formatMathExpression as sharedFormatMathExpression,
     hasMathMarkup as sharedHasMathMarkup,
@@ -330,6 +332,56 @@ export default function OGCodeWorkspace({ questionId, onBack, onRefreshUser, set
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const hasFetched = useRef(Boolean(initialQuestion));
 
+    // Previous / Next navigation that follows the filter applied on the list.
+    const router = useRouter();
+    const [navQueue, setNavQueue] = useState<OgcodeNavQueue | null>(null);
+    useEffect(() => {
+        const existing = readOgcodeNavQueue();
+        if (existing) {
+            setNavQueue(existing);
+            return;
+        }
+        // No queue from the list page — fetch all question IDs so navigation works on direct URL load.
+        apiCall('/assessments/ogcode/questions/').then((data: unknown) => {
+            const items = Array.isArray(data) ? data : [];
+            const ids = items.map((q: { id: unknown }) => String(q.id)).filter(Boolean);
+            if (ids.length === 0) return;
+            const queue: OgcodeNavQueue = { ids, label: 'All Questions' };
+            saveOgcodeNavQueue(queue);
+            setNavQueue(queue);
+        }).catch(() => { /* silently skip if fetch fails */ });
+    }, []);
+    const { prevId, nextId, index, total } = getOgcodeNeighbours(navQueue, String(questionId));
+    const goToQuestion = useCallback((id: string | null) => {
+        if (id) router.push(`/ogcode/${id}`);
+    }, [router]);
+
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const loadMoreQuestions = useCallback(async () => {
+        setIsLoadingMore(true);
+        try {
+            const data = await apiCall('/assessments/ogcode/questions/') as unknown;
+            const items = Array.isArray(data) ? data : [];
+            const incoming = items.map((q: { id: unknown }) => String(q.id)).filter(Boolean);
+            const existingSet = new Set(navQueue?.ids ?? []);
+            const fresh = incoming.filter(id => !existingSet.has(id));
+            if (fresh.length > 0) {
+                const merged = [...(navQueue?.ids ?? []), ...fresh];
+                const queue: OgcodeNavQueue = { ids: merged, label: navQueue?.label ?? 'All Questions' };
+                saveOgcodeNavQueue(queue);
+                setNavQueue(queue);
+                // Navigate to first new question
+                router.push(`/ogcode/${fresh[0]}`);
+            } else {
+                toast.info('All questions loaded — you\'ve reached the end!');
+            }
+        } catch {
+            toast.error('Failed to load more questions');
+        } finally {
+            setIsLoadingMore(false);
+        }
+    }, [navQueue, router]);
+
     // 1. SAFE TAGS: Prevents the ".map is not a function" crash
     const safeTags = useMemo(() => {
         if (!question?.tags) return [];
@@ -387,6 +439,30 @@ export default function OGCodeWorkspace({ questionId, onBack, onRefreshUser, set
     useEffect(() => {
         fetchQuestion();
     }, [fetchQuestion]);
+
+    // Navigating Prev/Next changes `questionId` without necessarily remounting
+    // this component. Reset per-question state and reload the new question.
+    const prevQuestionIdRef = useRef(String(questionId));
+    useEffect(() => {
+        const idStr = String(questionId);
+        if (prevQuestionIdRef.current === idStr) return;
+        prevQuestionIdRef.current = idStr;
+        setResult(null);
+        setSelectedOption(null);
+        setSelectedOptions([]);
+        setMatrixPairs([]);
+        setShowHint(false);
+        setShowSolution(false);
+        setAnswerInput('');
+        setElapsed(0);
+        if (initialQuestion && String(initialQuestion.id) === idStr) {
+            setQuestion(initialQuestion);
+            hasFetched.current = true;
+        } else {
+            setQuestion(null);
+            hasFetched.current = false;
+        }
+    }, [questionId, initialQuestion]);
 
     useEffect(() => {
         if (isLoading || result) return;
@@ -485,11 +561,13 @@ export default function OGCodeWorkspace({ questionId, onBack, onRefreshUser, set
     return (
         <div className="min-h-screen bg-background text-foreground flex flex-col font-sans transition-colors duration-300">
             {/* Header */}
-            <div className="h-14 sm:h-12 border-b border-border flex items-center justify-between px-3 sm:px-4 bg-background sticky top-0 z-50">
-                <button onClick={onBack} className="p-2 hover:bg-white/5 rounded-lg transition-colors">
-                    <ArrowLeft className="w-5 h-5 sm:w-4 sm:h-4" />
+            <div className="relative h-14 sm:h-12 border-b border-border flex items-center px-3 sm:px-4 bg-background sticky top-0 z-50">
+                <button onClick={onBack} className="p-2 neu-raised rounded-lg transition-all hover:-translate-y-0.5" aria-label="Back to questions">
+                    <ArrowLeft className="w-4 h-4 text-muted-foreground" />
                 </button>
-                <div id="tutorial-ogcode-stats" className="flex items-center gap-3 sm:gap-4">
+
+                {/* Stats — pinned to the centre of the header */}
+                <div id="tutorial-ogcode-stats" className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3 sm:gap-4">
                     <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold text-amber-500 font-mono bg-amber-500/5 px-2 py-1 rounded-md border border-amber-500/10">
                         <Trophy className="w-3.5 h-3.5" />
                         {user?.points || 0} <span className="hidden xs:inline">PTS</span>
@@ -501,10 +579,48 @@ export default function OGCodeWorkspace({ questionId, onBack, onRefreshUser, set
             </div>
 
             <div className="flex-1 overflow-y-auto bg-background">
-                <div className="max-w-3xl mx-auto p-4 sm:p-8 space-y-10">
+                <div className="max-w-3xl mx-auto px-4 sm:px-8 py-4 sm:py-5 space-y-5">
+                    {/* Question navigation — top of content, always visible */}
+                    <div className="flex items-center justify-between">
+                        <button
+                            onClick={() => goToQuestion(prevId)}
+                            disabled={!prevId}
+                            aria-label="Previous question"
+                            title={navQueue?.label ? `Previous · ${navQueue.label}` : 'Previous question'}
+                            className="neu-raised flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-foreground transition-all hover:-translate-y-0.5 disabled:opacity-30 disabled:cursor-not-allowed disabled:translate-y-0"
+                        >
+                            <ChevronLeft className="w-3.5 h-3.5" />
+                            Prev
+                        </button>
+                        <span className="text-[10px] font-mono text-muted-foreground tabular-nums">
+                            {total > 0 && index >= 0 ? `${index + 1} / ${total}` : `# ${questionId}`}
+                        </span>
+                        {nextId ? (
+                            <button
+                                onClick={() => goToQuestion(nextId)}
+                                aria-label="Next question"
+                                title={navQueue?.label ? `Next · ${navQueue.label}` : 'Next question'}
+                                className="neu-raised flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-foreground transition-all hover:-translate-y-0.5"
+                            >
+                                Next
+                                <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                        ) : (
+                            <button
+                                onClick={loadMoreQuestions}
+                                disabled={isLoadingMore}
+                                aria-label="Load more questions"
+                                className="neu-raised flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-primary transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0"
+                            >
+                                {isLoadingMore ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                                {isLoadingMore ? 'Loading…' : 'Load More'}
+                            </button>
+                        )}
+                    </div>
+
                     {/* Question Content */}
-                    <div id="tutorial-ogcode-content" className="space-y-6">
-                        <div className="flex items-center gap-2">
+                    <div id="tutorial-ogcode-content" className="space-y-4">
+                        <div className="flex items-center justify-end gap-2">
                             <span className="text-[10px] font-bold text-primary px-2 py-1 bg-primary/10 rounded uppercase tracking-wider">
                                 {question.subject}
                             </span>
@@ -528,7 +644,7 @@ export default function OGCodeWorkspace({ questionId, onBack, onRefreshUser, set
                     <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
                     {/* Interaction and Results */}
-                    <div id="tutorial-ogcode-input" className="space-y-6 pb-20">
+                    <div id="tutorial-ogcode-input" className="space-y-4 pb-8">
 
                         {/* 1. INPUT SECTION */}
                         <div className="space-y-4">

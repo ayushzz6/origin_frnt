@@ -27,7 +27,7 @@ export default function DashboardClient({
   initialPointsData,
   initialChallenge,
 }: DashboardClientProps) {
-  const { user, tasks, addTask, toggleTask, removeTask, primeTasks } = useAuth();
+  const { user, tasks, addTask, editTask, toggleTask, removeTask, primeTasks } = useAuth();
   const router = useRouter();
   const { setTimeMode } = useTimeTracker(!!user);
 
@@ -72,6 +72,7 @@ export default function DashboardClient({
       onNavigate={handleNavigate}
       tasks={tasks.length > 0 ? tasks : initialTasks}
       onAddTask={addTask}
+      onEditTask={editTask}
       onToggleTask={toggleTask}
       onRemoveTask={removeTask}
       initialPointsData={initialPointsData}

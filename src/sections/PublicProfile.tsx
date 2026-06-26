@@ -85,7 +85,7 @@ export default function PublicProfile({ initialProfile }: PublicProfileProps) {
     : [];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen neu-surface">
       <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8 space-y-6">
         {/* Back */}
         <Link

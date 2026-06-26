@@ -25,23 +25,30 @@ export default async function SocialPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-2xl mx-auto px-4 py-6 sm:py-8 space-y-8">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight">Find students</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Search by @username or name, follow them, and track their progress.
-          </p>
+    <div className="min-h-screen neu-surface">
+      <div className="max-w-2xl mx-auto px-3 sm:px-6 py-6 sm:py-8 space-y-6">
+
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+            <Users className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black tracking-tight text-foreground">Find students</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Search by @username or name, follow them, and track their progress.
+            </p>
+          </div>
         </div>
 
         <StudentSearch autoFocus />
 
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-primary" />
-            <h2 className="font-black tracking-tight text-sm uppercase tracking-widest text-muted-foreground">
+          <div className="flex items-center gap-2 px-1">
+            <Users className="w-3.5 h-3.5 text-primary" />
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
               People you follow
-            </h2>
+            </p>
           </div>
           <StudentList
             users={following}
@@ -52,7 +59,7 @@ export default async function SocialPage() {
               href={`/u/${viewer.username}/following`}
               className="inline-block text-xs font-bold text-primary hover:underline"
             >
-              See all
+              See all →
             </Link>
           )}
         </div>

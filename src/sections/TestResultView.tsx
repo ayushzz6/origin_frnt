@@ -229,9 +229,9 @@ export default function TestResultView({
   const isAnalysisPending = analysisStatus === 'pending';
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">
+    <div className="min-h-screen neu-surface text-foreground font-sans selection:bg-primary/30">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
+      <header className="sticky top-0 z-50 bg-[hsl(var(--neu-bg)/0.9)] backdrop-blur-xl border-b border-border/40">
         <div className="max-w-4xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-2 sm:gap-4 truncate">
@@ -347,7 +347,7 @@ export default function TestResultView({
         {/* Marks Obtained Card */}
         <section className="relative group">
           <div className="absolute -inset-1 bg-gradient-to-r from-primary/30 to-primary/20 rounded-[2.5rem] blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
-          <Card className="relative bg-card/40 backdrop-blur-xl border-border/10 rounded-[1.5rem] sm:rounded-[2rem] overflow-hidden">
+          <Card className="relative neu-raised border-0 rounded-[1.5rem] sm:rounded-[2rem] overflow-hidden">
             <CardContent className="p-6 sm:p-8 flex flex-col items-center">
               <div className="text-[8px] sm:text-[10px] uppercase tracking-[0.3em] font-black text-slate-800 dark:text-muted-foreground mb-4 sm:mb-6 bg-primary/5 px-4 py-1.5 rounded-full border border-primary/5">
                 Marks Obtained
@@ -376,21 +376,21 @@ export default function TestResultView({
 
         {/* Quick Stats Grid */}
         <section className="grid grid-cols-3 gap-2 sm:gap-4">
-          <Card className="bg-card/40 backdrop-blur-lg border-border/5 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex flex-col items-center text-center group hover:bg-primary/5 transition-colors">
+          <Card className="neu-raised border-0 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex flex-col items-center text-center group hover:bg-primary/5 transition-colors">
             <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-2xl bg-purple-500/10 flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-110 transition-transform">
               <HelpCircle className="w-4 h-4 sm:w-6 sm:h-6 text-purple-400" />
             </div>
             <div className="text-sm sm:text-xl font-black text-foreground leading-none mb-1">{currentStats.correct + currentStats.incorrect}</div>
             <div className="text-[8px] sm:text-[10px] text-slate-800 dark:text-muted-foreground font-bold uppercase tracking-widest leading-tight">Attempted</div>
           </Card>
-          <Card className="bg-card/40 backdrop-blur-lg border-border/5 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex flex-col items-center text-center group hover:bg-primary/5 transition-colors">
+          <Card className="neu-raised border-0 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex flex-col items-center text-center group hover:bg-primary/5 transition-colors">
             <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-2xl bg-primary/10 flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-110 transition-transform">
               <Target className="w-4 h-4 sm:w-6 sm:h-6 text-primary" />
             </div>
             <div className="text-sm sm:text-xl font-black text-foreground leading-none mb-1">{currentStats.accuracy}%</div>
             <div className="text-[8px] sm:text-[10px] text-slate-800 dark:text-muted-foreground font-bold uppercase tracking-widest leading-tight">Accuracy</div>
           </Card>
-          <Card className="bg-card/40 backdrop-blur-lg border-border/5 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex flex-col items-center text-center group hover:bg-primary/5 transition-colors">
+          <Card className="neu-raised border-0 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex flex-col items-center text-center group hover:bg-primary/5 transition-colors">
             <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-2xl bg-orange-500/10 flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-110 transition-transform">
               <Clock className="w-4 h-4 sm:w-6 sm:h-6 text-orange-400" />
             </div>
@@ -408,7 +408,7 @@ export default function TestResultView({
               <div className="w-1.5 h-6 bg-primary rounded-full" />
               <h3 className="text-xl font-black text-foreground tracking-tight">Performance Trend</h3>
             </div>
-            <Card className="bg-card/40 backdrop-blur-xl border-border/10 rounded-[2rem] p-8">
+            <Card className="neu-raised border-0 rounded-[2rem] p-8">
               <div className="h-48">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={[...history].reverse().slice(-5).map((h, i, arr) => ({
@@ -456,7 +456,7 @@ export default function TestResultView({
             </Badge>
           </div>
 
-          <Card className="bg-card/40 backdrop-blur-xl border-border/10 rounded-[2.5rem] overflow-hidden">
+          <Card className="neu-raised border-0 rounded-[2.5rem] overflow-hidden">
             <CardContent className="p-10">
               <div className="flex flex-col md:flex-row items-center justify-around gap-12">
                 {/* Donut Chart */}
@@ -534,7 +534,7 @@ export default function TestResultView({
             </div>
           </div>
 
-          <Card className="bg-card/40 backdrop-blur-xl border-border/10 rounded-[1.5rem] sm:rounded-[2.5rem] p-6 sm:p-8 overflow-hidden">
+          <Card className="neu-raised border-0 rounded-[1.5rem] sm:rounded-[2.5rem] p-6 sm:p-8 overflow-hidden">
             <div className="h-48 sm:h-72 mt-4">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={[
@@ -747,7 +747,7 @@ export default function TestResultView({
               </div>
 
               {/* Mistake Detail */}
-              <Card className="lg:col-span-2 bg-card/40 backdrop-blur-xl border-border/10 rounded-[2rem] overflow-hidden group">
+              <Card className="lg:col-span-2 neu-raised border-0 rounded-[2rem] overflow-hidden group">
                 <CardContent className="p-10">
                   {selectedReviewItem ? (
                     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
@@ -840,7 +840,7 @@ export default function TestResultView({
               </div>
 
               {/* Correct Detail */}
-              <Card className="lg:col-span-2 bg-card/40 backdrop-blur-xl border-border/10 rounded-[2rem] overflow-hidden group">
+              <Card className="lg:col-span-2 neu-raised border-0 rounded-[2rem] overflow-hidden group">
                 <CardContent className="p-10">
                   {selectedReviewItem ? (
                     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
@@ -867,7 +867,7 @@ export default function TestResultView({
 
 
           <TabsContent value="recommendations">
-            <Card className="bg-card/40 backdrop-blur-xl border-border/10 rounded-[2rem] overflow-hidden group">
+            <Card className="neu-raised border-0 rounded-[2rem] overflow-hidden group">
               <CardContent className="p-10">
                 <div className="flex items-center gap-4 mb-8">
                   <div className="w-12 h-12 rounded-xl bg-teal-500/10 flex items-center justify-center">

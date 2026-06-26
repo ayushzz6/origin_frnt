@@ -20,10 +20,18 @@ export function SplineScene({ scene, className }: SplineSceneProps) {
     const root = rootRef.current;
     if (!root) return;
     let canvas: HTMLCanvasElement | null = null;
+    // Guards against the synthetic events we dispatch bubbling back to this
+    // same window listener and re-triggering it — that feedback loop (plus the
+    // double event when hovering the canvas directly) is what made the robot flicker.
+    let forwarding = false;
 
     const forward = (e: PointerEvent) => {
+      if (forwarding) return;
       if (!canvas || !canvas.isConnected) canvas = root.querySelector('canvas');
       if (!canvas) return;
+      // When the cursor is already directly over the canvas it receives the real
+      // pointer event natively; forwarding a second synthetic one makes it jitter.
+      if (e.target === canvas) return;
       const init: PointerEventInit = {
         clientX: e.clientX,
         clientY: e.clientY,
@@ -33,8 +41,10 @@ export function SplineScene({ scene, className }: SplineSceneProps) {
         pointerId: 1,
         isPrimary: true,
       };
+      forwarding = true;
       canvas.dispatchEvent(new PointerEvent('pointermove', init));
       canvas.dispatchEvent(new MouseEvent('mousemove', init));
+      forwarding = false;
     };
 
     window.addEventListener('pointermove', forward, { passive: true });

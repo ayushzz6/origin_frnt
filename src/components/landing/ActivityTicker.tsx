@@ -58,9 +58,9 @@ export default function ActivityTicker() {
 
   if (prefersReduced) {
     return (
-      <div className="flex flex-wrap gap-3 justify-center px-4 py-3 bg-black dark:bg-transparent">
+      <div className="flex flex-wrap gap-3 justify-center px-4 py-3 bg-transparent">
         {events.slice(0, 4).map((e, i) => (
-          <span key={i} className="text-xs text-white dark:text-white/60">{e.emoji} {e.text}</span>
+          <span key={i} className="text-xs text-foreground/75">{e.emoji} {e.text}</span>
         ))}
       </div>
     );
@@ -68,24 +68,24 @@ export default function ActivityTicker() {
 
   return (
     <div
-      className="relative w-full overflow-hidden py-3 bg-black dark:bg-transparent"
+      className="relative w-full overflow-hidden py-3 bg-transparent border-y border-white/5 dark:border-black/5"
       onMouseEnter={() => { pausedRef.current = true; }}
       onMouseLeave={() => { pausedRef.current = false; }}
       aria-hidden="true"
     >
       {/* Fade edges */}
-      <div className="absolute left-0 top-0 h-full w-16 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
-      <div className="absolute right-0 top-0 h-full w-16 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
+      <div className="absolute left-0 top-0 h-full w-16 bg-gradient-to-r from-[hsl(var(--neu-bg))] to-transparent z-10 pointer-events-none" />
+      <div className="absolute right-0 top-0 h-full w-16 bg-gradient-to-l from-[hsl(var(--neu-bg))] to-transparent z-10 pointer-events-none" />
 
       <div ref={trackRef} className="flex items-center gap-0 will-change-transform whitespace-nowrap">
         {items.map((event, i) => (
           <span
             key={i}
-            className="inline-flex items-center gap-1.5 px-6 text-xs font-medium text-white dark:text-white/70"
+            className="inline-flex items-center gap-1.5 px-6 text-xs font-heading font-semibold text-foreground/85"
           >
             <span>{event.emoji}</span>
             <span>{event.text}</span>
-            <span className="ml-4 text-white/30 dark:text-white/20">·</span>
+            <span className="ml-4 text-muted-foreground/30">·</span>
           </span>
         ))}
       </div>

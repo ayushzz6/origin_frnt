@@ -27,18 +27,18 @@ export default function StudentList({ users, emptyLabel }: StudentListProps) {
       {users.map((u) => (
         <div
           key={u.id}
-          className="flex items-center gap-3 p-3 rounded-2xl bg-card/60 backdrop-blur-sm border border-border/50 hover:border-border transition-colors"
+          className="neu-raised flex items-center gap-3 p-3.5"
         >
           <Link href={`/u/${u.username}`} className="flex items-center gap-3 flex-1 min-w-0 group">
-            <Avatar className="w-11 h-11 shrink-0">
+            <Avatar className="w-11 h-11 shrink-0 ring-2 ring-primary/10">
               {u.avatar ? <AvatarImage src={u.avatar} alt={u.name} className="object-cover" /> : null}
-              <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-white font-black">
+              <AvatarFallback className="bg-primary/15 text-primary font-black text-sm">
                 {u.name.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0">
-              <p className="font-bold text-sm truncate group-hover:text-primary transition-colors">{u.name}</p>
-              <p className="text-xs text-muted-foreground truncate">@{u.username}</p>
+              <p className="font-black text-sm truncate group-hover:text-primary transition-colors">{u.name}</p>
+              <p className="text-[11px] text-muted-foreground truncate">@{u.username}</p>
             </div>
           </Link>
           {!u.isMe && (

@@ -1,8 +1,8 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
-import { Zap } from 'lucide-react';
+import { Zap, ChevronLeft, ChevronRight, Flame, BookOpen, TrendingUp, Award } from 'lucide-react';
 
 const OriMascot = dynamic(() => import('@/features/mascot/Ori2D'), { ssr: false });
 import type { Task, User, ViewState } from '@/types';
@@ -19,66 +19,66 @@ import PointsSummary from '@/components/dashboard/PointsSummary';
 import { apiCall } from '@/lib/api';
 import { useLayout } from '@/context/LayoutContext';
 import { cn } from '@/lib/utils';
+import { NeuButton } from '@/components/ui/neu';
 import type { TimeType } from '@/hooks/useTimeTracker';
 import { getRegistrationStatusAction } from '@/server/actions/system-actions';
 
-const MOCK_EVENTS = [
-  { 
-    id: 1, 
-    title: 'Origin V1.0 is Live!', 
-    description: 'Welcome, O3 Origin! Your personalized rank booster just got a major upgrade. 🚀 Let\'s find those gaps.', 
-    image: '/carousel/launch.png', 
-    badge: 'OCTOBER 15, 2026' 
-  },
-  { 
-    id: 2, 
-    title: 'The Reality Check: IPL vs. Exams', 
-    description: 'IPL will atahi rahega but jee/neet ekbarhi ayegaaa. 🏏📚💀 Focus on your *real* match now.', 
-    image: '/carousel/ipl.png', 
-    badge: 'IPL SEASON 2026' 
-  },
-  { 
-    id: 3, 
-    title: 'Study Plan vs. Reality', 
-    description: 'Let\'s reset that focus streak and stop doomscrolling. Origin knows your true power level. 🤓🔄📉', 
-    image: '/carousel/study.png', 
-    badge: '3:00 AM (MONDAY)' 
-  },
+const SLIDES = [
+  { id: 1, title: 'Origin V1.0 is Live!',        image: '/carousel/launch.png'           },
+  { id: 2, title: 'Beta Launch',                  image: '/carousel/beta_launch.png'      },
+  { id: 3, title: 'IPL vs JEE',                   image: '/carousel/ipl.png'              },
+  { id: 4, title: 'IPL Comparison',               image: '/carousel/ipl_comparison.png'   },
+  { id: 5, title: 'Study Plan vs Reality',        image: '/carousel/study.png'            },
+  { id: 6, title: 'Student Comparison',           image: '/carousel/student_comparison.png'},
 ];
 
 function EventsCarousel() {
   const [current, setCurrent] = useState(0);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % MOCK_EVENTS.length);
-    }, 5000);
+    const timer = setInterval(() => setCurrent(c => (c + 1) % SLIDES.length), 5000);
     return () => clearInterval(timer);
   }, []);
 
+  const prev = () => setCurrent(c => (c - 1 + SLIDES.length) % SLIDES.length);
+  const next = () => setCurrent(c => (c + 1) % SLIDES.length);
+
   return (
-    <div className="relative w-full h-[200px] sm:h-[260px] rounded-3xl overflow-hidden group border border-slate-200/50 dark:border-slate-800/50 shadow-2xl">
-      {MOCK_EVENTS.map((event, idx) => (
+    <div className="relative w-full h-[200px] sm:h-[260px] overflow-hidden group neu-raised">
+      {SLIDES.map((slide, idx) => (
         <div
-          key={event.id}
-          className={`absolute inset-0 transition-opacity duration-1000 ${idx === current ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+          key={slide.id}
+          className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${idx === current ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
         >
-          <img src={event.image} alt={event.title} className="w-full h-full object-cover opacity-60 dark:opacity-40" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent dark:from-background/90 dark:via-background/60 dark:to-transparent" />
-          <div className="absolute inset-0 p-6 sm:p-10 flex flex-col justify-center">
-            <h2 className="text-2xl sm:text-4xl font-black text-white dark:text-white mb-2 sm:mb-3 tracking-tight leading-tight max-w-2xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)]">{event.title}</h2>
-            <p className="text-sm sm:text-base text-white/80 dark:text-slate-300 max-w-xl leading-relaxed font-medium line-clamp-2 sm:line-clamp-none drop-shadow-[0_1px_4px_rgba(0,0,0,0.3)]">{event.description}</p>
-          </div>
+          <img src={slide.image} alt={slide.title} className="w-full h-full object-cover" />
         </div>
       ))}
 
-      {/* Navigation Dots */}
-      <div className="absolute bottom-6 right-6 flex gap-2">
-        {MOCK_EVENTS.map((_, idx) => (
+      {/* ← prev arrow */}
+      <button
+        onClick={prev}
+        aria-label="Previous slide"
+        className="absolute left-3 top-1/2 -translate-y-1/2 z-20 neu-btn p-1.5 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200"
+      >
+        <ChevronLeft className="w-4 h-4 text-foreground" />
+      </button>
+
+      {/* → next arrow */}
+      <button
+        onClick={next}
+        aria-label="Next slide"
+        className="absolute right-3 top-1/2 -translate-y-1/2 z-20 neu-btn p-1.5 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200"
+      >
+        <ChevronRight className="w-4 h-4 text-foreground" />
+      </button>
+
+      {/* dot indicators */}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2 neu-inset px-3 py-2 rounded-full">
+        {SLIDES.map((_, idx) => (
           <button
             key={idx}
             onClick={() => setCurrent(idx)}
-            className={`w-2 h-2 rounded-full transition-all ${idx === current ? 'w-6 bg-primary shadow-sm' : 'bg-slate-300 dark:bg-slate-700 hover:bg-slate-400 dark:hover:bg-slate-600'}`}
+            className={`h-2 rounded-full transition-all ${idx === current ? 'w-6 bg-primary' : 'w-2 bg-muted-foreground/40 hover:bg-muted-foreground/60'}`}
           />
         ))}
       </div>
@@ -93,6 +93,7 @@ interface DashboardProps {
   onNavigate: (view: ViewState) => void;
   tasks: Task[];
   onAddTask: (text: string, due: string) => void;
+  onEditTask: (id: string, text: string) => void;
   onToggleTask: (id: string) => void;
   onRemoveTask: (id: string) => void;
   initialPointsData?: {
@@ -117,6 +118,7 @@ export default function Dashboard({
   onNavigate,
   tasks,
   onAddTask,
+  onEditTask,
   onToggleTask,
   onRemoveTask,
   initialPointsData = null,
@@ -265,134 +267,190 @@ export default function Dashboard({
     setTimeMode('webpage');
   }, [setTimeMode]);
 
-  const displayName = getUserTitle(user) 
-    ? `${getUserTitle(user)} ${user.name.split(' ')[0]}` 
+  const displayName = getUserTitle(user)
+    ? `${getUserTitle(user)} ${user.name.split(' ')[0]}`
     : user.name.split(' ')[0];
 
-  return (
-    <div className="min-h-screen bg-primary/[0.03] dark:bg-background font-sans selection:bg-primary/20 selection:text-primary transition-colors duration-500 relative overflow-x-hidden">
-      {/* Premium Background Decoration */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden opacity-40 dark:opacity-20">
-        <div className="absolute top-[-20%] right-[-10%] w-[70%] h-[70%] bg-primary/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-20%] left-[-10%] w-[60%] h-[60%] bg-primary/10 rounded-full blur-[100px]" />
-        <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.02] mix-blend-overlay" />
-      </div>
+  /* ── Derived stats ─────────────────────────────────────────────── */
+  const streakCount = useMemo(() => {
+    const data = user.contributionData;
+    if (!data?.length) return 0;
+    const active = new Set(
+      data.filter(c => c.count > 0)
+          .map(c => (typeof c.date === 'string' ? c.date.split('T')[0] : ''))
+          .filter(Boolean)
+    );
+    const ref = new Date();
+    // allow today to still be empty — count from yesterday in that case
+    const todayKey = ref.toISOString().split('T')[0];
+    if (!active.has(todayKey)) ref.setDate(ref.getDate() - 1);
+    let s = 0;
+    for (let i = 0; i < 365; i++) {
+      const d = new Date(ref);
+      d.setDate(d.getDate() - i);
+      if (active.has(d.toISOString().split('T')[0])) s++;
+      else break;
+    }
+    return s;
+  }, [user.contributionData]);
 
-      <main className="max-w-[1400px] mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8 relative z-10 ring-0">
-        {/* Registration Status Banner */}
+  const totalSolved = useMemo(() =>
+    (user.contributionData || []).reduce((sum, c) => sum + (c.count || 0), 0),
+    [user.contributionData]
+  );
+
+  const todayStudyMins = useMemo(() => {
+    const analytics = user.timeAnalytics || [];
+    if (!analytics.length) return 0;
+    const t = analytics[analytics.length - 1] as { practiceTime?: number; webpageTime?: number; pomodoroTime?: number };
+    return Math.floor(((t.practiceTime || 0) + (t.webpageTime || 0) + (t.pomodoroTime || 0)) / 60);
+  }, [user.timeAnalytics]);
+
+  const TIER_BADGE: Record<string, string> = {
+    Novice: 'text-slate-500 border-slate-300 bg-slate-100 dark:bg-slate-800',
+    Learner: 'text-blue-600 border-blue-300 bg-blue-50 dark:bg-blue-900/30',
+    Scholar: 'text-indigo-600 border-indigo-300 bg-indigo-50 dark:bg-indigo-900/30',
+    Expert: 'text-violet-600 border-violet-300 bg-violet-50 dark:bg-violet-900/30',
+    Master: 'text-pink-600 border-pink-300 bg-pink-50 dark:bg-pink-900/30',
+    Grandmaster: 'text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-900/30',
+    Legend: 'text-primary border-primary/40 bg-primary/10',
+  };
+  const tierBadgeCls = pointsData ? (TIER_BADGE[pointsData.currentTier] ?? TIER_BADGE.Novice) : TIER_BADGE.Novice;
+
+  const stagger = (i: number) => ({ initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.35, delay: 0.06 * i } });
+
+  return (
+    <div className="min-h-screen neu-surface font-sans selection:bg-primary/20 selection:text-primary">
+      <main className="max-w-[1400px] mx-auto px-3 sm:px-6 lg:px-8 py-6 space-y-4">
+
+        {/* ── Seats banner ──────────────────────────────────────── */}
         {regStatus && regStatus.seatsLeft > 0 && regStatus.seatsLeft <= 50 && (
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-primary/10 border border-primary/20 rounded-2xl p-4 flex items-center justify-between gap-4 backdrop-blur-xl"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
-                <Zap className="w-5 h-5 animate-pulse" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-primary uppercase tracking-wider">Limited Seats Remaining!</p>
-                <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">Only {regStatus.seatsLeft} out of {regStatus.limit} seats left for this phase.</p>
-              </div>
+          <motion.div {...stagger(0)} className="neu-raised px-4 py-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5">
+              <Zap className="w-4 h-4 text-primary shrink-0" />
+              <p className="text-xs font-bold text-foreground">
+                Only <span className="text-primary font-black">{regStatus.seatsLeft}</span> of {regStatus.limit} seats left.
+              </p>
             </div>
-            <button 
-              onClick={() => window.open('https://chat.whatsapp.com/L7X7N7P7N7P7N7P7N7P7N7', '_blank')}
-              className="px-4 py-2 bg-primary hover:bg-primary/90 text-white text-xs font-black rounded-xl transition-all shadow-lg shadow-primary/20 uppercase tracking-tighter"
-            >
-              Invite Friends
-            </button>
+            <NeuButton accent onClick={() => window.open('https://chat.whatsapp.com/L7X7N7P7N7P7N7P7N7P7N7', '_blank')} className="text-xs font-black uppercase tracking-tighter shrink-0">
+              Invite
+            </NeuButton>
           </motion.div>
         )}
-        <div className="flex items-center justify-center gap-3 sm:gap-5">
-          <div className="text-center sm:text-left">
-            <h1 className="text-2xl sm:text-4xl font-black text-[#334155] dark:text-white tracking-tight">
-              {getGreeting()}, {displayName}!
-            </h1>
-            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 font-medium mt-1">
-              {pointsData?.pointsToNext && pointsData.pointsToNext > 0
-                ? `You're just ${pointsData.pointsToNext.toLocaleString()} pts away from becoming a ${pointsData.nextTier}!`
-                : "You've reached the absolute peak of excellence!"}
-            </p>
+
+        {/* ── HERO ──────────────────────────────────────────────── */}
+        <motion.div {...stagger(1)} id="tutorial-welcome" className="neu-raised p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-4">
+            {/* Left */}
+            <div className="flex-1 min-w-0 space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`text-[10px] font-black uppercase tracking-[0.18em] px-2.5 py-1 rounded-full border ${tierBadgeCls}`}>
+                  {pointsData?.currentTier ?? 'Novice'}
+                </span>
+                {streakCount > 0 && (
+                  <motion.span
+                    animate={{ scale: [1, 1.12, 1] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                    className="flex items-center gap-1 text-[11px] font-black text-orange-500"
+                  >
+                    <Flame className="w-3.5 h-3.5" />{streakCount} day streak
+                  </motion.span>
+                )}
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight leading-tight">
+                {getGreeting()},<br className="sm:hidden" /> {displayName}!
+              </h1>
+              {pointsData && pointsData.pointsToNext > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {pointsData.pointsToNext.toLocaleString()} pts away from <span className="font-bold text-foreground">{pointsData.nextTier}</span>
+                </p>
+              )}
+            </div>
+            {/* Ori */}
+            <div className="h-16 w-16 sm:h-24 sm:w-24 shrink-0">
+              <OriMascot expression="winking" title="Origin AI" />
+            </div>
           </div>
-          <div className="h-20 w-20 shrink-0 sm:h-28 sm:w-28">
-            <OriMascot expression="winking" title="Origin AI" />
-          </div>
+
+          {/* Tier progress bar */}
+          {pointsData && (
+            <div className="mt-4 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                  {pointsData.totalPoints.toLocaleString()} pts
+                </span>
+                <span className="text-[10px] font-black text-primary">{pointsData.nextTier}</span>
+              </div>
+              <div className="h-2 rounded-full overflow-hidden neu-inset">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min(100, pointsData.progressPercent)}%` }}
+                  transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.4 }}
+                  className="h-full rounded-full bg-primary"
+                />
+              </div>
+            </div>
+          )}
+        </motion.div>
+
+        {/* ── QUICK STATS STRIP ─────────────────────────────────── */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {([
+            { icon: BookOpen,   color: 'text-emerald-500', label: 'Solved',      value: totalSolved.toLocaleString() },
+            { icon: Flame,      color: 'text-orange-500',  label: 'Day Streak',  value: streakCount > 0 ? String(streakCount) : '—' },
+            { icon: Award,      color: 'text-violet-500',  label: 'Rank',        value: pointsData?.currentTier ?? '—' },
+            { icon: TrendingUp, color: 'text-cyan-500',    label: 'Today',       value: todayStudyMins > 0 ? `${todayStudyMins}m` : '—' },
+          ] as const).map((s, i) => (
+            <motion.div key={s.label} {...stagger(i + 2)} className="neu-raised p-4 flex flex-col gap-1.5">
+              <s.icon className={`w-4 h-4 ${s.color}`} />
+              <p className="text-xl font-black text-foreground leading-none">{s.value}</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{s.label}</p>
+            </motion.div>
+          ))}
         </div>
 
-        <motion.div
-          id="tutorial-events"
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-        >
+        {/* ── CAROUSEL ──────────────────────────────────────────── */}
+        <motion.div {...stagger(6)} id="tutorial-events">
           <EventsCarousel />
         </motion.div>
 
-        <div className={cn(
-          "grid gap-6 sm:gap-8",
-          isConstrained ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-12"
-        )}>
-          {/* Main Content Grid (8/4 split for primary activity) */}
-          <div className={cn(
-            "flex flex-col gap-6 sm:gap-8",
-            isConstrained ? "" : "lg:col-span-8"
-          )}>
-            <div id="tutorial-tracker" className="h-auto">
-              <DailyTracker user={user} />
-            </div>
-            <div id="tutorial-progress" className="h-auto">
-              <PastWeekProgress user={user} />
-            </div>
+        {/* ── MAIN GRID: heatmap + week-rings | challenge + points ─ */}
+        <div className={cn('grid gap-4', isConstrained ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-12')}>
+          <div className={cn('flex flex-col gap-4', isConstrained ? '' : 'lg:col-span-8')}>
+            <motion.div {...stagger(7)} id="tutorial-tracker"><DailyTracker user={user} /></motion.div>
+            <motion.div {...stagger(8)} id="tutorial-progress"><PastWeekProgress user={user} /></motion.div>
           </div>
-
-          <div className={cn(
-            "flex flex-col gap-6 sm:gap-8",
-            isConstrained ? "" : "lg:col-span-4"
-          )}>
-            <div id="tutorial-challenge">
-              <ChallengeCard
-                user={user}
-                initialChallenge={initialChallenge}
-                onStartChallenge={onStartChallenge}
-              />
-            </div>
-            <div id="tutorial-points">
+          <div className={cn('flex flex-col gap-4', isConstrained ? '' : 'lg:col-span-4')}>
+            <motion.div {...stagger(9)} id="tutorial-challenge">
+              <ChallengeCard user={user} initialChallenge={initialChallenge} onStartChallenge={onStartChallenge} />
+            </motion.div>
+            <motion.div {...stagger(10)} id="tutorial-points">
               <PointsSummary data={pointsData} onNextSteps={() => onNavigate('prestige-milestones')} />
-            </div>
+            </motion.div>
           </div>
         </div>
 
-        {/* Insights & Tasks Layer (Wider for better visibility) */}
-        <div className="space-y-6 sm:space-y-8">
-          <div className={cn(
-            "grid gap-6 sm:gap-8",
-            isConstrained ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
-          )}>
-            <div id="tutorial-activities">
-              <PastActivitiesCard user={user} />
-            </div>
-            <div id="tutorial-focus">
-              <PlacesToConcentrateCard user={user} />
-            </div>
-          </div>
-
-          <div id="tutorial-todo" className="w-full">
-            <TodoListCard 
-              tasks={tasks}
-              onAddTask={(text, due) => {
-                onAddTask(text, due);
-                addNotification({
-                  title: 'Goal Set!',
-                  message: `"${text}" has been added to your goals. Stay focused!`,
-                  type: 'success'
-                });
-              }}
-              onToggleTask={onToggleTask}
-              onRemoveTask={onRemoveTask}
-              onViewAll={() => onNavigate('tasks-goals')}
-            />
-          </div>
+        {/* ── ACTIVITY + FOCUS ──────────────────────────────────── */}
+        <div className={cn('grid gap-4', isConstrained ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2')}>
+          <motion.div {...stagger(11)} id="tutorial-activities"><PastActivitiesCard user={user} /></motion.div>
+          <motion.div {...stagger(12)} id="tutorial-focus"><PlacesToConcentrateCard user={user} /></motion.div>
         </div>
+
+        {/* ── TASKS ─────────────────────────────────────────────── */}
+        <motion.div {...stagger(13)} id="tutorial-todo">
+          <TodoListCard
+            tasks={tasks}
+            onAddTask={(text, due) => {
+              onAddTask(text, due);
+              addNotification({ title: 'Goal Set!', message: `"${text}" added to your goals.`, type: 'success' });
+            }}
+            onEditTask={onEditTask}
+            onToggleTask={onToggleTask}
+            onRemoveTask={onRemoveTask}
+            onViewAll={() => onNavigate('tasks-goals')}
+          />
+        </motion.div>
+
       </main>
     </div>
   );

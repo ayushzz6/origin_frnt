@@ -97,14 +97,8 @@ export default function TasksGoals({ tasks, onAddTask, onToggleTask, onRemoveTas
   };
 
   return (
-    <div id="tutorial-goals-hub" className="min-h-screen bg-background text-foreground p-3 sm:p-4 md:p-8 relative overflow-x-hidden">
-      {/* Premium Background Decoration */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden opacity-30 dark:opacity-20">
-        <div className="absolute top-[-20%] right-[-10%] w-[70%] h-[70%] bg-sky-100 dark:bg-primary/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-20%] left-[-10%] w-[60%] h-[60%] bg-slate-100 dark:bg-sky-500/10 rounded-full blur-[100px]" />
-      </div>
-
-      <div className="max-w-6xl mx-auto space-y-8 relative z-10">
+    <div id="tutorial-goals-hub" className="min-h-screen neu-surface text-foreground p-3 sm:p-4 md:p-8 pb-24 md:pb-10 relative overflow-x-hidden">
+      <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 relative z-10">
         
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -190,8 +184,8 @@ export default function TasksGoals({ tasks, onAddTask, onToggleTask, onRemoveTas
           </div>
 
           {/* New Task Form - Moved here */}
-          <Card className="border-0 shadow-2xl shadow-sky-500/5 bg-card dark:bg-slate-900/60 backdrop-blur-xl relative overflow-hidden rounded-2xl sm:rounded-3xl ring-1 ring-sky-100 dark:ring-white/5">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/5 blur-3xl -mr-16 -mt-16" />
+          <Card className="neu-raised border-0 shadow-none relative overflow-hidden">
+
             <CardContent className="p-4 sm:p-6">
               <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                 <div className="md:col-span-6 space-y-1.5">

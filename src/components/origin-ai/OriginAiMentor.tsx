@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { usePathname } from 'next/navigation';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Loader2, Mic, Send, Square, TriangleAlert, X, PanelLeft, PanelRight } from 'lucide-react';
 
 import {
@@ -29,6 +29,7 @@ import { Progress } from '@/components/ui/progress';
 import dynamic from 'next/dynamic';
 import OriMascotStatic from '@/features/mascot/OriMascotStatic';
 import { useMentorMascotState } from '@/features/mascot/useMentorMascotState';
+import type { MascotState } from '@/features/mascot/mascot-state';
 
 // Live 3D mascot (WebGL) — client-only; procedural body + PNG fallback handle SSR/no-WebGL.
 const OriMascot = dynamic(() => import('@/features/mascot/OriMascot'), { ssr: false });
@@ -118,15 +119,15 @@ function MessageList({ snapshot }: { snapshot: OriginAiSnapshot }) {
             key={message.id}
             className={cn('flex', isAssistant ? 'justify-start' : 'justify-end')}
           >
-            <div className={cn('flex max-w-[88%] gap-3', isAssistant ? 'flex-row' : 'flex-row-reverse')}>
+            <div className={cn('flex max-w-[92%] gap-2.5', isAssistant ? 'flex-row' : 'flex-row-reverse')}>
               {isAssistant ? (
-                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border border-primary/20 bg-primary/10 p-1">
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border border-primary/20 bg-primary/10 self-start">
                   <OriMascotStatic className="h-full w-full" />
                 </div>
               ) : null}
               <div
                 className={cn(
-                  'rounded-3xl px-4 py-3 text-sm leading-7 shadow-lg transition-colors',
+                  'rounded-2xl px-3.5 py-2 text-sm leading-6 shadow-sm transition-colors',
                   isAssistant
                     ? 'rounded-tl-md border border-border/40 bg-card/40 text-foreground backdrop-blur-md shadow-slate-200/50 dark:shadow-none'
                     : 'rounded-tr-md bg-primary/40 text-foreground backdrop-blur-md border border-primary/20 shadow-primary/10',
@@ -135,8 +136,8 @@ function MessageList({ snapshot }: { snapshot: OriginAiSnapshot }) {
                 <FormattedMessage content={message.content} isAssistant={isAssistant} />
                 <div
                   className={cn(
-                    'mt-2 text-[10px] uppercase tracking-[0.2em]',
-                    isAssistant ? 'text-muted-foreground' : 'text-primary/70',
+                    'mt-1 text-[9px] tracking-wide',
+                    isAssistant ? 'text-muted-foreground/70' : 'text-primary/60',
                   )}
                 >
                   {isAssistant ? 'Origin AI' : 'You'} · {formatRelativeTimestamp(message.timestamp)}
@@ -146,6 +147,95 @@ function MessageList({ snapshot }: { snapshot: OriginAiSnapshot }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/** 2D Ori face shown in the "thinking" bubble, matched to the live mascot state. */
+const MENTOR_STATE_2D: Record<MascotState, string> = {
+  idle: '/ori2d/ori-happy.png',
+  curious: '/ori2d/ori-curious.png',
+  thinking: '/ori2d/ori-thinking.png',
+  answering: '/ori2d/ori-happy.png',
+  success: '/ori2d/ori-thubmsup.png',
+  error: '/ori2d/ori-confused.png',
+};
+
+const MENTOR_STATE_LABEL: Record<MascotState, string> = {
+  idle: 'Thinking',
+  curious: 'Reading your question',
+  thinking: 'Thinking',
+  answering: 'Answering',
+  success: 'Almost there',
+  error: 'Hmm, one sec',
+};
+
+/**
+ * The pending bubble shown while Origin AI works on a reply. Instead of a bare
+ * spinner it shows the matching 2D Ori (bobbing) so the wait feels alive.
+ */
+function MentorThinkingBubble({ state }: { state: MascotState }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 12 }}
+      className="mt-4 flex justify-start"
+    >
+      <div className="flex items-center gap-3 rounded-3xl rounded-tl-md border border-border/40 bg-muted/40 px-4 py-2.5 text-sm text-foreground">
+        <motion.img
+          key={MENTOR_STATE_2D[state]}
+          src={MENTOR_STATE_2D[state]}
+          alt=""
+          aria-hidden
+          draggable={false}
+          className="h-10 w-10 flex-shrink-0 select-none object-contain"
+          animate={{ y: [0, -4, 0], rotate: [0, -4, 4, 0] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <span className="font-medium opacity-80">{MENTOR_STATE_LABEL[state]}</span>
+        <span className="flex items-center gap-1">
+          {[0, 1, 2].map((i) => (
+            <motion.span
+              key={i}
+              className="h-1.5 w-1.5 rounded-full bg-primary"
+              animate={{ opacity: [0.25, 1, 0.25] }}
+              transition={{ duration: 1, repeat: Infinity, delay: i * 0.2, ease: 'easeInOut' }}
+            />
+          ))}
+        </span>
+      </div>
+    </motion.div>
+  );
+}
+
+/** Rotating sample prompts shown above the composer to spark ideas. */
+const SAMPLE_QUESTIONS = [
+  'Explain this concept with a real-life example',
+  'Give me a quick summary of this topic',
+  'What are the key formulas I should remember?',
+  'Why is my answer wrong?',
+  'Give me a hint — not the full solution',
+  'Quiz me with 3 questions on this',
+  'What mistakes do students usually make here?',
+  'How does this show up in JEE / NEET?',
+  'Break this problem into simple steps',
+  'Suggest a trick to memorise this',
+];
+
+function SuggestedQuestions({ onPick }: { onPick: (q: string) => void }) {
+  return (
+    <div className="no-scrollbar flex gap-1.5 overflow-x-auto px-4 pt-2.5 pb-0.5">
+      {SAMPLE_QUESTIONS.map((q, i) => (
+        <button
+          key={i}
+          type="button"
+          onClick={() => onPick(q)}
+          className="flex-shrink-0 max-w-[140px] truncate rounded-full border border-border/40 bg-background/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground/60 transition hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
+        >
+          {q}
+        </button>
+      ))}
     </div>
   );
 }
@@ -187,6 +277,7 @@ export default function OriginAiMentor({
   const [liveAssistantTranscript, setLiveAssistantTranscript] = React.useState('');
   const scrollAnchorRef = React.useRef<HTMLDivElement | null>(null);
   const compactScrollRef = React.useRef<HTMLDivElement | null>(null);
+  const composerRef = React.useRef<HTMLTextAreaElement | null>(null);
   const voiceControllerRef = React.useRef<OriginAiVoiceController | null>(null);
   const lastAutoAskedSelectionNonceRef = React.useRef(0);
   const lastPageKeyRef = React.useRef<string | null>(null);
@@ -362,6 +453,16 @@ export default function OriginAiMentor({
     }
   };
 
+  const handlePickSuggestion = (q: string) => {
+    setMessage(q);
+    requestAnimationFrame(() => {
+      const el = composerRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(el.value.length, el.value.length);
+    });
+  };
+
   const handleToggleVoice = async () => {
     if (voiceControllerRef.current) {
       await voiceControllerRef.current.stop();
@@ -489,21 +590,7 @@ export default function OriginAiMentor({
             </div>
           )}
           <AnimatePresence>
-            {isSending ? (
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 12 }}
-                className="mt-4 flex justify-start"
-              >
-                <div className="rounded-3xl rounded-tl-md border border-border/60 bg-muted/30 px-4 py-3 text-sm text-foreground">
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    <span className="font-medium opacity-80">Thinking...</span>
-                  </div>
-                </div>
-              </motion.div>
-            ) : null}
+            {isSending ? <MentorThinkingBubble state={mascotState} /> : null}
           </AnimatePresence>
           <div ref={scrollAnchorRef} />
         </div>
@@ -541,46 +628,52 @@ export default function OriginAiMentor({
           ) : null}
           <div className="flex min-w-0 items-end gap-2">
             <TooltipProvider delayDuration={0}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <textarea
-                    value={message}
-                    onChange={(event) => setMessage(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' && !event.shiftKey) {
-                        event.preventDefault();
-                        void handleSend();
+              <div className={cn('min-w-0 flex-1 rounded-3xl border border-border/40 bg-muted/40 transition focus-within:border-primary/40 focus-within:bg-muted/60', isTextQuotaReached && 'opacity-50')}>
+                {!isSending && !isVoiceActive && !highlightedText && !message.trim() ? (
+                  <SuggestedQuestions onPick={handlePickSuggestion} />
+                ) : null}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <textarea
+                      ref={composerRef}
+                      value={message}
+                      onChange={(event) => setMessage(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' && !event.shiftKey) {
+                          event.preventDefault();
+                          void handleSend();
+                        }
+                      }}
+                      rows={1}
+                      disabled={isTextQuotaReached}
+                      placeholder={
+                        isTextQuotaReached
+                          ? 'Daily text quota reached...'
+                          : highlightedText
+                          ? 'Ask about the selected text...'
+                          : snapshot?.pagePolicy.mode === 'answer_blocked'
+                            ? 'Ask for strategy, not answers...'
+                            : snapshot?.pagePolicy.mode === 'hint_only'
+                              ? 'Ask for a hint or a concept nudge...'
+                              : 'Ask Origin AI anything about your studies...'
                       }
-                    }}
-                    rows={1}
-                    disabled={isTextQuotaReached}
-                    placeholder={
-                      isTextQuotaReached
-                        ? 'Daily text quota reached...'
-                        : highlightedText
-                        ? 'Ask about the selected text...'
-                        : snapshot?.pagePolicy.mode === 'answer_blocked'
-                          ? 'Ask for strategy, not answers...'
-                          : snapshot?.pagePolicy.mode === 'hint_only'
-                            ? 'Ask for a hint or a concept nudge...'
-                            : 'Ask Origin AI anything about your studies...'
-                    }
-                    className="no-scrollbar min-w-0 flex-1 resize-none rounded-3xl border border-border/40 bg-muted/40 px-4 py-3 text-sm leading-6 text-foreground outline-none transition focus:border-primary/40 focus:bg-muted/60 disabled:opacity-50"
-                  />
-                </TooltipTrigger>
-                <TooltipContent className="p-4 w-64 bg-card border-border/40 shadow-xl backdrop-blur-md">
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Remaining Text Quota</span>
-                      <span className="text-xs font-bold text-primary">{Math.max(0, Math.round(100 - textProgress))}%</span>
+                      className="no-scrollbar min-w-0 w-full resize-none bg-transparent px-4 py-3 text-sm leading-6 text-foreground outline-none transition disabled:cursor-not-allowed"
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent className="p-4 w-64 bg-card border-border/40 shadow-xl backdrop-blur-md">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Remaining Text Quota</span>
+                        <span className="text-xs font-bold text-primary">{Math.max(0, Math.round(100 - textProgress))}%</span>
+                      </div>
+                      <Progress value={textProgress} className="h-1.5" />
+                      <p className="text-[10px] text-muted-foreground leading-relaxed">
+                        {remainingText.toLocaleString()} tokens remaining today.
+                      </p>
                     </div>
-                    <Progress value={textProgress} className="h-1.5" />
-                    <p className="text-[10px] text-muted-foreground leading-relaxed">
-                      {remainingText.toLocaleString()} tokens remaining today.
-                    </p>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
 
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -715,21 +808,7 @@ export default function OriginAiMentor({
                 </div>
               )}
               <AnimatePresence>
-                {isSending ? (
-                  <motion.div
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 12 }}
-                    className="mt-4 flex justify-start"
-                  >
-                    <div className="rounded-3xl rounded-tl-md border border-border/40 bg-muted/40 px-4 py-3 text-sm text-foreground">
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                        Thinking...
-                      </div>
-                    </div>
-                  </motion.div>
-                ) : null}
+                {isSending ? <MentorThinkingBubble state={mascotState} /> : null}
               </AnimatePresence>
               <div ref={scrollAnchorRef} />
             </div>
@@ -748,21 +827,7 @@ export default function OriginAiMentor({
                 </div>
               )}
               <AnimatePresence>
-                {isSending ? (
-                  <motion.div
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 12 }}
-                    className="mt-4 flex justify-start"
-                  >
-                    <div className="rounded-3xl rounded-tl-md border border-border/40 bg-muted/40 px-4 py-3 text-sm text-foreground">
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                        Thinking...
-                      </div>
-                    </div>
-                  </motion.div>
-                ) : null}
+                {isSending ? <MentorThinkingBubble state={mascotState} /> : null}
               </AnimatePresence>
               <div ref={scrollAnchorRef} />
             </ScrollArea>
@@ -799,51 +864,57 @@ export default function OriginAiMentor({
                 </button>
               </div>
             ) : null}
-            <div className={cn('flex items-end', compact ? 'gap-2' : 'gap-3')}>
+            <div className={cn('flex min-w-0 items-end', compact ? 'gap-2' : 'gap-3')}>
               <TooltipProvider delayDuration={0}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <textarea
-                      value={message}
-                      onChange={(event) => setMessage(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' && !event.shiftKey) {
-                          event.preventDefault();
-                          void handleSend();
+                <div className={cn('min-w-0 flex-1 rounded-3xl border border-muted dark:border-slate-800 bg-muted/40 transition focus-within:border-primary/40 focus-within:bg-muted/60', isTextQuotaReached && 'opacity-50')}>
+                  {!isSending && !isVoiceActive && !highlightedText && !message.trim() ? (
+                    <SuggestedQuestions onPick={handlePickSuggestion} />
+                  ) : null}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <textarea
+                        ref={composerRef}
+                        value={message}
+                        onChange={(event) => setMessage(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' && !event.shiftKey) {
+                            event.preventDefault();
+                            void handleSend();
+                          }
+                        }}
+                        rows={compact ? 1 : 3}
+                        disabled={isTextQuotaReached}
+                        placeholder={
+                          isTextQuotaReached
+                            ? 'Daily text quota reached...'
+                            : highlightedText
+                            ? 'Ask about the selected text...'
+                            : snapshot?.pagePolicy.mode === 'answer_blocked'
+                              ? 'Ask for strategy, not answers...'
+                              : snapshot?.pagePolicy.mode === 'hint_only'
+                                ? 'Ask for a hint or a concept nudge...'
+                                : 'Ask Origin AI anything about your studies...'
                         }
-                      }}
-                      rows={compact ? 1 : 3}
-                      disabled={isTextQuotaReached}
-                      placeholder={
-                        isTextQuotaReached
-                          ? 'Daily text quota reached...'
-                          : highlightedText
-                          ? 'Ask about the selected text...'
-                          : snapshot?.pagePolicy.mode === 'answer_blocked'
-                            ? 'Ask for strategy, not answers...'
-                            : snapshot?.pagePolicy.mode === 'hint_only'
-                              ? 'Ask for a hint or a concept nudge...'
-                              : 'Ask Origin AI anything about your studies...'
-                      }
-                      className={cn(
-                        'flex-1 resize-none rounded-3xl border border-muted dark:border-slate-800 bg-muted/40 px-4 text-sm text-foreground outline-none transition focus:border-primary/40 focus:bg-muted/60 disabled:opacity-50',
-                        compact ? 'min-h-[48px] max-h-24 py-3 leading-6' : 'min-h-[56px] py-3',
-                      )}
-                    />
-                  </TooltipTrigger>
-                  <TooltipContent className="p-4 w-64 bg-card border-border/40 shadow-xl backdrop-blur-md z-[100]">
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Remaining Text Quota</span>
-                        <span className="text-xs font-bold text-primary">{Math.max(0, Math.round(100 - textProgress))}%</span>
+                        className={cn(
+                          'min-w-0 w-full resize-none bg-transparent px-4 text-sm text-foreground outline-none transition disabled:cursor-not-allowed',
+                          compact ? 'min-h-[48px] max-h-24 py-3 leading-6' : 'min-h-[56px] py-3',
+                        )}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent className="p-4 w-64 bg-card border-border/40 shadow-xl backdrop-blur-md z-[100]">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Remaining Text Quota</span>
+                          <span className="text-xs font-bold text-primary">{Math.max(0, Math.round(100 - textProgress))}%</span>
+                        </div>
+                        <Progress value={textProgress} className="h-1.5" />
+                        <p className="text-[10px] text-muted-foreground leading-relaxed">
+                          {remainingText.toLocaleString()} tokens remaining today.
+                        </p>
                       </div>
-                      <Progress value={textProgress} className="h-1.5" />
-                      <p className="text-[10px] text-muted-foreground leading-relaxed">
-                        {remainingText.toLocaleString()} tokens remaining today.
-                      </p>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
 
                 <Tooltip>
                   <TooltipTrigger asChild>

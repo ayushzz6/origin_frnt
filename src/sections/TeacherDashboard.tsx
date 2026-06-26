@@ -110,7 +110,7 @@ export default function TeacherDashboard({ user }: { user: User }) {
     };
 
     return (
-        <div className="min-h-screen bg-background text-foreground transition-colors duration-300 selection:bg-primary/20 selection:text-primary font-sans">
+        <div className="min-h-screen neu-surface text-foreground transition-colors duration-300 selection:bg-primary/20 selection:text-primary font-sans">
 
             {/* Decorative Background */}
             <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
