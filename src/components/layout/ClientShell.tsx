@@ -268,10 +268,11 @@ function ClientShellInner({ children, connectEnabled, premiumEnabled, socialEnab
         )}
 
         {shouldShowFloatingOriginAi && (
-          <FloatingChat 
-            onOpen={toggleAi} 
-            autoAskSelectionNonce={globalAskNonce} 
-            hideMainButton={isAiOpen} 
+          <FloatingChat
+            onOpen={toggleAi}
+            autoAskSelectionNonce={globalAskNonce}
+            hideMainButton={isAiOpen}
+            userName={user?.name}
           />
         )}
 

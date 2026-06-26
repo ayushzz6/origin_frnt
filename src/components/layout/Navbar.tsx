@@ -457,19 +457,10 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
                 'bg-[hsl(var(--neu-bg))] border-b border-primary/10',
                 'shadow-[0_4px_14px_hsl(var(--neu-shadow)/35%),0_-1px_0_hsl(var(--neu-light)/25%)_inset]'
             )}>
-                {/* Hamburger */}
-                <button
-                    onClick={() => setShowMobileMenu(true)}
-                    className="p-2 text-slate-600 dark:text-slate-400 hover:text-primary transition-colors bg-primary/5 rounded-xl"
-                >
-                    <Menu className="w-5 h-5" />
-                </button>
-
                 {/* Logo */}
                 <button
                     onClick={() => onNavigate('dashboard')}
                     onMouseEnter={() => onPrefetch?.('dashboard')}
-                    className="absolute left-1/2 -translate-x-1/2"
                 >
                     <img
                         src={user.role?.toLowerCase() === 'student' ? '/origin-new.jpg' : '/O3-Origin-Logo.png'}

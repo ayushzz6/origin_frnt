@@ -164,6 +164,7 @@
     box-shadow:
       var(--neu-dist) var(--neu-dist) var(--neu-blur) hsl(var(--neu-shadow)),
       calc(var(--neu-dist) * -1) calc(var(--neu-dist) * -1) var(--neu-blur) hsl(var(--neu-light)) !important;
+    transform: translateZ(0);
   }
   .neu-inset {
     background-color: hsl(var(--neu-bg)) !important;
@@ -171,6 +172,7 @@
     box-shadow:
       inset var(--neu-dist) var(--neu-dist) var(--neu-blur) hsl(var(--neu-shadow)),
       inset calc(var(--neu-dist) * -1) calc(var(--neu-dist) * -1) var(--neu-blur) hsl(var(--neu-light)) !important;
+    transform: translateZ(0);
   }
   .neu-pressable {
     transition: box-shadow 0.2s ease, transform 0.1s ease;

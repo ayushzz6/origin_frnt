@@ -19,8 +19,7 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"],
-      "next/font/google": ["./src/mocks/next-font-google.ts"]
+      "@/*": ["./src/*"]
     }
   },
   "include": [

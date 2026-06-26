@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { Inter, Syne, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import AgentationLoader from "@/components/layout/AgentationLoader";
 import "katex/dist/katex.min.css";
@@ -11,6 +12,16 @@ import { QuotaProvider } from "@/context/QuotaContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { getCanonicalSiteUrl } from "@/lib/site-url";
 import { isFeatureEnabled } from "@/lib/feature-flags";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-body", display: "swap" });
+const syne = Syne({ subsets: ["latin"], variable: "--font-heading", display: "swap" });
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
+  variable: "--font-display",
+  display: "swap",
+});
 
 const siteUrl = getCanonicalSiteUrl();
 
@@ -62,12 +73,7 @@ export default function RootLayout({
   // the server `studentSocial` gate on /social and /api/social/*.
   const socialEnabled = isFeatureEnabled("studentSocial");
   return (
-    <html lang="en" suppressHydrationWarning className="">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=Inter:wght@400;500;600;700&family=Syne:wght@400..800&display=swap" rel="stylesheet" />
-      </head>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${syne.variable} ${instrumentSerif.variable}`}>
       <body className="antialiased" suppressHydrationWarning>
         <ThemeProvider
           attribute="class"

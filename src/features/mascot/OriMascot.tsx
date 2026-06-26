@@ -84,7 +84,7 @@ export default function OriMascot({
   className,
   style,
   title = 'Origin AI',
-  preload = true,
+  preload = false,
   interactive = false,
   onOrbitChange,
 }: OriMascotProps) {
@@ -299,17 +299,16 @@ export default function OriMascot({
     };
   }, [state]);
 
-  // Preload every emotion model in the background so state changes are instant + smooth.
+  // Preload emotion models during browser idle time so page-critical requests aren't choked.
   useEffect(() => {
     if (!preload) return;
     let cancelled = false;
-    (async () => {
+
+    const run = async () => {
       const seenPrimary = new Set<string>();
       for (const st of ALL_STATES) {
         if (cancelled || disposedRef.current) return;
         if (cacheRef.current.has(st)) continue;
-        // Skip states whose model file is already being preloaded by another state
-        // (e.g. error reuses curious's GLB) — it'll hit the browser cache on demand.
         const primary = STATE_MODEL[st][0];
         if (seenPrimary.has(primary)) continue;
         seenPrimary.add(primary);
@@ -324,9 +323,19 @@ export default function OriMascot({
           /* ignore preload failures */
         }
       }
-    })();
+    };
+
+    // Defer until browser is idle to avoid competing with page-critical requests.
+    let idleCbId = 0;
+    if (typeof requestIdleCallback !== 'undefined') {
+      idleCbId = requestIdleCallback(() => { if (!cancelled) run(); }, { timeout: 5000 });
+    } else {
+      const t = setTimeout(() => { if (!cancelled) run(); }, 3000);
+      return () => { cancelled = true; clearTimeout(t); };
+    }
     return () => {
       cancelled = true;
+      if (idleCbId) cancelIdleCallback(idleCbId);
     };
   }, [preload]);
 

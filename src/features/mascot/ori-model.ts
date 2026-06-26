@@ -1,9 +1,8 @@
 /**
  * ori-model.ts — loads the real Ori GLB and prepares it for the scene.
  *
- * Supports both Draco- and meshopt-compressed GLBs (whichever the optimizer produced),
- * so `ori-opt.glb` from `@gltf-transform/cli optimize --compress draco|meshopt` just works.
- * The Draco decoder is served from `/draco/gltf/` (copied from three's bundled decoder).
+ * All GLBs are meshopt-compressed (EXT_meshopt_compression). The MeshoptDecoder
+ * is bundled with Three.js so no external decoder path is needed.
  *
  * The model is centred at the origin and uniformly scaled to a fixed height so it frames
  * identically to the procedural mascot, then returned wrapped in a Group the scene can
