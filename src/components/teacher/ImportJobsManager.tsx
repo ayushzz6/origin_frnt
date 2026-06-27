@@ -111,7 +111,9 @@ export function ImportJobsManager({ workspaceId, initialJobs, defaultJobId }: Pr
     setEditStem(q.questionText || "");
     setEditAnswer(q.answerText || "");
     if (q.options) {
-      const opts = Object.values(q.options) as string[];
+      const opts = Object.values(q.options).map((opt: any) =>
+        typeof opt === "object" && opt !== null && "text" in opt ? String(opt.text) : String(opt)
+      );
       setEditOptions(opts);
     } else {
       setEditOptions([]);
@@ -312,24 +314,34 @@ export function ImportJobsManager({ workspaceId, initialJobs, defaultJobId }: Pr
               <div className="lg:w-1/2 border-r bg-muted/20 overflow-y-auto p-4 flex flex-col items-center custom-scrollbar h-full justify-center">
                 <div className="border border-border/80 rounded-2xl bg-background max-w-md w-full shadow-lg relative aspect-[3/4] overflow-hidden group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img 
-                    src="/origin-new.jpg" 
-                    alt="Ingested Document Page" 
-                    className="w-full h-full object-contain p-8 opacity-40 blur-[0.5px]"
-                  />
-                  {/* Mock Bounding Selection box overlay */}
-                  {activeQuestion && (
-                    <motion.div 
-                      layoutId="crop"
-                      className="absolute left-10 top-1/4 right-10 bottom-1/3 border-2 border-primary bg-primary/5 rounded-xl shadow-[0_0_15px_rgba(56,189,248,0.3)] flex flex-col justify-between p-3"
-                    >
-                      <div className="flex justify-between items-center shrink-0">
-                        <span className="text-[9px] bg-primary text-black font-extrabold uppercase px-2 py-0.5 rounded-md flex items-center gap-1">
-                          <Crop className="w-2.5 h-2.5" /> Crop Area Q{activeQuestion.questionNumber}
-                        </span>
-                      </div>
-                      <span className="text-[10px] text-primary/80 font-mono self-end">OCR Confidence: {Math.round((activeQuestion.confidenceScore || 0.8) * 100)}%</span>
-                    </motion.div>
+                  {activeQuestion?.metadata?.imageUrl ? (
+                    <img 
+                      src={activeQuestion.metadata.imageUrl as string} 
+                      alt={`Diagram for Question ${activeQuestion.questionNumber}`} 
+                      className="w-full h-full object-contain p-4"
+                    />
+                  ) : (
+                    <>
+                      <img 
+                        src="/origin-new.jpg" 
+                        alt="Ingested Document Page" 
+                        className="w-full h-full object-contain p-8 opacity-40 blur-[0.5px]"
+                      />
+                      {/* Mock Bounding Selection box overlay */}
+                      {activeQuestion && (
+                        <motion.div 
+                          layoutId="crop"
+                          className="absolute left-10 top-1/4 right-10 bottom-1/3 border-2 border-primary bg-primary/5 rounded-xl shadow-[0_0_15px_rgba(56,189,248,0.3)] flex flex-col justify-between p-3"
+                        >
+                          <div className="flex justify-between items-center shrink-0">
+                            <span className="text-[9px] bg-primary text-black font-extrabold uppercase px-2 py-0.5 rounded-md flex items-center gap-1">
+                              <Crop className="w-2.5 h-2.5" /> Crop Area Q{activeQuestion.questionNumber}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-primary/80 font-mono self-end">OCR Confidence: {Math.round((activeQuestion.confidenceScore || 0.8) * 100)}%</span>
+                        </motion.div>
+                      )}
+                    </>
                   )}
                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-md">
                     Page 1 of 1
