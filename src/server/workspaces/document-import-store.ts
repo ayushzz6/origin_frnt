@@ -5,6 +5,7 @@
 import type { Pool } from "pg";
 
 import { getUserPostgresPool } from "@/server/user-postgres";
+import { importR2BucketName } from "@/server/media-storage";
 
 import { createDocumentImportJobId, createImportJobPageId, createImportJobQuestionId } from "./ids";
 import { ensureDocumentImportSchema } from "./document-import-schema";
@@ -102,18 +103,20 @@ export async function createImportJob(input: {
   chunkSize?: number | null;
   overlap?: number | null;
   metadata?: Record<string, unknown>;
-  /** Where these imported questions will land — drives validation + the
-   * review UI's "submit to OGCode" gating later. */
   targetSurface?: ImportTargetSurface;
-  /** Optional FK to content.assets when Next.js has uploaded the source
-   * file via the asset pipeline first. */
   sourceAssetId?: string | null;
-  /** Asked-for question count, used by the verifier's count check. */
   requestedQuestionCount?: number | null;
+  /** Pre-generated job id when the caller uploads to R2 before insert. */
+  id?: string;
+  sourceR2ObjectKey?: string;
+  sourceR2Bucket?: string;
+  sourceSizeBytes?: number;
+  sourceSha256?: string;
 }): Promise<DocumentImportJob> {
   await ensureDocumentImportSchema();
-  const id = createDocumentImportJobId();
-  const r2Key = `imports/${id}/${input.fileName}`;
+  const id = input.id ?? createDocumentImportJobId();
+  const r2Key = input.sourceR2ObjectKey ?? `imports/${id}/${input.fileName}`;
+  const r2Bucket = input.sourceR2Bucket ?? importR2BucketName();
   const result = await pool().query(
     `INSERT INTO import.document_import_jobs (
        id, workspace_id, source_type, source_file_name,
@@ -129,10 +132,10 @@ export async function createImportJob(input: {
       input.sourceType,
       input.fileName,
       r2Key,
-      "origin-imports",
+      r2Bucket,
       input.mimeType ?? "application/octet-stream",
-      0,
-      "pending-upload",
+      input.sourceSizeBytes ?? 0,
+      input.sourceSha256 ?? "pending-upload",
       input.sourceAssetId ?? null,
       input.targetSurface ?? "question_bag",
       input.userId,

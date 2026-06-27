@@ -3,6 +3,7 @@
  */
 
 import { AuthzError } from "@/server/authz";
+import { uploadImportDocumentToR2 } from "@/server/media-storage";
 
 import { recordAuditEvent } from "./audit";
 import {
@@ -18,6 +19,7 @@ import {
   updateImportJobStatus,
   updateQuestionStatus,
 } from "./document-import-store";
+import { createDocumentImportJobId } from "./ids";
 import { getActiveMembership } from "./store";
 import type { DocumentImportJob, ImportJobQuestion, ImportJobStatus, ImportJobWithProgress, ImportPageStatus, ImportQuestionStatus, ImportSourceType, ImportTargetSurface } from "./types";
 
@@ -48,6 +50,8 @@ export async function createImportJob(input: {
   targetSurface?: ImportTargetSurface;
   sourceAssetId?: string | null;
   requestedQuestionCount?: number | null;
+  /** Source file bytes — uploaded to R2 before the job row is inserted. */
+  sourceFile?: { buffer: Buffer; fileName: string; mimeType: string };
   /** When true, fire-and-forget kicks off the FastAPI worker after the
    * job row is committed. Defaults to true — set false in tests to keep
    * the pipeline call out of the request. */
@@ -62,7 +66,28 @@ export async function createImportJob(input: {
   if (active >= cap) {
     throw new ImportJobBackpressureError(active, cap);
   }
+
+  const jobId = createDocumentImportJobId();
+  let sourceR2ObjectKey: string | undefined;
+  let sourceR2Bucket: string | undefined;
+  let sourceSizeBytes: number | undefined;
+  let sourceSha256: string | undefined;
+
+  if (input.sourceFile) {
+    const uploaded = await uploadImportDocumentToR2({
+      jobId,
+      fileName: input.sourceFile.fileName,
+      mimeType: input.sourceFile.mimeType,
+      body: input.sourceFile.buffer,
+    });
+    sourceR2ObjectKey = uploaded.objectKey;
+    sourceR2Bucket = uploaded.bucket;
+    sourceSizeBytes = uploaded.sizeBytes;
+    sourceSha256 = uploaded.sha256;
+  }
+
   const job = await storeCreateImportJob({
+    id: jobId,
     workspaceId: input.workspaceId,
     userId: input.userId,
     sourceType: input.sourceType,
@@ -76,6 +101,10 @@ export async function createImportJob(input: {
     targetSurface: input.targetSurface,
     sourceAssetId: input.sourceAssetId,
     requestedQuestionCount: input.requestedQuestionCount,
+    sourceR2ObjectKey,
+    sourceR2Bucket,
+    sourceSizeBytes,
+    sourceSha256,
   });
   await recordAuditEvent({
     actorUserId: input.userId, workspaceId: input.workspaceId,

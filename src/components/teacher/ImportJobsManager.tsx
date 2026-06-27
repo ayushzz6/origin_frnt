@@ -79,65 +79,8 @@ export function ImportJobsManager({ workspaceId, initialJobs, defaultJobId }: Pr
       if (result.ok) {
         const list = (result.data as any).questionsPreview || result.data || [];
         if (list.length === 0) {
-          const mockQuestions: ImportJobQuestion[] = [
-            {
-              id: "q-mock-1",
-              jobId: jobId,
-              pageId: "page-1",
-              questionNumber: 1,
-              questionType: "mcq",
-              subject: "Physics",
-              chapter: "Electrostatics",
-              concept: "Coulomb's Law",
-              questionText: "Two point charges $q_1$ and $q_2$ are placed at a distance $r$ in vacuum. The force $F$ between them is given by:",
-              options: { a: "$\\frac{1}{4\\pi\\varepsilon_0} \\frac{q_1q_2}{r^2}$", b: "$\\frac{1}{4\\pi\\varepsilon_0} \\frac{q_1q_2}{r}$", c: "$\\frac{q_1q_2}{r^2}$", d: "None" },
-              correctOption: 0,
-              correctOptions: null,
-              answerText: null,
-              explanation: null,
-              hint: null,
-              hasDiagram: false,
-              diagramDescription: null,
-              status: "review_required",
-              confidenceScore: 0.62,
-              reviewNotes: "OCR confidence low: verify LaTeX math rendering",
-              rejectionReason: null,
-              questionBagQuestionId: null,
-              metadata: {},
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
-            },
-            {
-              id: "q-mock-2",
-              jobId: jobId,
-              pageId: "page-1",
-              questionNumber: 2,
-              questionType: "mcq",
-              subject: "Physics",
-              chapter: "Electrostatics",
-              concept: "Electric Field",
-              questionText: "The electric field intensity at a distance $r$ from an infinite line charge of linear density $\\lambda$ is:",
-              options: { a: "$\\frac{\\lambda}{2\\pi\\varepsilon_0 r}$", b: "$\\frac{\\lambda}{4\\pi\\varepsilon_0 r^2}$", c: "$\\frac{\\lambda}{2\\pi\\varepsilon_0 r^2}$", d: "Zero" },
-              correctOption: 0,
-              correctOptions: null,
-              answerText: null,
-              explanation: null,
-              hint: null,
-              hasDiagram: true,
-              diagramDescription: "Coordinate axis with linear line charge along Z axis",
-              status: "draft",
-              confidenceScore: 0.94,
-              reviewNotes: null,
-              rejectionReason: null,
-              questionBagQuestionId: null,
-              metadata: {},
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
-            }
-          ];
-          setQuestions(mockQuestions);
-          setActiveQuestion(mockQuestions[0]);
-          seedEditor(mockQuestions[0]);
+          setQuestions([]);
+          setActiveQuestion(null);
         } else {
           setQuestions(list);
           if (list.length > 0) {
@@ -422,6 +365,23 @@ export function ImportJobsManager({ workspaceId, initialJobs, defaultJobId }: Pr
                   {loadingQuestions ? (
                     <div className="flex justify-center items-center py-20">
                       <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                    </div>
+                  ) : questions.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-center space-y-3 px-6">
+                      <AlertTriangle className="w-10 h-10 text-muted-foreground/50" />
+                      <div>
+                        <p className="text-sm font-semibold">No questions extracted yet</p>
+                        <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+                          {selectedJob.status === "failed"
+                            ? selectedJob.errorMessage || "The import pipeline failed before questions could be parsed."
+                            : selectedJob.status === "queued" || selectedJob.status === "processing"
+                              ? "The document is still being processed. Refresh in a moment."
+                              : "The pipeline finished but no questions were found on this document."}
+                        </p>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={handleTriggerRefresh} className="h-8 rounded-lg gap-1.5">
+                        <RefreshCw className="w-3.5 h-3.5" /> Refresh
+                      </Button>
                     </div>
                   ) : activeQuestion ? (
                     <>

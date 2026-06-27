@@ -35,10 +35,130 @@ function requiredEnv(name: string): string {
 }
 
 function r2Endpoint(): string {
-  const explicit = process.env.R2_ENDPOINT?.trim();
+  const explicit =
+    process.env.R2_ENDPOINT?.trim() || process.env.R2_ENDPOINT_URL?.trim();
   if (explicit) return explicit.replace(/\/+$/u, "");
   const accountId = requiredEnv("R2_ACCOUNT_ID");
   return `https://${accountId}.r2.cloudflarestorage.com`;
+}
+
+/** Bucket used for import source files — must match Cloud Run R2_DEFAULT_BUCKET. */
+export function importR2BucketName(): string {
+  return process.env.R2_BUCKET_NAME?.trim() || "origin";
+}
+
+const ALLOWED_IMPORT_MIME_TYPES = new Set([
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
+export function isAllowedImportDocumentMimeType(mimeType: string): boolean {
+  return ALLOWED_IMPORT_MIME_TYPES.has(mimeType.toLowerCase());
+}
+
+export type R2BytesUploadInput = {
+  objectKey: string;
+  mimeType: string;
+  body: Buffer;
+  bucket?: string;
+};
+
+export async function uploadBytesToR2(input: R2BytesUploadInput): Promise<R2UploadResult> {
+  const mimeType = input.mimeType.toLowerCase();
+  if (input.body.length === 0) {
+    throw new Error("Uploaded file is empty.");
+  }
+
+  const bucket = input.bucket ?? importR2BucketName();
+  const accessKeyId = requiredEnv("R2_ACCESS_KEY_ID");
+  const secretAccessKey = requiredEnv("R2_SECRET_ACCESS_KEY");
+  const endpoint = r2Endpoint();
+  const payloadHash = createHash("sha256").update(input.body).digest("hex");
+  const bodyHash = payloadHash;
+  const { amzDate, dateStamp } = amzDateParts();
+  const endpointUrl = new URL(endpoint);
+  const canonicalUri = canonicalObjectPath(bucket, input.objectKey);
+  const requestUrl = new URL(canonicalUri, endpointUrl);
+  const credentialScope = `${dateStamp}/auto/s3/aws4_request`;
+  const signedHeaders = "content-type;host;x-amz-content-sha256;x-amz-date";
+  const canonicalHeaders = [
+    `content-type:${mimeType}`,
+    `host:${requestUrl.host}`,
+    `x-amz-content-sha256:${bodyHash}`,
+    `x-amz-date:${amzDate}`,
+    "",
+  ].join("\n");
+  const canonicalRequest = [
+    "PUT",
+    canonicalUri,
+    "",
+    canonicalHeaders,
+    signedHeaders,
+    bodyHash,
+  ].join("\n");
+  const stringToSign = [
+    "AWS4-HMAC-SHA256",
+    amzDate,
+    credentialScope,
+    createHash("sha256").update(canonicalRequest).digest("hex"),
+  ].join("\n");
+  const signature = createHmac("sha256", signingKey(secretAccessKey, dateStamp))
+    .update(stringToSign, "utf8")
+    .digest("hex");
+
+  const requestBody = input.body.buffer.slice(
+    input.body.byteOffset,
+    input.body.byteOffset + input.body.byteLength,
+  ) as ArrayBuffer;
+
+  const response = await fetch(requestUrl, {
+    method: "PUT",
+    headers: {
+      Authorization: `AWS4-HMAC-SHA256 Credential=${accessKeyId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`,
+      "Content-Type": mimeType,
+      "X-Amz-Content-Sha256": bodyHash,
+      "X-Amz-Date": amzDate,
+    },
+    body: requestBody,
+  });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`Cloudflare R2 upload failed (${response.status}).${detail ? ` ${detail.slice(0, 180)}` : ""}`);
+  }
+
+  const publicBase = process.env.R2_PUBLIC_BASE_URL?.trim();
+  return {
+    bucket,
+    objectKey: input.objectKey,
+    publicUrl: publicBase
+      ? buildR2PublicUrl(publicBase, input.objectKey)
+      : `r2://${bucket}/${input.objectKey}`,
+    sha256: payloadHash,
+    sizeBytes: input.body.length,
+  };
+}
+
+export async function uploadImportDocumentToR2(input: {
+  jobId: string;
+  fileName: string;
+  mimeType: string;
+  body: Buffer;
+}): Promise<R2UploadResult> {
+  const mimeType = input.mimeType.toLowerCase();
+  if (!isAllowedImportDocumentMimeType(mimeType)) {
+    throw new Error("Only PDF, DOCX, JPEG, PNG, or WebP files can be imported.");
+  }
+  const safeName = path.basename(input.fileName).replace(/[^a-zA-Z0-9._-]/gu, "_") || "document";
+  const objectKey = `imports/${input.jobId}/${safeName}`;
+  return uploadBytesToR2({
+    objectKey,
+    mimeType,
+    body: input.body,
+  });
 }
 
 function r2PublicBaseUrl(): string {

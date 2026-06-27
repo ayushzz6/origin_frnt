@@ -81,27 +81,70 @@ export async function POST(request: NextRequest, context: WorkspaceIdRouteContex
       "teacher",
       "content_manager",
     ]);
+
+    const contentType = request.headers.get("content-type") ?? "";
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+      const file = formData.get("file");
+      if (!(file instanceof File) || file.size === 0) {
+        return teacherJson({ detail: "A non-empty file is required." }, { status: 400 });
+      }
+
+      const sourceTypeRaw = String(formData.get("sourceType") ?? "pdf");
+      const sourceType = createJobSchema.shape.sourceType.safeParse(sourceTypeRaw);
+      if (!sourceType.success) {
+        return teacherJson({ detail: "Invalid source type." }, { status: 400 });
+      }
+
+      const targetSurfaceRaw = formData.get("targetSurface");
+      const targetSurface =
+        targetSurfaceRaw === null
+          ? undefined
+          : createJobSchema.shape.targetSurface.safeParse(String(targetSurfaceRaw));
+
+      const requestedRaw = formData.get("requestedQuestionCount");
+      const requestedQuestionCount =
+        requestedRaw === null || String(requestedRaw).trim() === ""
+          ? undefined
+          : Number.parseInt(String(requestedRaw), 10);
+
+      const subject = String(formData.get("subject") ?? "").trim();
+      const chapter = String(formData.get("chapter") ?? "").trim();
+      const metadata: Record<string, unknown> = {};
+      if (subject) metadata.subject = subject;
+      if (chapter) metadata.chapter = chapter;
+
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const job = await createImportJob({
+        workspaceId,
+        userId: ctx.auth.userId,
+        sourceType: sourceType.data,
+        fileName: file.name,
+        mimeType: file.type || undefined,
+        targetSurface: targetSurface?.success ? targetSurface.data : undefined,
+        requestedQuestionCount:
+          Number.isFinite(requestedQuestionCount) && requestedQuestionCount! > 0
+            ? requestedQuestionCount
+            : undefined,
+        metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+        sourceFile: {
+          buffer,
+          fileName: file.name,
+          mimeType: file.type || "application/octet-stream",
+        },
+      });
+      return teacherJson({ job }, { status: 201 });
+    }
+
     const body = await parseJsonBody(request);
     const parsed = createJobSchema.safeParse(body);
     if (!parsed.success) {
       return teacherJson({ detail: parsed.error.message }, { status: 400 });
     }
-    const job = await createImportJob({
-      workspaceId,
-      userId: ctx.auth.userId,
-      sourceType: parsed.data.sourceType,
-      fileName: parsed.data.fileName,
-      mimeType: parsed.data.mimeType,
-      content: parsed.data.content,
-      fileUrl: parsed.data.fileUrl,
-      chunkSize: parsed.data.chunkSize,
-      overlap: parsed.data.overlap,
-      metadata: parsed.data.metadata,
-      targetSurface: parsed.data.targetSurface,
-      sourceAssetId: parsed.data.sourceAssetId,
-      requestedQuestionCount: parsed.data.requestedQuestionCount,
-    });
-    return teacherJson({ job }, { status: 201 });
+    return teacherJson(
+      { detail: "Multipart form upload with a file field is required." },
+      { status: 400 },
+    );
   } catch (error) {
     if (error instanceof ImportJobBackpressureError) {
       return teacherJson(
