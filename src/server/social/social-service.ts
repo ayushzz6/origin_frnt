@@ -395,6 +395,172 @@ export function listFollowing(username: string, viewerId: string, page = 0): Pro
   return listFollowList(username, viewerId, "following", page);
 }
 
+// ─── Popular students (default /social view) ──────────────────────────────────
+
+export type PopularTab = "followed" | "ranked" | "active";
+
+export type PopularUserCard = SocialUserCard & {
+  /** Current daily streak (denormalised on the user row). */
+  streak: number;
+  /** Practice accuracy 0–100, one decimal. */
+  accuracy: number;
+  /** Global rank by distinct correctly-solved questions; null when none solved. */
+  rank: number | null;
+  /** Tests attempted. */
+  tests: number;
+  /** Total followers. */
+  followerCount: number;
+  /** Derived exam/class tag (JEE Advanced / NEET / Class 12 …). */
+  badge: string | null;
+};
+
+export type PopularStudents = {
+  followed: PopularUserCard[];
+  ranked: PopularUserCard[];
+  active: PopularUserCard[];
+};
+
+/** Derive the exam/class badge — no single source field, so infer from course. */
+function examBadge(u: StoredUser): string | null {
+  const src = `${u.selectedCourse ?? ""} ${u.fieldOfInterest ?? ""}`.toLowerCase();
+  if (src.includes("neet")) return "NEET";
+  if (src.includes("advanced")) return "JEE Advanced";
+  if (src.includes("jee") || src.includes("main")) return "JEE Main";
+  if (u.isDropper) return "Dropper";
+  if (u.studentClass) return `Class ${u.studentClass}`;
+  return null;
+}
+
+const ACTIVE_WINDOW_MS = 14 * 86_400_000;
+
+/**
+ * The three "popular students" leaderboards that power the default /social view.
+ * Reads the cached store ONCE and derives all three tabs from single-pass
+ * aggregations (calling buildUserStatsSnapshot per-user would recompute global
+ * rank across the whole population every time). Two SQL round-trips: follower
+ * counts (all), then follow-state for the union of the three sliced lists.
+ */
+export async function getPopularStudents(
+  viewerId: string,
+  perTab = 24,
+): Promise<PopularStudents> {
+  await ensureSocialSchema();
+  const store = await readStoreAsync();
+  const p = pool();
+  const now = Date.now();
+
+  const solved = new Map<string, Set<string>>(); // distinct correct questionIds → rank
+  const acc = new Map<string, { correct: number; total: number }>();
+  const activity = new Map<string, { recent: number; last: number }>();
+
+  const bumpActivity = (uid: string, ts: string) => {
+    const t = Date.parse(ts) || 0;
+    const av = activity.get(uid) ?? { recent: 0, last: 0 };
+    if (now - t <= ACTIVE_WINDOW_MS) av.recent += 1;
+    if (t > av.last) av.last = t;
+    activity.set(uid, av);
+  };
+
+  for (const a of store.practiceAttempts) {
+    const ac = acc.get(a.userId) ?? { correct: 0, total: 0 };
+    ac.total += 1;
+    if (a.isCorrect) {
+      ac.correct += 1;
+      let set = solved.get(a.userId);
+      if (!set) { set = new Set(); solved.set(a.userId, set); }
+      set.add(a.questionId);
+    }
+    acc.set(a.userId, ac);
+    bumpActivity(a.userId, a.createdAt);
+  }
+
+  const tests = new Map<string, number>();
+  for (const r of store.testResults) {
+    tests.set(r.userId, (tests.get(r.userId) ?? 0) + 1);
+    bumpActivity(r.userId, r.createdAt);
+  }
+
+  // Global rank = distinct correctly-solved questions, desc.
+  const rankOf = new Map<string, number>();
+  [...solved.entries()]
+    .map(([uid, set]) => ({ uid, n: set.size }))
+    .sort((a, b) => b.n - a.n)
+    .forEach((e, i) => rankOf.set(e.uid, i + 1));
+
+  // Follower counts for everyone (one GROUP BY — the follows table is small).
+  const followerCount = new Map<string, number>();
+  if (p) {
+    const res = await p.query(
+      "SELECT following_id, COUNT(*)::int AS c FROM social.follows GROUP BY following_id",
+    );
+    for (const row of res.rows) followerCount.set(row.following_id, Number(row.c));
+  }
+
+  const eligible = store.users.filter(
+    (u) => u.role === "student" && u.username && u.id !== viewerId,
+  );
+
+  const toCard = (u: StoredUser): PopularUserCard => {
+    const ac = acc.get(u.id);
+    return {
+      id: u.id,
+      username: u.username!,
+      name: u.name,
+      avatar: u.avatar ?? null,
+      isMe: false,
+      isFollowedByMe: false,
+      followsMe: false,
+      streak: u.streak ?? 0,
+      accuracy: ac && ac.total > 0 ? Math.round((ac.correct / ac.total) * 1000) / 10 : 0,
+      rank: rankOf.get(u.id) ?? null,
+      tests: tests.get(u.id) ?? 0,
+      followerCount: followerCount.get(u.id) ?? 0,
+      badge: examBadge(u),
+    };
+  };
+
+  const cards = eligible.map(toCard);
+  const byId = new Map(cards.map((c) => [c.id, c]));
+  const RANK_FLOOR = Number.MAX_SAFE_INTEGER;
+
+  const followed = [...cards]
+    .sort((a, b) => b.followerCount - a.followerCount || (a.rank ?? RANK_FLOOR) - (b.rank ?? RANK_FLOOR))
+    .slice(0, perTab);
+  const ranked = [...cards]
+    .sort((a, b) => (a.rank ?? RANK_FLOOR) - (b.rank ?? RANK_FLOOR) || b.accuracy - a.accuracy)
+    .slice(0, perTab);
+  const active = [...cards]
+    .sort((a, b) => {
+      const aa = activity.get(a.id) ?? { recent: 0, last: 0 };
+      const bb = activity.get(b.id) ?? { recent: 0, last: 0 };
+      return bb.recent - aa.recent || bb.last - aa.last;
+    })
+    .slice(0, perTab);
+
+  // Follow-state only for the union of the three sliced lists (one query).
+  const unionIds = [...new Set([...followed, ...ranked, ...active].map((c) => c.id))];
+  if (p && unionIds.length > 0) {
+    const res = await p.query(
+      `SELECT follower_id, following_id FROM social.follows
+         WHERE (follower_id = $1 AND following_id = ANY($2))
+            OR (following_id = $1 AND follower_id = ANY($2))`,
+      [viewerId, unionIds],
+    );
+    for (const row of res.rows) {
+      if (row.follower_id === viewerId) {
+        const c = byId.get(row.following_id);
+        if (c) c.isFollowedByMe = true;
+      }
+      if (row.following_id === viewerId) {
+        const c = byId.get(row.follower_id);
+        if (c) c.followsMe = true;
+      }
+    }
+  }
+
+  return { followed, ranked, active };
+}
+
 /** Student search by @username or display name, annotated with follow state. */
 export async function searchStudents(
   viewerId: string,

@@ -622,24 +622,6 @@ function TestCard({ test, onStart, onViewAnalysis, user, getDifficultyColor }: T
   return (
     <Card className={`group relative flex flex-col border-0 neu-raised neu-pressable transition-all duration-300 overflow-hidden ${isLocked ? 'grayscale opacity-80' : ''}`}>
       <CardContent className="flex flex-1 flex-col p-5">
-        {/* Top row: difficulty + status */}
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <Badge variant="outline" className={`${getDifficultyColor(test.difficulty)} border px-3 py-1 rounded-full font-black text-[9px] uppercase tracking-[0.15em]`}>
-            {test.difficulty}
-          </Badge>
-          {test.attempted ? (
-            <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 px-2.5 py-1 rounded-full font-black text-[9px] uppercase tracking-widest">
-              <CheckCircle2 className="w-3 h-3 mr-1" />
-              Done
-            </Badge>
-          ) : isLocked ? (
-            <Badge className="bg-amber-500 text-white border-0 px-2.5 py-1 rounded-full font-black text-[9px] uppercase tracking-widest">
-              <Lock className="w-3 h-3 mr-1" />
-              Premium
-            </Badge>
-          ) : null}
-        </div>
-
         {/* Title + description */}
         <h3 className="text-base sm:text-lg font-black text-foreground leading-tight tracking-tight transition-colors group-hover:text-primary">
           {test.title}
@@ -648,7 +630,7 @@ function TestCard({ test, onStart, onViewAnalysis, user, getDifficultyColor }: T
           {test.description}
         </p>
 
-        {/* Inline meta stats */}
+        {/* Inline meta stats — difficulty + status sit alongside to save vertical space */}
         <div className="mt-4 flex items-center gap-3 text-xs">
           <span className="flex items-center gap-1.5 font-bold text-foreground">
             <HelpCircle className="w-3.5 h-3.5 text-primary" />
@@ -670,6 +652,22 @@ function TestCard({ test, onStart, onViewAnalysis, user, getDifficultyColor }: T
               </span>
             </>
           )}
+          <div className="ml-auto flex items-center gap-1.5">
+            <Badge variant="outline" className={`${getDifficultyColor(test.difficulty)} border px-2.5 py-0.5 rounded-full font-black text-[9px] uppercase tracking-[0.15em]`}>
+              {test.difficulty}
+            </Badge>
+            {test.attempted ? (
+              <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 px-2 py-0.5 rounded-full font-black text-[9px] uppercase tracking-widest">
+                <CheckCircle2 className="w-3 h-3 mr-1" />
+                Done
+              </Badge>
+            ) : isLocked ? (
+              <Badge className="bg-amber-500 text-white border-0 px-2 py-0.5 rounded-full font-black text-[9px] uppercase tracking-widest">
+                <Lock className="w-3 h-3 mr-1" />
+                Premium
+              </Badge>
+            ) : null}
+          </div>
         </div>
 
         {/* Action */}

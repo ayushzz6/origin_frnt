@@ -11,7 +11,7 @@ interface TasksClientProps {
 }
 
 export default function TasksClient({ initialTasks }: TasksClientProps) {
-  const { user, tasks, addTask, toggleTask, removeTask, primeTasks } = useAuth();
+  const { user, tasks, addTask, editTask, toggleTask, removeTask, primeTasks } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -25,6 +25,7 @@ export default function TasksClient({ initialTasks }: TasksClientProps) {
       user={user}
       tasks={tasks.length > 0 ? tasks : initialTasks}
       onAddTask={addTask}
+      onEditTask={editTask}
       onToggleTask={toggleTask}
       onRemoveTask={removeTask}
       onBack={() => router.push('/dashboard')}

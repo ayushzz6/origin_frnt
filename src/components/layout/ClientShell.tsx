@@ -141,7 +141,7 @@ function ClientShellInner({ children, connectEnabled, premiumEnabled, socialEnab
 
     const timeoutId = window.setTimeout(() => {
       setDeferredUiReady(true);
-    }, 400);
+    }, 100);
 
     return () => window.clearTimeout(timeoutId);
   }, [mounted]);

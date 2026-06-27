@@ -96,7 +96,7 @@ export function LobbyChat({
   };
 
   return (
-    <section className="neu-raised rounded-2xl flex flex-col min-h-[420px] overflow-hidden">
+    <section className="neu-raised rounded-2xl flex flex-col h-[520px] lg:h-[calc(100vh-13rem)] overflow-hidden">
       {/* Header */}
       <div className="border-b border-border/40 px-5 py-4 flex items-center gap-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
@@ -106,7 +106,7 @@ export function LobbyChat({
       </div>
 
       {/* Messages — WhatsApp-inspired chat canvas, recoloured for Origin */}
-      <div ref={scrollRef} className="chat-canvas relative flex-1 overflow-y-auto px-4 py-4">
+      <div ref={scrollRef} className="chat-canvas relative flex-1 min-h-0 overflow-y-auto px-4 py-4">
         <ChatBackdrop />
 
         <div className="relative z-10 space-y-3">
