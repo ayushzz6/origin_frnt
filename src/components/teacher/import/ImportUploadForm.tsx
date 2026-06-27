@@ -62,22 +62,21 @@ export function ImportUploadForm({ workspaceId }: Props) {
     setError(null);
     setSubmitting(true);
     try {
+      const formData = new FormData();
+      formData.set("file", file);
+      formData.set("sourceType", sourceType);
+      formData.set("targetSurface", targetSurface);
+      if (requestedCount) formData.set("requestedQuestionCount", requestedCount);
+      if (subject) formData.set("subject", subject);
+      if (chapter) formData.set("chapter", chapter);
+
       const res = await fetch(
         `/api/teacher/workspaces/${workspaceId}/import-jobs`,
         {
           method: "POST",
-          headers: { "content-type": "application/json", ...csrfHeaders() },
+          headers: { ...csrfHeaders() },
           credentials: "include",
-          body: JSON.stringify({
-            sourceType,
-            fileName: file.name,
-            mimeType: file.type || undefined,
-            targetSurface,
-            requestedQuestionCount: requestedCount
-              ? Number(requestedCount)
-              : undefined,
-            metadata: { subject, chapter },
-          }),
+          body: formData,
         },
       );
       if (!res.ok) {
