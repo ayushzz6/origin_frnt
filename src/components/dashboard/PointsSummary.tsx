@@ -53,11 +53,7 @@ export default function PointsSummary({ data, onNextSteps }: PointsSummaryProps)
 
 
     return (
-        <div className="w-full h-full bg-gradient-to-br from-card to-primary/5 dark:from-slate-900/80 dark:to-primary/10 backdrop-blur-md rounded-[32px] border-2 border-primary/25 dark:border-primary/30 p-6 flex flex-col justify-between overflow-hidden relative group shadow-lg shadow-primary/10">
-            {/* Shimmer line */}
-            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
-            {/* Background glow */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[50px] pointer-events-none group-hover:bg-primary/10 transition-colors duration-500" />
+        <div className="w-full h-full neu-raised p-5 flex flex-col justify-between">
 
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">

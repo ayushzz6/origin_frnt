@@ -8,6 +8,7 @@ import { clearOriginAiBrowserSession } from '@/features/origin-ai/session';
 import { AUTH_EXPIRED_EVENT, attemptTokenRefresh } from '@/lib/api';
 import {
   addTaskAction,
+  editTaskAction,
   listTasksAction,
   removeTaskAction,
   toggleTaskAction,
@@ -38,6 +39,7 @@ interface AuthContextType {
   logout: () => void;
   refreshUser: () => Promise<void>;
   addTask: (text: string, due: string) => Promise<void>;
+  editTask: (id: string, text: string) => Promise<void>;
   toggleTask: (id: string) => Promise<void>;
   removeTask: (id: string) => Promise<void>;
   primeTasks: (seededTasks: Task[]) => void;
@@ -572,6 +574,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
     }
   };
 
+  const editTask = async (id: string, text: string) => {
+    const original = tasks.find(t => t.id === id);
+    if (!original) return;
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, text } : t));
+    try {
+      await editTaskAction(id, text);
+    } catch {
+      setTasks(prev => prev.map(t => t.id === id ? original : t));
+      toast.error('Failed to update task.');
+    }
+  };
+
   const removeTask = async (id: string) => {
     const original = tasks.find(t => t.id === id);
     setTasks(prev => prev.filter(t => t.id !== id));
@@ -599,6 +613,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, initialUse
       logout,
       refreshUser,
       addTask,
+      editTask,
       toggleTask,
       removeTask,
       primeTasks,

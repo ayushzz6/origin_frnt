@@ -1,7 +1,10 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
+
+const OriMascot = dynamic(() => import('@/features/mascot/Ori2D'), { ssr: false });
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -139,15 +142,9 @@ export default function Leaderboard({ currentUser, initialLeaderboard, initialMy
   const myScore = myEntry ? myEntry.rankScore : 0;
 
   return (
-    <div className="relative min-h-screen bg-background text-foreground transition-colors duration-500 overflow-x-hidden">
-      {/* Background Decoration */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-[10%] right-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[10%] left-[-10%] w-[30%] h-[30%] bg-primary/5 rounded-full blur-[100px]" />
-      </div>
-
+    <div className="relative min-h-screen neu-surface text-foreground transition-colors duration-500 overflow-x-hidden">
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+      <main className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 pb-24 md:pb-10 relative z-10">
         <Card className="border-0 shadow-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 text-primary-foreground mb-8 overflow-hidden relative rounded-[2.5rem]">
           <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.05] mix-blend-overlay pointer-events-none" />
           <CardContent className={cn("relative z-10", isMobile ? "p-6" : "p-8 sm:p-10")}>
@@ -183,6 +180,9 @@ export default function Leaderboard({ currentUser, initialLeaderboard, initialMy
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 px-2">
           <h2 className="text-2xl font-black flex items-center gap-3 tracking-tight">
+            <div className="h-12 w-12 shrink-0">
+              <OriMascot expression="thumbsup" title="Origin AI" />
+            </div>
             <div className="w-2 h-8 bg-primary rounded-full" />
             Hall of Fame
           </h2>

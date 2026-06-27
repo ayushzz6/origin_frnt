@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, BookOpen, BarChart2, Users, Zap } from 'lucide-react';
+import { BookOpen, BarChart2, Users, Zap } from 'lucide-react';
+import LandingCTABtn from '@/components/landing/LandingCTABtn';
 
 const STUDENT_POINTS = [
   { icon: Zap, text: '24/7 AI mentor that remembers your history' },
@@ -26,7 +27,7 @@ export default function TeacherFlipCard() {
   const isStudent = active === 'student';
 
   return (
-    <section className="py-24 lg:py-32 relative z-10 overflow-hidden">
+    <section className="py-14 sm:py-24 lg:py-32 relative z-10 overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_60%,rgba(0,102,255,0.05),transparent)] pointer-events-none" />
 
       <div className="max-w-5xl mx-auto px-6">
@@ -45,12 +46,12 @@ export default function TeacherFlipCard() {
           </h2>
 
           {/* Toggle */}
-          <div className="inline-flex items-center gap-1 p-1 rounded-full border border-black/10 dark:border-white/10 bg-gray-100 dark:bg-white/5 backdrop-blur-sm">
+          <div className="inline-flex items-center gap-1 p-1 rounded-full neu-inset">
             {(['student', 'teacher'] as Audience[]).map((a) => (
               <button
                 key={a}
                 onClick={() => setActive(a)}
-                className={`px-6 py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all duration-300 ${
+                className={`px-4 py-2 sm:px-6 sm:py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all duration-300 ${
                   active === a
                     ? 'bg-primary text-white shadow-lg shadow-primary/30'
                     : 'text-gray-600 dark:text-white/50 hover:text-white'
@@ -73,7 +74,7 @@ export default function TeacherFlipCard() {
             className="grid md:grid-cols-2 gap-8 items-stretch"
           >
             {/* Content panel */}
-            <div className="rounded-2xl border border-black/10 dark:border-white/10 bg-gray-100 dark:bg-white/[0.03] backdrop-blur-xl p-8 space-y-5">
+            <div className="shine-card rounded-2xl neu-raised p-8 space-y-5">
               <div>
                 <p className="text-[10px] font-black text-primary tracking-[0.35em] uppercase mb-2">
                   {isStudent ? 'Student experience' : 'Teacher dashboard'}
@@ -102,20 +103,17 @@ export default function TeacherFlipCard() {
                 ))}
               </div>
 
-              <motion.a
+              <LandingCTABtn
+                label={isStudent ? 'Start for free' : 'Set up your batch'}
                 href={isStudent ? '/auth/register' : '/auth/register?role=teacher'}
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-primary text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/30 mt-2"
-              >
-                {isStudent ? 'Start for free' : 'Set up your batch'}
-                <ArrowRight className="w-3.5 h-3.5" />
-              </motion.a>
+                variant="sm"
+                className="mt-2"
+              />
             </div>
 
             {/* Visual placeholder */}
-            <div className="rounded-2xl border border-dashed border-black/20 dark:border-white/20 bg-gray-100 dark:bg-white/[0.02] flex flex-col items-center justify-center gap-4 p-8 min-h-[340px]">
-              <div className="w-14 h-14 rounded-2xl border-2 border-dashed border-black/20 dark:border-white/20 flex items-center justify-center">
+            <div className="rounded-2xl neu-inset flex flex-col items-center justify-center gap-4 p-6 sm:p-8 min-h-[200px] sm:min-h-[340px]">
+              <div className="w-14 h-14 rounded-2xl neu-raised flex items-center justify-center">
                 {isStudent
                   ? <BarChart2 className="w-6 h-6 text-gray-400 dark:text-white/20" />
                   : <Users className="w-6 h-6 text-gray-400 dark:text-white/20" />}

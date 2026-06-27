@@ -241,7 +241,7 @@ function ClientShellInner({ children, connectEnabled, premiumEnabled, socialEnab
               "flex-1 flex flex-col relative z-10 overflow-x-hidden custom-scrollbar",
               isFullViewportApp ? "overflow-hidden" : "overflow-y-auto",
               "transition-all duration-300 min-w-[320px]",
-              mounted && showNavbar ? 'md:pl-[72px] pt-14 md:pt-0' : ''
+              mounted && showNavbar ? 'md:pl-[72px] pt-14 md:pt-0 pb-14 md:pb-0' : ''
             )}
           >
             <div className={cn(
@@ -268,10 +268,11 @@ function ClientShellInner({ children, connectEnabled, premiumEnabled, socialEnab
         )}
 
         {shouldShowFloatingOriginAi && (
-          <FloatingChat 
-            onOpen={toggleAi} 
-            autoAskSelectionNonce={globalAskNonce} 
-            hideMainButton={isAiOpen} 
+          <FloatingChat
+            onOpen={toggleAi}
+            autoAskSelectionNonce={globalAskNonce}
+            hideMainButton={isAiOpen}
+            userName={user?.name}
           />
         )}
 

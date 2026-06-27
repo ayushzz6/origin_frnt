@@ -11,16 +11,16 @@ interface LiveStats {
 
 function OdometerDigit({ value }: { value: string }) {
   const prefersReduced = useReducedMotion();
-  if (!value.match(/\d/)) return <span>{value}</span>;
+  if (!value.match(/\d/)) return <span className="align-middle">{value}</span>;
 
   return (
-    <span className="inline-block overflow-hidden relative" style={{ height: '1.1em', width: '0.65em' }}>
+    <span className="inline-flex items-center justify-center overflow-hidden relative w-[0.6em] h-[1.2em] align-middle">
       <motion.span
         key={value}
         initial={prefersReduced ? false : { y: '-100%' }}
         animate={{ y: '0%' }}
         transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-        className="absolute inset-0 flex items-center justify-center"
+        className="absolute inset-0 flex items-center justify-center font-mono tabular-nums leading-none"
       >
         {value}
       </motion.span>
@@ -31,7 +31,7 @@ function OdometerDigit({ value }: { value: string }) {
 function OdometerNumber({ value }: { value: number }) {
   const formatted = value.toLocaleString('en-IN');
   return (
-    <span className="font-mono tabular-nums">
+    <span className="font-mono tabular-nums inline-flex items-center align-middle">
       {formatted.split('').map((ch, i) => (
         <OdometerDigit key={i} value={ch} />
       ))}
@@ -74,32 +74,45 @@ export default function LiveCounter() {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay: 0.9 }}
-      className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 mt-8"
+      className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-8 neu-inset px-6 py-3.5 rounded-full border border-white/10 dark:border-black/5"
     >
       {/* Active now */}
-      <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-white/80">
-        <span className="relative flex h-2 w-2">
+      <div className="flex items-center gap-2 text-sm font-semibold text-foreground/80 leading-none">
+        <span className="relative flex h-2 w-2 shrink-0 self-center">
           <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
           <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
         </span>
-        <OdometerNumber value={stats.activeNow} />
-        <span className="text-gray-600 dark:text-white/50 font-normal">solving right now</span>
+        <div className="flex items-baseline gap-1.5 leading-none">
+          <span className="font-heading font-black text-foreground">
+            <OdometerNumber value={stats.activeNow} />
+          </span>
+          <span className="text-muted-foreground font-medium text-xs">solving right now</span>
+        </div>
       </div>
 
-      <div className="w-px h-4 bg-gray-100 dark:bg-white/20 hidden sm:block" />
+      <div className="w-px h-4 bg-muted-foreground/30 hidden sm:block self-center" />
 
       {/* Doubts today */}
-      <div className="text-sm font-semibold text-gray-700 dark:text-white/80">
-        <OdometerNumber value={stats.doubtsToday} />
-        <span className="text-gray-600 dark:text-white/50 font-normal ml-1.5">doubts solved today</span>
+      <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground/80 leading-none">
+        <div className="flex items-baseline gap-1.5 leading-none">
+          <span className="font-heading font-black text-foreground">
+            <OdometerNumber value={stats.doubtsToday} />
+          </span>
+          <span className="text-muted-foreground font-medium text-xs">doubts solved today</span>
+        </div>
       </div>
 
-      <div className="w-px h-4 bg-gray-100 dark:bg-white/20 hidden sm:block" />
+      <div className="w-px h-4 bg-muted-foreground/30 hidden sm:block self-center" />
 
       {/* Active streaks */}
-      <div className="text-sm font-semibold text-gray-700 dark:text-white/80">
-        🔥 <OdometerNumber value={stats.streaksActive} />
-        <span className="text-gray-600 dark:text-white/50 font-normal ml-1.5">active streaks</span>
+      <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground/80 leading-none">
+        <span className="text-sm self-center">🔥</span>
+        <div className="flex items-baseline gap-1.5 leading-none">
+          <span className="font-heading font-black text-foreground">
+            <OdometerNumber value={stats.streaksActive} />
+          </span>
+          <span className="text-muted-foreground font-medium text-xs">active streaks</span>
+        </div>
       </div>
     </motion.div>
   );

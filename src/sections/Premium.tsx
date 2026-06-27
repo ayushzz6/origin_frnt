@@ -9,7 +9,10 @@
  */
 
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { ChevronLeft, Atom, FlaskConical, Sigma, Dna, Shield, Check } from 'lucide-react';
+
+const OriMascot = dynamic(() => import('@/features/mascot/Ori2D'), { ssr: false });
 
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
@@ -39,8 +42,8 @@ export default function Premium({ onBack }: PremiumProps) {
   const onChanged = () => void refreshUser();
 
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
-      <header className="sticky top-0 z-40 glass border-b border-border backdrop-blur-md">
+    <div className="min-h-screen neu-surface text-foreground transition-colors duration-300">
+      <header className="sticky top-0 z-40 bg-[hsl(var(--neu-bg))] border-b border-border/40 shadow-[0_2px_8px_hsl(var(--neu-shadow)/30%)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
@@ -59,6 +62,11 @@ export default function Premium({ onBack }: PremiumProps) {
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center mb-10">
+          <div className="mb-4 flex justify-center">
+            <div className="h-24 w-24 sm:h-28 sm:w-28">
+              <OriMascot expression="thumbsup" title="Origin AI" />
+            </div>
+          </div>
           <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-4">
             Subscribe by subject
           </h2>
@@ -69,7 +77,7 @@ export default function Premium({ onBack }: PremiumProps) {
         </div>
 
         {/* Global tools unlock banner */}
-        <Card className="border-0 shadow-soft mb-10 dark:bg-slate-900/60 dark:ring-1 dark:ring-white/10">
+        <Card className="neu-raised border-0 shadow-none mb-8 sm:mb-10">
           <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
             <div>
               <h3 className="font-semibold text-slate-900 dark:text-white mb-1">
@@ -95,7 +103,7 @@ export default function Premium({ onBack }: PremiumProps) {
         </Card>
 
         {/* Subject cards */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-10 sm:mb-12">
           {ALL_SUBJECTS.map((subject) => {
             const meta = SUBJECT_META[subject];
             const isOwned = owned.has(subject);
@@ -103,7 +111,7 @@ export default function Premium({ onBack }: PremiumProps) {
             return (
               <Card
                 key={subject}
-                className={`relative border-0 shadow-lg overflow-hidden dark:bg-slate-900/60 dark:ring-1 dark:ring-white/10 ${isOwned ? 'ring-2 ring-green-500/40' : ''}`}
+                className={`relative neu-raised border-0 shadow-none overflow-hidden ${isOwned ? 'ring-2 ring-green-500/40' : ''}`}
               >
                 <CardContent className="p-6 flex flex-col h-full">
                   <div className="flex items-center justify-between mb-4">

@@ -2,9 +2,9 @@
 import { Fragment, useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   ChevronLeft, Send, ImagePlus, Mic, MicOff,
-  X, Sparkles, Plus, Atom,
+  X, Pencil, Plus, Atom,
   FlaskConical, Calculator, Leaf, PanelLeft, PanelLeftClose, Trash2,
-  Database, MessageCircle
+  Database, MessageCircle, ArrowRight, Lightbulb, Zap
 } from 'lucide-react';
 import { useHighlightedText, clearHighlightedText, getHighlightedText, getPendingHighlightedText } from '@/features/origin-ai/highlight-capture';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -651,18 +651,26 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
     setViewMode('selection');
   };
 
+  // Welcome-screen primary CTA: immediately open a fresh general chat.
+  const handleStartNewGeneralChat = async () => {
+    const session = await createNewSession('General Doubt Session', null);
+    if (session) {
+      setViewMode('chat');
+    }
+  };
+
   return (
     <div className="h-full min-h-0 w-full bg-background text-foreground flex flex-col font-sans relative overflow-hidden transition-colors duration-300">
-      {/* Background Decor */}
-      <div className="absolute inset-0 z-0 pointer-events-none opacity-40"
+      {/* Background Decor — subtle primary glow, aligned to the app theme */}
+      <div className="absolute inset-0 z-0 pointer-events-none opacity-60"
         style={{
-          backgroundImage: `radial-gradient(circle at 80% 30%, rgba(225, 29, 72, 0.15) 0%, transparent 40%),
-                           radial-gradient(circle at 20% 70%, rgba(251, 113, 133, 0.1) 0%, transparent 40%)`
+          backgroundImage: `radial-gradient(circle at 80% 20%, hsl(var(--primary) / 0.08) 0%, transparent 45%),
+                           radial-gradient(circle at 15% 80%, hsl(var(--primary) / 0.05) 0%, transparent 45%)`
         }}>
       </div>
 
       {/* Fixed Header */}
-      <header className="relative z-30 flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-b border-border/40 bg-card/60 backdrop-blur-xl flex-shrink-0">
+      <header className="relative z-30 flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-b border-border/30 bg-background flex-shrink-0">
         <div className="flex items-center gap-3 sm:gap-4">
           <button
             onClick={() => {
@@ -676,7 +684,7 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
                 onBack();
               }
             }}
-            className="p-1 sm:p-2 rounded-full hover:bg-white/10 transition-colors"
+            className="p-1.5 sm:p-2 rounded-full neu-raised transition-all hover:-translate-y-0.5"
           >
             <ChevronLeft className="w-5 h-5 text-muted-foreground" />
           </button>
@@ -684,7 +692,7 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
           {viewMode === 'chat' && activeSession && (
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-1 sm:p-2 rounded-lg text-muted-foreground hover:bg-muted/10 transition-colors inline-flex lg:inline-flex"
+              className="p-1.5 sm:p-2 rounded-lg neu-raised text-muted-foreground hover:text-primary transition-all inline-flex lg:inline-flex"
               title={isSidebarOpen ? "Hide Sidebar" : "Show Sidebar"}
             >
               <PanelLeft className="w-5 h-5" />
@@ -692,7 +700,7 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
           )}
 
           <div className="relative">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-rose-600/10 border border-rose-500/20 flex items-center justify-center shadow-lg overflow-hidden">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full neu-inset flex items-center justify-center overflow-hidden">
               <img src="/iconsax/Ai-Icon.png" alt="AI" className="w-full h-full object-contain p-1" />
             </div>
           </div>
@@ -708,7 +716,7 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
                     if (e.key === 'Escape') setIsEditingTitle(false);
                   }}
                   onBlur={() => handleUpdateTitle()}
-                  className="bg-muted border border-rose-500/30 rounded px-2 py-0.5 text-xs sm:text-sm text-foreground focus:outline-none focus:border-rose-500 w-32 sm:w-40"
+                  className="bg-muted border border-primary/30 rounded px-2 py-0.5 text-xs sm:text-sm text-foreground focus:outline-none focus:border-primary w-32 sm:w-40"
                 />
               </div>
             ) : (
@@ -720,7 +728,7 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
                   {viewMode === 'chat' && activeSession ? activeSession.title : 'AI Explainer'}
                 </h1>
                 {activeSession && (
-                  <Sparkles className="w-3 h-3 text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Pencil className="w-3 h-3 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
                 )}
               </div>
             )}
@@ -728,7 +736,7 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-green-500/20 bg-green-500/5">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full neu-raised">
             <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
             <span className="text-[10px] font-bold text-green-400 uppercase">System Online</span>
           </div>
@@ -745,14 +753,9 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
             onSelectSession={handleSelectSession}
             lastSession={lastMentorSession}
             onUpdateTitle={handleUpdateTitle}
-            onStartNewChat={startNewChatFromCTA}
+            onStartNewChat={() => { void handleStartNewGeneralChat(); }}
             onDeleteSession={handleDeleteSession}
-            onGeneralChat={async () => {
-              const session = await createNewSession('General Doubt Session', null);
-              if (session) {
-                setViewMode('chat');
-              }
-            }}
+            onGeneralChat={() => { void handleStartNewGeneralChat(); }}
           />
         ) : viewMode === 'chapter' && selectedSubject ? (
           <ChapterSelectionView
@@ -785,7 +788,7 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
                     exit={{ x: -288, opacity: 0 }}
                     transition={{ type: "spring", damping: 25, stiffness: 200 }}
                     className={cn(
-                      "absolute lg:relative z-40 h-full flex flex-col border-r border-border/40 bg-card/95 lg:bg-card/30 backdrop-blur-2xl lg:backdrop-blur-none overflow-hidden shadow-2xl lg:shadow-none",
+                      "absolute lg:relative z-40 h-full flex flex-col border-r border-border/30 neu-surface overflow-hidden",
                       "top-0 left-0 bottom-0"
                     )}
                   >
@@ -794,14 +797,14 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
                       <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] flex-1">Recent Sessions</h3>
                       <button
                         onClick={() => setIsSidebarOpen(false)}
-                        className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted transition-all outline-none"
+                        className="p-1.5 rounded-lg neu-raised text-muted-foreground hover:text-foreground transition-all outline-none"
                         title="Hide Sidebar"
                       >
                         <PanelLeftClose className="w-4 h-4" />
                       </button>
                       <button
                         onClick={startNewChatFromCTA}
-                        className="p-1.5 rounded-lg bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 transition-all"
+                        className="p-1.5 rounded-lg neu-raised text-primary hover:text-primary/80 transition-all"
                         title="New Chat (uses your last subject)"
                       >
                         <Plus className="w-4 h-4" />
@@ -819,7 +822,7 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
                             setEditingSidebarId(s.id);
                             setSidebarEditValue(s.title);
                           }}
-                          className={`w-full p-4 rounded-2xl transition-all text-left group cursor-pointer ${activeSession?.id === s.id ? 'bg-rose-500/10 border-rose-500/30 shadow-lg shadow-rose-500/5' : 'bg-background/40 border border-border/50 hover:border-rose-500/30'}`}
+                          className={`w-full p-4 rounded-2xl transition-all text-left group cursor-pointer ${activeSession?.id === s.id ? 'neu-inset border border-primary/25' : 'neu-raised hover:border-primary/20'}`}
                           role="button"
                           tabIndex={0}
                         >
@@ -844,12 +847,12 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
                                 if (e.key === 'Escape') setEditingSidebarId(null);
                               }}
                               onClick={(e) => e.stopPropagation()}
-                              className="bg-slate-200/50 dark:bg-white/10 border border-rose-500/50 rounded px-2 py-0.5 text-xs text-foreground dark:text-white w-full focus:outline-none"
+                              className="bg-muted border border-primary/50 rounded px-2 py-0.5 text-xs text-foreground w-full focus:outline-none"
                             />
                           ) : (
                             <div className="flex items-start gap-2 justify-between">
                               <div className="min-w-0 flex-1">
-                                <p className={`text-sm font-semibold truncate ${activeSession?.id === s.id ? 'text-rose-500' : 'text-muted-foreground group-hover:text-foreground'}`}>{s.title}</p>
+                                <p className={`text-sm font-semibold truncate ${activeSession?.id === s.id ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`}>{s.title}</p>
                                 <p className="text-[10px] text-muted-foreground/60 mt-1">{new Date(s.updatedAt || s.createdAt).toLocaleDateString()}</p>
                               </div>
                               <button
@@ -897,7 +900,7 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
                 </div>
 
                 {/* Fixed Bottom Input Bar */}
-                <div className="p-4 border-t border-blue-500/10 dark:border-slate-800 bg-background/95 dark:bg-slate-900/90 backdrop-blur-xl">
+                <div className="p-4 border-t border-border/30 bg-background">
                   <div className="max-w-4xl mx-auto">
                     {/* Status indicators */}
                     <AnimatePresence>
@@ -906,7 +909,7 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
                           initial={{ opacity: 0, y: 10, height: 0 }}
                           animate={{ opacity: 1, y: 0, height: 'auto' }}
                           exit={{ opacity: 0, y: 10, height: 0 }}
-                          className="mb-2 px-4 py-2 rounded-xl border border-border/40 bg-card/60 backdrop-blur-sm flex items-center gap-3"
+                          className="mb-2 px-4 py-2 rounded-xl neu-raised flex items-center gap-3"
                         >
                           {isRecording && (
                             <>
@@ -918,16 +921,16 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
                           )}
                           {isProcessingImage && (
                             <>
-                              <div className="w-4 h-4 border-2 border-rose-500/30 border-t-rose-500 rounded-full animate-spin" />
-                              <span className="text-xs text-rose-400 font-medium">Analyzing image &amp; searching knowledge base...</span>
+                              <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                              <span className="text-xs text-primary font-medium">Analyzing image &amp; searching knowledge base...</span>
                             </>
                           )}
                         </motion.div>
                       )}
                     </AnimatePresence>
                     {highlightedText ? (
-                      <div className="mb-2 flex items-center gap-2 rounded-2xl border border-rose-400/20 bg-rose-600/5 px-3 py-2 text-xs">
-                        <span className="shrink-0 font-black tracking-wider text-rose-600 dark:text-rose-200">Selected</span>
+                      <div className="mb-2 flex items-center gap-2 rounded-2xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs">
+                        <span className="shrink-0 font-black tracking-wider text-primary">Selected</span>
                         <FormattedMessage content={highlightedText} inline className="line-clamp-1 flex-1 font-medium text-foreground/80" />
                         <button
                           type="button"
@@ -939,12 +942,12 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
                         </button>
                       </div>
                     ) : null}
-                    <div className={`bg-card/80 backdrop-blur-2xl border ${isRecording ? 'border-red-500/40 shadow-red-500/10' : 'border-primary/20 dark:border-border/60 shadow-2xl'} rounded-xl sm:rounded-[28px] p-1 sm:p-2 flex items-end gap-1 sm:gap-2 transition-all`}>
+                    <div className={`neu-raised ${isRecording ? 'ring-1 ring-red-500/40' : ''} rounded-xl sm:rounded-[28px] p-1 sm:p-2 flex items-end gap-1 sm:gap-2 transition-all`}>
                       {!isRecording ? (
                         <>
                           <button
                             onClick={() => fileInputRef.current?.click()}
-                            className="p-3 text-slate-400 hover:text-blue-400 transition-colors"
+                            className="p-3 text-muted-foreground hover:text-primary transition-colors"
                             title="Upload image of a problem"
                           >
                             <ImagePlus className="w-5 h-5" />
@@ -1023,16 +1026,16 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
                                     setIsRecording(true);
                                     setLiveTranscript('');
                                   }}
-                                  className={`p-3 transition-colors ${isRecording ? 'text-red-500 animate-pulse' : 'text-slate-400 hover:text-blue-400'}`}
+                                  className={`p-3 transition-colors ${isRecording ? 'text-red-500 animate-pulse' : 'text-muted-foreground hover:text-primary'}`}
                                   title={isRecording ? 'Stop recording' : 'Record voice'}
                                 >
                                   {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
                                 </button>
                               </TooltipTrigger>
-                              <TooltipContent side="top" className="bg-slate-900 border-white/20 text-white shadow-2xl">
+                              <TooltipContent side="top" className="bg-popover border-border text-popover-foreground shadow-2xl">
                                 <div className="p-1">
                                   <p className="text-xs font-bold">{isRecording ? 'Recording...' : 'Unlimited Voice'}</p>
-                                  <p className="text-[10px] text-white/60">Voice interaction is unlimited in AI Explainer</p>
+                                  <p className="text-[10px] text-muted-foreground">Voice interaction is unlimited in AI Explainer</p>
                                 </div>
                               </TooltipContent>
                             </Tooltip>
@@ -1058,16 +1061,16 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
                                   className={`flex-1 bg-transparent border-none focus:ring-0 text-foreground placeholder:text-muted-foreground/60 py-3 text-[15px] resize-none max-h-40 ${isTextQuotaReached ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 />
                               </TooltipTrigger>
-                              <TooltipContent side="top" className="bg-slate-900 border-white/10 text-white">
+                              <TooltipContent side="top" className="bg-popover border-border text-popover-foreground">
                                 <div className="space-y-1.5 p-1">
                                   <div className="flex justify-between items-center gap-4">
-                                    <span className="text-[10px] font-semibold text-white/60 uppercase tracking-wider">Remaining Text</span>
-                                    <span className="text-[10px] font-bold text-emerald-400">{Math.max(0, Math.round(100 - textProgress))}%</span>
+                                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Remaining Text</span>
+                                    <span className="text-[10px] font-bold text-emerald-500">{Math.max(0, Math.round(100 - textProgress))}%</span>
                                   </div>
-                                  <div className="w-32 h-1 bg-white/10 rounded-full overflow-hidden">
+                                  <div className="w-32 h-1 bg-muted rounded-full overflow-hidden">
                                     <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${textProgress}%` }} />
                                   </div>
-                                  <p className="text-[10px] text-white/40">{getRemainingTokens()}</p>
+                                  <p className="text-[10px] text-muted-foreground">{getRemainingTokens()}</p>
                                 </div>
                               </TooltipContent>
                             </Tooltip>
@@ -1103,7 +1106,7 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
                         disabled={!isRecording && !message.trim() && !highlightedText}
                         className={`p-3 rounded-2xl transition-all ${isRecording
                           ? 'bg-red-500 text-white shadow-lg shadow-red-600/30'
-                          : ((message.trim() || highlightedText) ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-muted/20 text-muted-foreground/40 cursor-not-allowed')}`}
+                          : ((message.trim() || highlightedText) ? 'bg-primary text-white shadow-lg shadow-primary/30' : 'bg-muted/20 text-muted-foreground/40 cursor-not-allowed')}`}
                       >
                         {isRecording ? <div className="w-5 h-5 flex items-center justify-center font-bold">●</div> : <Send className="w-5 h-5" />}
                       </button>
@@ -1167,38 +1170,61 @@ function SelectionView({ onCreate, onUpload, sessions, onSelectSession, lastSess
     setEditingId(null);
   };
 
-  return (
-    <div className="w-full max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-12 overflow-y-auto custom-scrollbar">
-      <div className="relative p-5 sm:p-10 rounded-[24px] sm:rounded-[40px] bg-gradient-to-br from-blue-600/10 to-indigo-600/5 border border-muted dark:border-slate-800 mb-6 sm:mb-12 overflow-hidden group shadow-xl">
-        <Sparkles className="absolute top-4 sm:top-6 right-6 sm:right-8 w-6 h-6 sm:w-12 sm:h-12 text-blue-500/10 group-hover:rotate-12 transition-transform duration-700" />
-        <h2 className="text-xl sm:text-4xl font-bold text-foreground mb-2 sm:mb-4 leading-tight">Master your subjects<br />with AI precision.</h2>
-        <p className="text-muted-foreground text-xs sm:text-lg max-w-xl mb-4 sm:mb-8 leading-relaxed">Stuck on a problem at 2 AM? Get step-by-step guidance and conceptual deep-dives instantly.</p>
-        <div className="flex flex-wrap gap-2 sm:gap-4">
-          <button
-            id="tutorial-doubt-solver-new"
-            onClick={onStartNewChat}
-            className="px-5 sm:px-8 py-2.5 sm:py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-lg sm:rounded-2xl font-bold transition-all shadow-xl shadow-blue-600/20 flex items-center gap-2 text-xs sm:text-base"
-          >
-            <Plus className="w-3.5 h-3.5 sm:w-5 sm:h-5" /> Start New Chat
-          </button>
-          {lastSession && (
-            <button
-              onClick={() => onSelectSession(lastSession)}
-              className="px-5 py-2.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-500 rounded-lg sm:rounded-2xl font-bold transition-all flex items-center gap-2 text-xs sm:text-base"
-            >
-              Continue last chat
-            </button>
-          )}
-          <button onClick={onUpload} className="px-5 sm:px-8 py-2.5 sm:py-4 bg-muted hover:bg-muted/80 border border-border/60 text-foreground rounded-lg sm:rounded-2xl font-bold transition-all flex items-center gap-2 shadow-sm text-xs sm:text-base">
-            <ImagePlus className="w-3.5 h-3.5 sm:w-5 sm:h-5" /> Scan Problem
-          </button>
-        </div>
-      </div>
+  const SUBJECT_ICON: Record<string, typeof Atom> = {
+    phy: Atom, chem: FlaskConical, math: Calculator, bio: Leaf, general: MessageCircle,
+  };
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-        <div>
-          <h3 className="text-xl font-bold text-foreground dark:text-white mb-6 uppercase tracking-widest text-blue-400/80">Subjects</h3>
-          <div className="grid grid-cols-1 gap-4">
+  return (
+    <div className="flex-1 h-full overflow-y-auto custom-scrollbar">
+      <div className="mx-auto w-full max-w-6xl px-4 sm:px-8 py-6 sm:py-10">
+
+        {/* Hero */}
+        <div className="neu-raised relative overflow-hidden rounded-3xl p-6 sm:p-9 mb-8">
+          <div className="relative z-10 max-w-2xl">
+            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-primary mb-3">AI Doubt Solver</p>
+            <h2 className="text-2xl sm:text-4xl font-black tracking-tight text-foreground mb-3 leading-[1.1]">
+              Master your subjects with <span className="text-primary">AI precision.</span>
+            </h2>
+            <p className="text-sm sm:text-base text-muted-foreground mb-6 leading-relaxed max-w-xl">
+              Stuck on a problem at 2 AM? Get step-by-step guidance and conceptual deep-dives instantly.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <button
+                id="tutorial-doubt-solver-new"
+                onClick={onStartNewChat}
+                className="inline-flex items-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-black text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary/90"
+              >
+                <Plus className="w-4 h-4" /> Start New Chat
+              </button>
+              {lastSession && (
+                <button
+                  onClick={() => onSelectSession(lastSession)}
+                  className="neu-btn inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-black text-primary"
+                >
+                  Continue last chat
+                </button>
+              )}
+              <button
+                onClick={onUpload}
+                className="neu-btn inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-black text-foreground"
+              >
+                <ImagePlus className="w-4 h-4" /> Scan Problem
+              </button>
+            </div>
+          </div>
+          {/* Decorative Ori */}
+          <img
+            src="/ori2d/ori-thinking.png"
+            alt=""
+            draggable={false}
+            className="pointer-events-none absolute -bottom-4 right-4 hidden w-36 select-none object-contain opacity-90 sm:block lg:w-44"
+          />
+        </div>
+
+        {/* Subjects — responsive grid uses the full width */}
+        <div className="mb-10">
+          <h3 className="mb-4 text-xs font-black uppercase tracking-[0.25em] text-muted-foreground">Pick a subject</h3>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
             {quickTopics.map((topic) => (
               <button
                 key={topic.name}
@@ -1209,92 +1235,97 @@ function SelectionView({ onCreate, onUpload, sessions, onSelectSession, lastSess
                     onCreate(`${topic.name} Doubt Session`, topic.subjectKey as SubjectKey);
                   }
                 }}
-                className="p-4 sm:p-6 rounded-[20px] sm:rounded-[28px] bg-card/40 border border-muted hover:border-blue-500/30 dark:border-slate-800 transition-all group flex items-center gap-4 sm:gap-6 shadow-sm hover:shadow-md"
+                className="neu-raised group flex flex-col items-start gap-3 rounded-2xl p-4 sm:p-5 text-left transition-transform hover:-translate-y-0.5"
               >
-                <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-muted border border-border/50 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
-                  <topic.icon className={`w-5 h-5 sm:w-7 sm:h-7 ${topic.color}`} />
+                <div className="neu-inset flex h-12 w-12 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
+                  <topic.icon className={`h-6 w-6 ${topic.color}`} />
                 </div>
                 <div>
-                  <p className="text-base sm:text-lg font-bold text-foreground mb-0.5">{topic.name}</p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">{topic.desc}</p>
+                  <p className="text-sm font-black text-foreground sm:text-base">{topic.name}</p>
+                  <p className="text-[10px] text-muted-foreground sm:text-xs">{topic.desc}</p>
                 </div>
               </button>
             ))}
           </div>
         </div>
 
+        {/* Recent chats — grid instead of a tall narrow list */}
         <div>
-          <h3 className="text-lg sm:text-xl font-bold text-foreground mb-4 sm:mb-6 uppercase tracking-widest opacity-50">History</h3>
-          <div className="space-y-3 lg:max-h-[34rem] lg:overflow-y-auto lg:pr-1 lg:custom-scrollbar">
-            {sessions.map(s => (
-              <div
-                key={s.id}
-                onClick={() => onSelectSession(s)}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  handleStartEdit(e, s);
-                }}
-                className="w-full p-4 sm:p-5 rounded-2xl sm:rounded-[28px] bg-card/30 border border-muted hover:bg-card/50 dark:border-slate-800 transition-all text-left flex items-center justify-between group cursor-pointer shadow-sm hover:shadow-md"
-                role="button"
-                tabIndex={0}
-              >
-                <div className="flex items-center gap-4 flex-1 mr-4 overflow-hidden">
-                  <div className="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center flex-shrink-0">
-                    <Atom className="w-5 h-5 text-blue-400" />
-                  </div>
-                  <div className="flex-1 overflow-hidden">
-                    {editingId === s.id ? (
-                      <input
-                        autoFocus
-                        value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
-                        onBlur={handleFinishEdit}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleFinishEdit();
-                          if (e.key === 'Escape') setEditingId(null);
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        className="bg-slate-200/50 dark:bg-white/10 border border-blue-500/50 rounded px-2 py-0.5 text-sm text-foreground dark:text-white w-full focus:outline-none"
-                      />
-                    ) : (
-                      <>
-                        <div className="flex items-center gap-2 group/title">
-                          <p className="text-sm font-bold text-foreground/80 group-hover:text-foreground transition-colors truncate">{s.title}</p>
-                          <span
-                            onClick={(e) => handleStartEdit(e, s)}
-                            className="opacity-0 group-hover/title:opacity-100 p-1 rounded hover:bg-muted transition-all cursor-pointer"
-                          >
-                            <Sparkles className="w-3 h-3 text-blue-500" />
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">{new Date(s.updatedAt || s.createdAt).toLocaleDateString()}</p>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void onDeleteSession(s);
-                    }}
-                    className="p-2 rounded-full text-muted-foreground/70 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                    title={`Delete ${s.title}`}
-                    aria-label={`Delete ${s.title}`}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                  <ChevronLeft className="w-4 h-4 text-muted-foreground rotate-180 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
-                </div>
-              </div>
-            ))}
-            {sessions.length === 0 && (
-              <div className="p-10 text-center rounded-[28px] border border-dashed border-white/5">
-                <p className="text-sm text-slate-500">No previous sessions found.</p>
-              </div>
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-xs font-black uppercase tracking-[0.25em] text-muted-foreground">Recent chats</h3>
+            {sessions.length > 0 && (
+              <span className="text-[10px] font-bold text-muted-foreground tabular-nums">{sessions.length}</span>
             )}
           </div>
+
+          {sessions.length === 0 ? (
+            <div className="neu-inset rounded-2xl p-10 text-center">
+              <p className="text-sm text-muted-foreground">No previous sessions yet — start your first chat above.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {sessions.map(s => {
+                const Icon = SUBJECT_ICON[(s.subject as string) || 'general'] ?? MessageCircle;
+                return (
+                  <div
+                    key={s.id}
+                    onClick={() => onSelectSession(s)}
+                    onContextMenu={(e) => { e.preventDefault(); handleStartEdit(e, s); }}
+                    className="neu-raised group flex cursor-pointer items-center justify-between gap-3 rounded-2xl p-4 transition-transform hover:-translate-y-0.5"
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <div className="neu-inset flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl">
+                        <Icon className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        {editingId === s.id ? (
+                          <input
+                            autoFocus
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onBlur={handleFinishEdit}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleFinishEdit();
+                              if (e.key === 'Escape') setEditingId(null);
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full rounded border border-primary/50 bg-muted px-2 py-0.5 text-sm text-foreground focus:outline-none"
+                          />
+                        ) : (
+                          <>
+                            <div className="flex items-center gap-1.5">
+                              <p className="truncate text-sm font-bold text-foreground/80 transition-colors group-hover:text-foreground">{s.title}</p>
+                              <span
+                                onClick={(e) => handleStartEdit(e, s)}
+                                className="cursor-pointer rounded p-1 opacity-0 transition-all hover:bg-muted group-hover:opacity-100"
+                              >
+                                <Pencil className="h-3 w-3 text-primary" />
+                              </span>
+                            </div>
+                            <p className="mt-0.5 text-[10px] text-muted-foreground">{new Date(s.updatedAt || s.createdAt).toLocaleDateString()}</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-shrink-0 items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); void onDeleteSession(s); }}
+                        className="rounded-full p-2 text-muted-foreground/70 transition-colors hover:bg-red-500/10 hover:text-red-400"
+                        title={`Delete ${s.title}`}
+                        aria-label={`Delete ${s.title}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground transition-all group-hover:translate-x-1 group-hover:text-primary" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1351,10 +1382,10 @@ function ProgressiveResponse({
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => setRevealedCount(prev => prev + 1)}
-          className="mt-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-xl text-blue-400 text-xs font-bold transition-all flex items-center gap-2 group"
+          className="mt-2 px-4 py-2 bg-primary/15 hover:bg-primary/25 border border-primary/30 rounded-xl text-primary text-xs font-bold transition-all flex items-center gap-2 group"
         >
           {revealedCount === 1 ? 'Get Hint' : `Reveal Step ${revealedCount}`}
-          <Sparkles className="w-3 h-3 group-hover:rotate-12 transition-transform" />
+          <Lightbulb className="w-3 h-3 group-hover:rotate-12 transition-transform" />
         </motion.button>
       )}
     </div>
@@ -1368,19 +1399,19 @@ function ChatMessage({ message }: { message: ChatMessageType }) {
     <div className={`flex w-full ${isAI ? 'justify-start' : 'justify-end'} animate-in fade-in slide-in-from-bottom-4 duration-500`}>
       <div className={`flex gap-4 max-w-[85%] ${isAI ? 'flex-row' : 'flex-row-reverse'}`}>
         {isAI && (
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center flex-shrink-0 mt-1 shadow-lg shadow-blue-900/20 overflow-hidden">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-primary/15 border border-primary/30 flex items-center justify-center flex-shrink-0 mt-1 shadow-lg shadow-primary/10 overflow-hidden">
             <img src="/iconsax/Ai-Icon.png" alt="AI" className="w-full h-full object-contain p-1" />
           </div>
         )}
-        <div className={`p-3 sm:p-5 rounded-xl sm:rounded-[28px] text-xs sm:text-[15px] leading-relaxed shadow-xl relative ${isAI
-          ? 'bg-card/60 backdrop-blur-md border border-border/60 text-foreground rounded-tl-none'
-          : 'bg-blue-600 text-white border border-blue-400/30 rounded-tr-none shadow-blue-600/20'
+        <div className={`p-3 sm:p-5 rounded-xl sm:rounded-[28px] text-xs sm:text-[15px] leading-relaxed relative ${isAI
+          ? 'neu-raised text-foreground rounded-tl-none'
+          : 'bg-primary text-white border border-primary/40 rounded-tr-none shadow-lg shadow-primary/20'
           }`}>
           {isAI && !!message.metadata?.retrieval_status && (
             <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-3 w-fit border ${
               message.metadata.retrieval_status === 'retrieved from kb'
                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                : 'bg-primary/10 text-primary border-primary/20'
             }`}>
               {message.metadata.retrieval_status === 'retrieved from kb' ? (
                 <>
@@ -1389,7 +1420,7 @@ function ChatMessage({ message }: { message: ChatMessageType }) {
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-3 h-3" />
+                  <Zap className="w-3 h-3" />
                   generated
                 </>
               )}
@@ -1403,7 +1434,7 @@ function ChatMessage({ message }: { message: ChatMessageType }) {
           <div>
             <FormattedMessage content={message.content} isAssistant={isAI} />
           </div>
-          <div className={`text-[10px] mt-3 font-bold uppercase tracking-widest opacity-40 ${isAI ? 'text-slate-400' : 'text-blue-100'}`}>
+          <div className={`text-[10px] mt-3 font-bold uppercase tracking-widest opacity-40 ${isAI ? 'text-muted-foreground' : 'text-white/80'}`}>
             {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </div>
         </div>
@@ -1419,15 +1450,15 @@ function SubjectPillBar({
   activeSubject: string | null;
   onPick: (subject: SubjectKey) => void;
 }) {
-  const pills: { key: SubjectKey; name: string; icon: typeof Atom; color: string; activeBg: string }[] = [
-    { key: 'phy',  name: 'Physics',     icon: Atom,         color: 'text-blue-400',    activeBg: 'bg-blue-500/15 border-blue-500/40' },
-    { key: 'chem', name: 'Chemistry',   icon: FlaskConical, color: 'text-emerald-400', activeBg: 'bg-emerald-500/15 border-emerald-500/40' },
-    { key: 'math', name: 'Mathematics', icon: Calculator,   color: 'text-violet-400',  activeBg: 'bg-violet-500/15 border-violet-500/40' },
-    { key: 'bio',  name: 'Biology',     icon: Leaf,         color: 'text-green-400',   activeBg: 'bg-green-500/15 border-green-500/40' },
+  const pills: { key: SubjectKey; name: string; icon: typeof Atom; color: string }[] = [
+    { key: 'phy',  name: 'Physics',     icon: Atom,         color: 'text-blue-400'    },
+    { key: 'chem', name: 'Chemistry',   icon: FlaskConical, color: 'text-emerald-400' },
+    { key: 'math', name: 'Mathematics', icon: Calculator,   color: 'text-violet-400'  },
+    { key: 'bio',  name: 'Biology',     icon: Leaf,         color: 'text-green-400'   },
   ];
   const normalized = (activeSubject ?? '').toLowerCase();
   return (
-    <div className="px-4 sm:px-6 pt-3 pb-2 border-b border-border/30 bg-card/30 backdrop-blur-sm flex-shrink-0">
+    <div className="px-4 sm:px-6 pt-3 pb-2 border-b border-border/30 bg-background flex-shrink-0">
       <div className="max-w-4xl mx-auto flex flex-wrap gap-2">
         {pills.map((pill) => {
           const isActive = normalized === pill.key || normalized === pill.name.toLowerCase();
@@ -1438,13 +1469,13 @@ function SubjectPillBar({
               onClick={() => onPick(pill.key)}
               title={`Start a new ${pill.name} thread`}
               className={cn(
-                'inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold transition-all',
+                'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all',
                 isActive
-                  ? `${pill.activeBg} ${pill.color}`
-                  : 'border-border/50 text-muted-foreground hover:border-blue-500/30 hover:text-foreground',
+                  ? `neu-inset ${pill.color}`
+                  : 'neu-raised text-muted-foreground hover:text-foreground',
               )}
             >
-              <Icon className={cn('w-3.5 h-3.5', isActive ? pill.color : 'opacity-70')} />
+              <Icon className={cn('w-3.5 h-3.5', isActive ? pill.color : 'opacity-60')} />
               {pill.name}
             </button>
           );
@@ -1483,7 +1514,7 @@ function ChapterSelectionView({
     return (
       <div className="w-full max-w-5xl mx-auto px-3 sm:px-6 py-8 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+          <div className="w-10 h-10 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
           <p className="text-sm text-muted-foreground">Loading chapters...</p>
         </div>
       </div>
@@ -1503,16 +1534,15 @@ function ChapterSelectionView({
           <p className="text-sm sm:text-base font-bold text-foreground group-hover:text-foreground/90 leading-snug">{chapter.name}</p>
           <p className="text-[10px] sm:text-xs text-muted-foreground mt-1.5">{chapter.conceptCount} concepts</p>
         </div>
-        <Sparkles className={`w-4 h-4 ${colors.accent} opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5`} />
+        <ArrowRight className={`w-4 h-4 ${colors.accent} opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all flex-shrink-0 mt-0.5`} />
       </div>
     </motion.button>
   );
 
   return (
-    <div className="w-full max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-8 overflow-y-auto custom-scrollbar">
+    <div className="flex-1 h-full w-full max-w-6xl mx-auto px-4 sm:px-8 py-4 sm:py-8 overflow-y-auto custom-scrollbar">
       {/* Header */}
       <div className={`relative p-5 sm:p-8 rounded-[24px] sm:rounded-[32px] bg-gradient-to-br ${colors.bg} border border-border/60 mb-6 sm:mb-8 overflow-hidden shadow-lg`}>
-        <Sparkles className={`absolute top-4 right-6 w-8 h-8 ${colors.accent} opacity-10`} />
         <h2 className={`text-xl sm:text-3xl font-bold text-foreground mb-2 leading-tight`}>
           {subjectName} Chapters
         </h2>
@@ -1563,13 +1593,13 @@ function ChapterSelectionView({
 function TypingIndicator() {
   return (
     <div className="flex justify-start gap-4">
-      <div className="w-10 h-10 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center overflow-hidden">
+      <div className="w-10 h-10 rounded-2xl bg-primary/15 border border-primary/30 flex items-center justify-center overflow-hidden">
         <img src="/iconsax/Ai-Icon.png" alt="AI Thinking" className="w-full h-full object-contain p-1 animate-pulse" />
       </div>
-      <div className="px-6 py-4 bg-white/[0.04] border border-white/5 rounded-[28px] rounded-tl-none flex gap-1.5 items-center">
-        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce [animation-delay:-0.3s]" />
-        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce [animation-delay:-0.15s]" />
-        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce" />
+      <div className="neu-raised px-6 py-4 rounded-[28px] rounded-tl-none flex gap-1.5 items-center">
+        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]" />
+        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
+        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" />
       </div>
     </div>
   );
@@ -1589,10 +1619,10 @@ function ImageUploadModal({ onClose, onUpload }: { onClose: () => void, onUpload
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-background/90 backdrop-blur-md" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-card border border-border/40 rounded-[32px] p-8 shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-lg neu-surface border border-border/40 rounded-[32px] p-8 shadow-2xl overflow-hidden">
         <div className="flex justify-between items-center mb-8">
-          <h3 className="text-xl font-bold text-foreground dark:text-white">Visual Problem Solver</h3>
-          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full"><X className="w-5 h-5 text-slate-400" /></button>
+          <h3 className="text-xl font-bold text-foreground">Visual Problem Solver</h3>
+          <button onClick={onClose} className="p-2 hover:bg-muted rounded-full"><X className="w-5 h-5 text-muted-foreground" /></button>
         </div>
 
         <input
@@ -1605,11 +1635,11 @@ function ImageUploadModal({ onClose, onUpload }: { onClose: () => void, onUpload
 
         <div
           onClick={() => fileInputRef.current?.click()}
-          className="border-2 border-dashed border-white/10 rounded-3xl p-12 text-center group hover:border-blue-500/50 transition-all cursor-pointer bg-white/[0.02]"
+          className="neu-inset rounded-3xl p-12 text-center group hover:ring-1 hover:ring-primary/40 transition-all cursor-pointer"
         >
-          <div className="w-12 h-12 text-blue-500 mx-auto mb-6 group-hover:scale-110 transition-transform flex items-center justify-center">📷</div>
-          <p className="text-lg font-semibold text-foreground dark:text-white mb-2">Snap or Drag Problem</p>
-          <p className="text-sm text-slate-500">Supports handwriting and textbook scans</p>
+          <div className="w-12 h-12 text-primary mx-auto mb-6 group-hover:scale-110 transition-transform flex items-center justify-center text-3xl">📷</div>
+          <p className="text-lg font-semibold text-foreground mb-2">Snap or Drag Problem</p>
+          <p className="text-sm text-muted-foreground">Supports handwriting and textbook scans</p>
         </div>
       </div>
     </div>

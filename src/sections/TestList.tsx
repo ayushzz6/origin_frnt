@@ -162,7 +162,7 @@ export default function TestList({ onStartTest, onViewAnalysis, onBack, user, in
   };
 
   return (
-    <div id="tutorial-test-hub" className="min-h-screen bg-background text-foreground transition-colors duration-300">
+    <div id="tutorial-test-hub" className="min-h-screen neu-surface text-foreground transition-colors duration-300">
       {/* Header */}
       <header className="sticky top-0 z-40 glass border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -190,7 +190,7 @@ export default function TestList({ onStartTest, onViewAnalysis, onBack, user, in
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 pb-24 md:pb-10">
 
         {loading ? (
           <div className="text-center py-16 text-slate-500">Loading tests...</div>
@@ -407,7 +407,7 @@ export default function TestList({ onStartTest, onViewAnalysis, onBack, user, in
               {/* Build Lab (The Creator UI) */}
               <TabsContent value="build" className="mt-0 outline-none">
                 <div className="max-w-4xl mx-auto">
-                    <Card className="border-0 bg-white/40 dark:bg-white/5 backdrop-blur-xl shadow-soft rounded-[40px] overflow-hidden">
+                    <Card className="neu-raised border-0 shadow-none rounded-[40px] overflow-hidden">
                         <div className="p-6 sm:p-10 border-b border-border/40 bg-primary text-white relative">
                             <div className="relative z-10">
                                 <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter mb-2">Test Builder</h2>
@@ -501,7 +501,7 @@ export default function TestList({ onStartTest, onViewAnalysis, onBack, user, in
 
               {/* Search Laboratory (Filters) */}
               <TabsContent value="search" className="mt-0 outline-none">
-                <Card className="border-0 bg-white/40 dark:bg-white/5 backdrop-blur-xl shadow-soft rounded-[2rem] sm:rounded-[40px] p-6 sm:p-10">
+                <Card className="neu-raised border-0 shadow-none rounded-[2rem] sm:rounded-[40px] p-6 sm:p-10">
                   <div className="space-y-8">
                     <div className="space-y-4">
                       <Label className="text-[10px] uppercase font-black tracking-widest text-slate-500">Query Input</Label>
@@ -616,32 +616,31 @@ interface TestCardProps {
   getDifficultyColor: (difficulty: string) => string;
 }
 
-function TestCard({ test, onStart, onViewAnalysis, user, getSubjectIcon, getSubjectColor, getDifficultyColor }: TestCardProps) {
+function TestCard({ test, onStart, onViewAnalysis, user, getDifficultyColor }: TestCardProps) {
   const isLocked = false;
 
   return (
-    <Card className={`group relative border-2 border-border/60 hover:border-primary/40 bg-card/40 dark:bg-white/5 backdrop-blur-xl shadow-sm hover:shadow-md hover:shadow-primary/10 transition-all duration-500 rounded-[2rem] sm:rounded-[32px] overflow-hidden ${isLocked ? 'grayscale opacity-80' : ''}`}>
+    <Card className={`group relative border-0 neu-raised neu-pressable transition-all duration-500 overflow-hidden ${isLocked ? 'grayscale opacity-80' : ''}`}>
       <CardContent className="p-5 sm:p-8">
-        {/* Header Section */}
-        <div className="flex items-start justify-between mb-4 sm:mb-8">
-          <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl ${getSubjectColor(test.subject)} flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500`}>
-            {getSubjectIcon(test.subject)}
+        {/* Header Section — status badges only (subject icon removed) */}
+        {(test.attempted || isLocked) && (
+          <div className="flex justify-end mb-4 sm:mb-8">
+            <div className="flex flex-col items-end gap-2">
+              {test.attempted && (
+                <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 px-3 py-1 rounded-full font-black text-[9px] uppercase tracking-widest">
+                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                  Completed
+                </Badge>
+              )}
+              {isLocked && (
+                <Badge className="bg-amber-500 text-white border-0 px-3 py-1 rounded-full font-black text-[9px] uppercase tracking-widest shadow-lg shadow-amber-500/20">
+                  <Lock className="w-3 h-3 mr-1" />
+                  Premium
+                </Badge>
+              )}
+            </div>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            {test.attempted && (
-              <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 px-3 py-1 rounded-full font-black text-[9px] uppercase tracking-widest">
-                <CheckCircle2 className="w-3 h-3 mr-1" />
-                Completed
-              </Badge>
-            )}
-            {isLocked && (
-              <Badge className="bg-amber-500 text-white border-0 px-3 py-1 rounded-full font-black text-[9px] uppercase tracking-widest shadow-lg shadow-amber-500/20">
-                <Lock className="w-3 h-3 mr-1" />
-                Premium
-              </Badge>
-            )}
-          </div>
-        </div>
+        )}
 
         {/* Content Section */}
         <div className="mb-4 sm:mb-6">

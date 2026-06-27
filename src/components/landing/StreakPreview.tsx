@@ -118,7 +118,7 @@ export default function StreakPreview() {
   const heatmapCells = Array.from({ length: 7 * 20 }, (_, i) => i < MAX_STREAK);
 
   return (
-    <section className="py-24 lg:py-32 relative z-10 overflow-hidden">
+    <section className="py-14 sm:py-24 lg:py-32 relative z-10 overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_80%,rgba(0,102,255,0.06),transparent)] pointer-events-none" />
 
       <div className="max-w-4xl mx-auto px-6">
@@ -144,7 +144,7 @@ export default function StreakPreview() {
             whileInView={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6 }}
             viewport={{ once: true }}
-            className="relative rounded-2xl border border-black/10 dark:border-white/10 bg-gray-100 dark:bg-white/[0.03] backdrop-blur-xl p-8 overflow-hidden"
+            className="relative rounded-2xl neu-raised p-8 overflow-hidden"
           >
             <ConfettiBurst active={confetti} />
 
@@ -158,7 +158,7 @@ export default function StreakPreview() {
                 🔥
               </motion.div>
               <div>
-                <div className="text-6xl font-black text-gray-900 dark:text-white tabular-nums leading-none">{streak}</div>
+                <div className="text-5xl sm:text-6xl font-black text-gray-900 dark:text-white tabular-nums leading-none">{streak}</div>
                 <div className="text-xs text-gray-500 dark:text-white/40 font-semibold uppercase tracking-widest mt-1">Day Streak</div>
               </div>
             </div>
@@ -169,7 +169,7 @@ export default function StreakPreview() {
                 <span>XP Progress</span>
                 <span>{xp}%</span>
               </div>
-              <div className="h-3 rounded-full bg-gray-100 dark:bg-white/10 overflow-hidden">
+              <div className="h-3 neu-track overflow-hidden">
                 <motion.div
                   className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70"
                   style={{ width: `${xp}%` }}

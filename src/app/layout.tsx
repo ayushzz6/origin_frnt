@@ -2,25 +2,6 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Inter, Syne, Instrument_Serif } from "next/font/google";
 import "./globals.css";
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-body",
-  display: "swap",
-});
-
-const syne = Syne({
-  subsets: ["latin"],
-  variable: "--font-heading",
-  display: "swap",
-});
-
-const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
-  variable: "--font-display",
-  weight: "400",
-  display: "swap",
-});
 import AgentationLoader from "@/components/layout/AgentationLoader";
 import "katex/dist/katex.min.css";
 import { AuthProvider } from "@/context/AuthContext";
@@ -31,6 +12,16 @@ import { QuotaProvider } from "@/context/QuotaContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { getCanonicalSiteUrl } from "@/lib/site-url";
 import { isFeatureEnabled } from "@/lib/feature-flags";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-body", display: "swap" });
+const syne = Syne({ subsets: ["latin"], variable: "--font-heading", display: "swap" });
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
+  variable: "--font-display",
+  display: "swap",
+});
 
 const siteUrl = getCanonicalSiteUrl();
 
@@ -83,7 +74,6 @@ export default function RootLayout({
   const socialEnabled = isFeatureEnabled("studentSocial");
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable} ${syne.variable} ${instrumentSerif.variable}`}>
-      <head />
       <body className="antialiased" suppressHydrationWarning>
         <ThemeProvider
           attribute="class"

@@ -31,8 +31,7 @@ import {
   Maximize2,
   Minimize2,
   ShieldAlert,
-  Sparkles,
-  ArrowRight
+  Music
 } from 'lucide-react';
 import {
   Sheet,
@@ -44,9 +43,14 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import type { User } from '@/types';
 import { apiCall } from '@/lib/api';
+import StudyMusicPlayer from '@/sections/StudyMusicPlayer';
 import { toast } from 'sonner';
 
 import type { TimeType } from '@/hooks/useTimeTracker';
+
+// Sentinel for the "no objective" dropdown option (Radix Select disallows empty-string values).
+const NO_OBJECTIVE = '__none__';
+
 
 export interface PomodoroSession {
   id?: number;
@@ -117,6 +121,7 @@ export default function Pomodoro({ onBack, user, setTimeMode, onNavigate: _onNav
 
   // Background Atmosphere
   const [showAtmosphere, setShowAtmosphere] = useState(false);
+
 
   // Session History & Break Reason
   const [history, setHistory] = useState<PomodoroSession[]>([]);
@@ -752,7 +757,7 @@ export default function Pomodoro({ onBack, user, setTimeMode, onNavigate: _onNav
   const progress = ((currentMode.defaultTime - timeRemaining) / currentMode.defaultTime) * 100;
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-background text-foreground transition-colors duration-500 relative overflow-hidden flex flex-col">
+    <div ref={containerRef} className="min-h-screen neu-surface text-foreground transition-colors duration-500 relative overflow-hidden flex flex-col">
       
       {/* ── ATMOSPHERE BACKGROUND ── */}
       <AnimatePresence>
@@ -895,7 +900,26 @@ export default function Pomodoro({ onBack, user, setTimeMode, onNavigate: _onNav
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
             {/* Main Engine (Timer) */}
-            <div className="lg:col-span-8 flex flex-col gap-8">
+            <div className="lg:col-span-8 relative flex flex-col gap-8">
+              {/* Zen Mode toggle */}
+              <button
+                type="button"
+                onClick={() => setShowAtmosphere(!showAtmosphere)}
+                role="switch"
+                aria-checked={showAtmosphere}
+                aria-label="Toggle Zen Mode"
+                className={`absolute left-[276px] top-[10px] z-30 flex h-11 w-full max-w-[222px] items-center justify-between gap-2 rounded-full border px-4 text-[10px] font-black uppercase tracking-widest backdrop-blur-xl transition-all ${
+                  showAtmosphere
+                    ? 'border-primary/50 bg-primary text-white shadow-lg shadow-primary/20'
+                    : 'border-border/40 bg-white/40 text-slate-600 hover:border-primary/30 dark:bg-white/5 dark:text-slate-400'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <Flame className={`h-4 w-4 ${showAtmosphere ? 'animate-pulse' : ''}`} />
+                  Zen Mode
+                </span>
+                <span>{showAtmosphere ? 'On' : 'Off'}</span>
+              </button>
               <Card className="border-0 bg-white/20 dark:bg-white/5 backdrop-blur-sm shadow-soft rounded-[48px] overflow-hidden group">
                 <CardContent className="p-10 sm:p-20 flex flex-col items-center">
                    {/* Interruption Indicator */}
@@ -1036,55 +1060,44 @@ export default function Pomodoro({ onBack, user, setTimeMode, onNavigate: _onNav
             {/* Sidebar Controls */}
             <div className="lg:col-span-4 flex flex-col gap-8">
               {/* Task Selection */}
-              <Card className="border-0 bg-white/40 dark:bg-white/5 backdrop-blur-xl shadow-soft overflow-hidden rounded-[40px]">
-                <CardContent className="p-8">
-                  <div className="flex items-center justify-between mb-8">
-                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">Active Objective</h3>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    {tasks.length > 0 ? tasks.map((task) => (
-                      <button 
-                        key={task.id}
-                        onClick={() => setSelectedTaskId(task.id === selectedTaskId ? null : task.id)}
-                        disabled={isRunning}
-                        className={`w-full p-4 rounded-2xl text-left transition-all flex items-center justify-between group border ${
-                          selectedTaskId === task.id
-                          ? 'bg-primary border-primary/50 text-white shadow-lg'
-                          : 'bg-white/60 dark:bg-slate-900/40 border border-border/40 text-slate-700 dark:text-slate-300 hover:border-primary/30'
-                        }`}
-                      >
-                        <span className="text-xs font-bold truncate pr-3">{task.title}</span>
-                      </button>
-                    )) : (
-                       <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest text-center py-8">Select a task from your dashboard</p>
-                    )}
-                  </div>
+              <Card className="border-0 bg-white/40 dark:bg-white/5 backdrop-blur-xl shadow-soft overflow-hidden rounded-[28px]">
+                <CardContent className="p-5">
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white mb-3">Active Objective</h3>
+
+                  {tasks.length > 0 ? (
+                    <Select
+                      value={selectedTaskId ?? NO_OBJECTIVE}
+                      onValueChange={(value) => setSelectedTaskId(value === NO_OBJECTIVE ? null : value)}
+                      disabled={isRunning}
+                    >
+                      <SelectTrigger className="w-full rounded-2xl border-border/40 bg-white/60 dark:bg-slate-900/40 text-xs font-bold">
+                        <SelectValue placeholder="No objective" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NO_OBJECTIVE} className="text-xs font-bold">No objective</SelectItem>
+                        {tasks.map((task) => (
+                          <SelectItem key={task.id} value={task.id} className="text-xs font-bold">
+                            {task.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest text-center py-4">Select a task from your dashboard</p>
+                  )}
                 </CardContent>
               </Card>
 
-              {/* Zen Engine Card */}
-              <Card 
-                  className="border-0 bg-primary shadow-xl shadow-primary/20 text-white overflow-hidden relative group cursor-pointer rounded-[40px]" 
-                  onClick={() => setShowAtmosphere(!showAtmosphere)}
-              >
-                <CardContent className="p-8 relative z-10">
-                  <div className="flex justify-between items-start mb-10">
-                    <div>
-                      <h3 className="text-lg font-black uppercase tracking-tighter italic">Zen Engine</h3>
-                      <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Sensory Isolation</p>
-                    </div>
-                    <Sparkles className="w-10 h-10 opacity-30 group-hover:rotate-12 transition-transform" />
+              {/* Study Music (Spotify) */}
+              <Card className="border-0 bg-white/40 dark:bg-white/5 backdrop-blur-xl shadow-soft overflow-hidden rounded-[28px]">
+                <CardContent className="p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Music className="w-4 h-4 text-primary" />
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white">Study Music</h3>
                   </div>
-                  <p className="text-sm font-bold opacity-80 leading-relaxed max-w-xs mb-8 mt-12">
-                    Initialize cinematic backgrounds to vanish your peripheral environment.
-                  </p>
-                  <div className="flex items-center gap-3 text-xs font-black uppercase tracking-[0.2em] bg-white/10 w-fit px-6 py-3 rounded-full">
-                    {showAtmosphere ? 'Active' : 'Engage'}
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </div>
+
+                  <StudyMusicPlayer />
                 </CardContent>
-                <div className="absolute top-[-30%] right-[-20%] w-80 h-80 bg-white/10 rounded-full blur-[100px] group-hover:scale-110 transition-transform" />
               </Card>
             </div>
           </div>

@@ -28,10 +28,8 @@ export default function PastWeekProgress({ user }: PastWeekProgressProps) {
     const isSmall = availableWidth < 1024;
 
     return (
-        <Card className="border border-border/50 shadow-lg shadow-primary/5 bg-card/50 backdrop-blur-xl relative overflow-hidden h-full flex flex-col justify-center">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 pointer-events-none" />
-
-            <CardContent className="relative z-10 py-4 sm:py-8 flex flex-col items-center justify-between px-4 sm:px-6 gap-6 sm:gap-10">
+        <Card className="neu-raised border-0 h-full flex flex-col justify-center">
+            <CardContent className="py-5 flex flex-col items-center justify-between px-4 sm:px-6 gap-6">
                 {/* Header Section */}
                 <div className="flex flex-col sm:flex-row items-center justify-between w-full gap-4">
                     <div className="flex flex-col items-center sm:items-start">

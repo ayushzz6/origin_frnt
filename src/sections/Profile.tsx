@@ -1,9 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { motion } from 'framer-motion';
 import {
   ChevronLeft,
   User,
@@ -34,6 +32,8 @@ import PhotoBooth from '@/components/profile/PhotoBooth';
 import { INDIAN_STATES } from '@/lib/constants';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { getUserTitle } from '@/lib/achievements';
+import SocialSettingsCard from '@/components/social/SocialSettingsCard';
 
 interface ProfileProps {
   user: UserType;
@@ -61,8 +61,18 @@ interface ProfileStats {
   };
 }
 
-import { getUserTitle } from '@/lib/achievements';
-import SocialSettingsCard from '@/components/social/SocialSettingsCard';
+const TABS = [
+  { value: 'progress',     icon: TrendingUp, label: 'Progress'  },
+  { value: 'photobooth',   icon: Sparkles,   label: 'AI Booth'  },
+  { value: 'achievements', icon: Trophy,     label: 'Badges'    },
+  { value: 'settings',     icon: Settings,   label: 'Settings'  },
+] as const;
+
+const stagger = (i: number) => ({
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.3, delay: 0.05 * i },
+});
 
 export default function Profile({
   user,
@@ -78,8 +88,9 @@ export default function Profile({
   const [profileStats, setProfileStats] = useState<ProfileStats | null>(initialProfileStats);
   const [avatarUrl, setAvatarUrl] = useState(user.avatar || '');
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
-  const [activeTab, setActiveTab] = useState('progress');
+  const [activeTab, setActiveTab] = useState<typeof TABS[number]['value']>('progress');
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const title = getUserTitle(user);
   const displayName = title ? `${title} ${user.name}` : user.name;
@@ -94,22 +105,25 @@ export default function Profile({
 
   const [editData, setEditData] = useState(() => userToEditData(user));
 
-  const resetEditData = () => {
+  useEffect(() => {
     setEditData(userToEditData(user));
-  };
+    setAvatarUrl(user.avatar || '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  useEffect(() => {
+    if (initialProfileStats) return;
+    apiCall('/users/stats/').then((data: ProfileStats) => setProfileStats(data)).catch(() => {});
+  }, [initialProfileStats]);
 
   const handleCancelEdit = () => {
-    resetEditData();
+    setEditData(userToEditData(user));
     setIsEditing(false);
   };
 
   const handleAvatarFile = async (file: File | null | undefined) => {
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please choose an image file.');
-      return;
-    }
-
+    if (!file.type.startsWith('image/')) { toast.error('Please choose an image file.'); return; }
     setIsAvatarUploading(true);
     const previousAvatar = avatarUrl;
     const previewUrl = URL.createObjectURL(file);
@@ -124,28 +138,12 @@ export default function Profile({
       toast.success('Profile picture updated.');
     } catch (error) {
       setAvatarUrl(previousAvatar);
-      const message = error instanceof Error ? error.message : 'Could not upload profile picture.';
-      toast.error(message);
+      toast.error(error instanceof Error ? error.message : 'Could not upload profile picture.');
     } finally {
       URL.revokeObjectURL(previewUrl);
       setIsAvatarUploading(false);
     }
   };
-
-  useEffect(() => {
-    setEditData(userToEditData(user));
-    setAvatarUrl(user.avatar || '');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
-  const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    if (initialProfileStats) {
-      return;
-    }
-    apiCall('/users/stats/').then((data: ProfileStats) => setProfileStats(data)).catch(() => {});
-  }, [initialProfileStats]);
 
   const handleSave = async () => {
     setIsLoading(true);
@@ -162,9 +160,7 @@ export default function Profile({
       setIsEditing(false);
       toast.success('Profile changes saved.');
     } catch (error) {
-      console.error('Failed to update profile:', error);
-      const message = error instanceof Error ? error.message : 'Could not save profile changes.';
-      toast.error(message);
+      toast.error(error instanceof Error ? error.message : 'Could not save profile changes.');
     } finally {
       setIsLoading(false);
     }
@@ -176,313 +172,298 @@ export default function Profile({
   }));
 
   const achievements = [
-    { name: 'First Test', description: 'Completed your first test', icon: BookOpen, unlocked: profileStats?.achievements.first_test ?? false },
-    { name: '7-Day Streak', description: 'Studied 7 days in a row', icon: TrendingUp, unlocked: profileStats?.achievements.streak_7 ?? false },
-    { name: 'Doubt Master', description: 'Solved 50 doubts', icon: Target, unlocked: profileStats?.achievements.doubt_master ?? false },
-    { name: 'Top 100', description: 'Reached top 100 rank', icon: Trophy, unlocked: profileStats?.achievements.top_100 ?? false },
-    { name: 'Perfect Score', description: 'Scored 100% on a test', icon: Crown, unlocked: profileStats?.achievements.perfect_score ?? false },
-    { name: '30-Day Streak', description: 'Studied 30 days in a row', icon: Calendar, unlocked: profileStats?.achievements.streak_30 ?? false },
+    { name: 'First Test',    description: 'Completed your first test',  icon: BookOpen,   unlocked: profileStats?.achievements.first_test   ?? false },
+    { name: '7-Day Streak',  description: 'Studied 7 days in a row',    icon: TrendingUp, unlocked: profileStats?.achievements.streak_7      ?? false },
+    { name: 'Doubt Master',  description: 'Solved 50 doubts',           icon: Target,     unlocked: profileStats?.achievements.doubt_master  ?? false },
+    { name: 'Top 100',       description: 'Reached top 100 rank',       icon: Trophy,     unlocked: profileStats?.achievements.top_100       ?? false },
+    { name: 'Perfect Score', description: 'Scored 100% on a test',      icon: Crown,      unlocked: profileStats?.achievements.perfect_score ?? false },
+    { name: '30-Day Streak', description: 'Studied 30 days in a row',   icon: Calendar,   unlocked: profileStats?.achievements.streak_30     ?? false },
   ];
 
-  return (
-    <div className="min-h-screen bg-background text-foreground relative overflow-x-hidden">
-      {/* Futuristic ambient background */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/4 rounded-full blur-[140px]" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-primary/4 rounded-full blur-[120px]" />
-        <div className="absolute inset-0 opacity-[0.015]" style={{
-          backgroundImage: 'repeating-linear-gradient(0deg,transparent,transparent 59px,currentColor 59px,currentColor 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,currentColor 59px,currentColor 60px)'
-        }} />
+  const STATS = [
+    { label: 'Tests Taken',  value: profileStats ? String(profileStats.tests_taken)  : '—', icon: BookOpen,   accent: 'text-primary',    accentBg: 'bg-primary/10'    },
+    { label: 'Study Hours',  value: profileStats ? String(profileStats.study_hours)  : '—', icon: Clock,      accent: 'text-emerald-500', accentBg: 'bg-emerald-500/10'},
+    { label: 'Day Streak',   value: `${streakData.currentStreak}`,                          icon: TrendingUp, accent: 'text-orange-500',  accentBg: 'bg-orange-500/10' },
+    { label: 'Global Rank',  value: profileStats ? (profileStats.global_rank ? `#${profileStats.global_rank}` : '—') : '—', icon: Trophy, accent: 'text-amber-500', accentBg: 'bg-amber-500/10' },
+  ];
+
+  const selectCls = 'w-full neu-inset rounded-xl px-3 py-2.5 text-sm font-bold text-foreground bg-transparent outline-none focus:ring-2 focus:ring-primary/30 transition-all';
+
+  /* ── shared avatar block ─────────────────────────────────── */
+  const AvatarBlock = (
+    <div className="relative mx-auto w-fit">
+      <div className="p-1.5 rounded-full neu-raised">
+        <input
+          ref={avatarInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={async (e) => {
+            const file = e.currentTarget.files?.[0];
+            e.currentTarget.value = '';
+            await handleAvatarFile(file);
+          }}
+        />
+        <Avatar className="w-28 h-28 lg:w-32 lg:h-32">
+          {avatarUrl ? <AvatarImage src={avatarUrl} alt={`${user.name} profile picture`} className="object-cover" /> : null}
+          <AvatarFallback className="bg-primary/15 text-primary text-4xl font-black">
+            {user.name.charAt(0).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
       </div>
+      <button
+        type="button"
+        disabled={isAvatarUploading}
+        onClick={() => avatarInputRef.current?.click()}
+        className="absolute -bottom-0.5 -right-0.5 w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/30 border-2 border-[hsl(var(--neu-bg))] hover:scale-110 transition-transform z-10 disabled:opacity-70"
+        aria-label="Upload profile picture"
+      >
+        {isAvatarUploading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+      </button>
+    </div>
+  );
 
-      <div className="relative z-10 flex flex-col min-h-screen">
-        {/* Header */}
-        <header className="sticky top-0 z-40 bg-background/70 backdrop-blur-2xl border-b border-border/40">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6">
-            <div className="flex items-center justify-between h-14">
-              <button
-                onClick={onBack}
-                className="p-2 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <span className="text-[11px] font-black tracking-[0.2em] uppercase text-muted-foreground/60">Profile</span>
-              <button
-                onClick={() => setActiveTab('settings')}
-                className="p-2 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all"
-                title="Go to settings"
-              >
-                <Settings className="w-5 h-5" />
-              </button>
-            </div>
+  return (
+    <div className="min-h-screen neu-surface font-sans">
+      <div className="max-w-[1400px] mx-auto px-3 sm:px-6 lg:px-8 pb-20">
+
+        {/* ── Top nav ──────────────────────────────────────────── */}
+        <div className="sticky top-0 z-40 py-3">
+          <div className="neu-raised flex items-center justify-between px-4 h-12 rounded-2xl">
+            <button onClick={onBack} className="p-1.5 rounded-xl text-muted-foreground hover:text-primary transition-colors">
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <span className="text-[10px] font-black tracking-[0.2em] uppercase text-muted-foreground">Profile</span>
+            <button onClick={() => setActiveTab('settings')} className="p-1.5 rounded-xl text-muted-foreground hover:text-primary transition-colors" title="Settings">
+              <Settings className="w-4 h-4" />
+            </button>
           </div>
-        </header>
+        </div>
 
-        <main className="max-w-4xl mx-auto px-4 sm:px-6 w-full pb-20">
-          {/* Hero card */}
-          <div className="relative mt-6 mb-6 p-6 sm:p-8 rounded-3xl bg-card/70 backdrop-blur-xl border border-border/60 shadow-xl overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/8 rounded-full blur-3xl -translate-y-1/3 translate-x-1/3 pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/5 rounded-full blur-2xl translate-y-1/3 -translate-x-1/3 pointer-events-none" />
+        {/* ── Two-column layout (sidebar + main) ───────────────── */}
+        <div className="mt-2 grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[360px_1fr] gap-5 items-start">
 
-            <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8 relative z-10">
-              {/* Avatar */}
-              <div className="relative flex-shrink-0">
-                <div className="absolute -inset-[3px] rounded-full bg-gradient-to-tr from-primary/80 via-primary/40 to-transparent" />
-                <input
-                  ref={avatarInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const file = e.currentTarget.files?.[0];
-                    e.currentTarget.value = '';
-                    await handleAvatarFile(file);
-                  }}
-                />
-                <Avatar className="relative w-24 h-24 border-[3px] border-background z-10">
-                  {avatarUrl ? <AvatarImage src={avatarUrl} alt={`${user.name} profile picture`} className="object-cover" /> : null}
-                  <AvatarFallback className="bg-primary text-white text-3xl font-black">
-                    {user.name.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <button
-                  type="button"
-                  disabled={isAvatarUploading}
-                  onClick={() => avatarInputRef.current?.click()}
-                  className="absolute -bottom-0.5 -right-0.5 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/30 border-2 border-background hover:scale-110 transition-transform z-20 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:scale-100"
-                  aria-label="Upload profile picture"
-                >
-                  {isAvatarUploading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
-                </button>
-              </div>
+          {/* ═══ LEFT SIDEBAR (sticky on desktop) ════════════════ */}
+          <div className="lg:sticky lg:top-[72px] flex flex-col gap-4">
 
-              {/* Info */}
-              <div className="flex-1 min-w-0 text-center sm:text-left">
+            {/* Identity card */}
+            <motion.div {...stagger(0)} className="neu-raised p-6 flex flex-col items-center gap-4 text-center">
+              {AvatarBlock}
+
+              <div className="w-full space-y-1.5">
                 {isEditing ? (
                   <input
                     type="text"
                     value={editData.name}
                     onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-                    className="text-2xl sm:text-3xl font-black tracking-tight bg-transparent border-b-2 border-primary/30 focus:border-primary outline-none w-full sm:max-w-sm mb-3"
+                    className="w-full text-xl font-black tracking-tight neu-inset rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-primary/30 bg-transparent text-center"
                     placeholder="Your Name"
                     autoFocus
                   />
                 ) : (
-                  <div className="flex items-center justify-center sm:justify-start gap-3 mb-1.5 flex-wrap">
-                    <h2 className="text-2xl sm:text-3xl font-black tracking-tight">{displayName}</h2>
+                  <div className="flex flex-col items-center gap-1.5">
+                    <h2 className="text-xl font-black tracking-tight text-foreground leading-tight">{displayName}</h2>
                     {user.isPremium && (
-                      <Badge className="bg-gradient-to-r from-amber-400 to-orange-500 text-white border-0 shadow-md shadow-orange-500/20 text-[9px] px-2.5 h-5">
-                        <Crown className="w-2.5 h-2.5 mr-1" />PREMIUM
-                      </Badge>
+                      <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-400/15 border border-amber-400/40 text-amber-600">
+                        <Crown className="w-2.5 h-2.5" />Premium
+                      </span>
                     )}
                   </div>
                 )}
-                <p className="text-sm text-muted-foreground mb-4">{user.email}</p>
-
-                {isEditing ? (
-                  <div className="flex flex-col gap-3 w-full max-w-sm">
-                    <div className="flex gap-3">
-                      <div className="flex-1 space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-wide">Class</label>
-                        <select
-                          value={editData.class}
-                          onChange={(e) => setEditData({ ...editData, class: e.target.value })}
-                          className="w-full bg-secondary/60 border border-border rounded-xl px-3 py-2 text-sm font-bold"
-                        >
-                          <option value="9">Class 9</option>
-                          <option value="10">Class 10</option>
-                          <option value="11">Class 11</option>
-                          <option value="12">Class 12</option>
-                          <option value="dropper">Dropper</option>
-                        </select>
-                      </div>
-                      <div className="flex-1 space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-wide">Course</label>
-                        <select
-                          value={editData.selectedCourse}
-                          onChange={(e) => setEditData({ ...editData, selectedCourse: e.target.value })}
-                          className="w-full bg-secondary/60 border border-border rounded-xl px-3 py-2 text-sm font-bold"
-                        >
-                          <option value="JEE">JEE</option>
-                          <option value="NEET">NEET</option>
-                          {['9', '10'].includes(editData.class) && (
-                            <option value="Foundation">Foundation</option>
-                          )}
-                        </select>
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-wide">Region / State</label>
-                      <select
-                        value={editData.location}
-                        onChange={(e) => setEditData({ ...editData, location: e.target.value })}
-                        className="w-full bg-secondary/60 border border-border rounded-xl px-3 py-2 text-sm font-bold"
-                      >
-                        <option value="">Select Region</option>
-                        {INDIAN_STATES.map(state => (
-                          <option key={state} value={state}>{state}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-wide">Subjects</label>
-                      <div className="flex flex-wrap gap-2">
-                        {['Physics', 'Chemistry', 'Mathematics', 'Biology'].map(s => (
-                          <Badge
-                            key={s}
-                            onClick={() => {
-                              const newSubjects = editData.subjects.includes(s)
-                                ? editData.subjects.filter(sub => sub !== s)
-                                : [...editData.subjects, s];
-                              setEditData({ ...editData, subjects: newSubjects });
-                            }}
-                            className={cn(
-                              'cursor-pointer px-3 py-1.5 h-auto text-[10px] font-black uppercase tracking-wider rounded-lg transition-all border-0',
-                              editData.subjects.includes(s)
-                                ? 'bg-primary text-white shadow-md shadow-primary/20'
-                                : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
-                            )}
-                          >
-                            {s}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap justify-center sm:justify-start gap-2">
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/5 border border-primary/10 text-xs font-bold text-muted-foreground">
-                      <GraduationCap className="w-3 h-3 text-primary" />
-                      Class {editData.class === 'dropper' ? 'Dropper' : (editData.class || 'Not Set')}
-                    </div>
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/5 border border-primary/10 text-xs font-bold text-muted-foreground">
-                      <Target className="w-3 h-3 text-primary" />
-                      {editData.selectedCourse || 'No Course'}
-                    </div>
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/5 border border-primary/10 text-xs font-bold text-muted-foreground">
-                      <MapPin className="w-3 h-3 text-primary" />
-                      {editData.location || 'Global'}
-                    </div>
-                    {editData.subjects.map((s: string) => (
-                      <div key={s} className="px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-xs font-bold text-primary">
-                        {s}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <p className="text-[11px] text-muted-foreground">{user.email}</p>
               </div>
 
-              {/* Edit / Save */}
-              <div className="flex flex-col gap-2 flex-shrink-0">
-                <Button
-                  variant={isEditing ? 'default' : 'outline'}
+              {/* Info chips */}
+              {!isEditing ? (
+                <div className="flex flex-wrap justify-center gap-1.5 w-full">
+                  <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl neu-inset text-[11px] font-bold text-muted-foreground">
+                    <GraduationCap className="w-3 h-3 text-primary shrink-0" />
+                    {editData.class === 'dropper' ? 'Dropper' : `Class ${editData.class || 'N/A'}`}
+                  </span>
+                  <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl neu-inset text-[11px] font-bold text-muted-foreground">
+                    <Target className="w-3 h-3 text-primary shrink-0" />
+                    {editData.selectedCourse || 'No Course'}
+                  </span>
+                  <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl neu-inset text-[11px] font-bold text-muted-foreground">
+                    <MapPin className="w-3 h-3 text-primary shrink-0" />
+                    {editData.location || 'Global'}
+                  </span>
+                  {(editData.subjects as string[]).map((s) => (
+                    <span key={s} className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-primary bg-primary/10 border border-primary/20">
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3 w-full text-left">
+                  <div className="flex gap-2">
+                    <div className="flex-1 space-y-1">
+                      <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Class</label>
+                      <select value={editData.class} onChange={(e) => setEditData({ ...editData, class: e.target.value })} className={selectCls}>
+                        <option value="9">Class 9</option>
+                        <option value="10">Class 10</option>
+                        <option value="11">Class 11</option>
+                        <option value="12">Class 12</option>
+                        <option value="dropper">Dropper</option>
+                      </select>
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Course</label>
+                      <select value={editData.selectedCourse} onChange={(e) => setEditData({ ...editData, selectedCourse: e.target.value })} className={selectCls}>
+                        <option value="JEE">JEE</option>
+                        <option value="NEET">NEET</option>
+                        {['9', '10'].includes(editData.class) && <option value="Foundation">Foundation</option>}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Region / State</label>
+                    <select value={editData.location} onChange={(e) => setEditData({ ...editData, location: e.target.value })} className={selectCls}>
+                      <option value="">Select Region</option>
+                      {INDIAN_STATES.map(state => <option key={state} value={state}>{state}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Subjects</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {['Physics', 'Chemistry', 'Mathematics', 'Biology'].map(s => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => {
+                            const newSubs = editData.subjects.includes(s)
+                              ? editData.subjects.filter((x: string) => x !== s)
+                              : [...editData.subjects, s];
+                            setEditData({ ...editData, subjects: newSubs });
+                          }}
+                          className={cn(
+                            'px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all',
+                            editData.subjects.includes(s)
+                              ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
+                              : 'neu-btn text-muted-foreground'
+                          )}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Edit / Save row */}
+              <div className="flex gap-2 w-full">
+                {isEditing && (
+                  <button onClick={handleCancelEdit} className="flex-1 neu-btn h-10 rounded-xl text-[11px] font-black text-muted-foreground uppercase tracking-wider">
+                    Cancel
+                  </button>
+                )}
+                <button
                   onClick={() => isEditing ? handleSave() : setIsEditing(true)}
                   disabled={isLoading}
                   className={cn(
-                    'rounded-xl h-10 px-5 font-bold text-sm gap-1.5',
-                    isEditing ? 'bg-primary hover:bg-primary/90 shadow-md shadow-primary/20' : 'border-border/70'
+                    'flex-1 h-10 rounded-xl text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all disabled:opacity-60',
+                    isEditing
+                      ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90'
+                      : 'neu-btn text-primary'
                   )}
                 >
-                  {isEditing
-                    ? <><Check className="w-4 h-4" />Save</>
-                    : <><Edit3 className="w-4 h-4" />Edit</>
-                  }
-                </Button>
-                {isEditing && (
-                  <Button variant="ghost" onClick={handleCancelEdit} className="text-xs text-muted-foreground h-8">
-                    Cancel
-                  </Button>
-                )}
+                  {isEditing ? <><Check className="w-3.5 h-3.5" />Save</> : <><Edit3 className="w-3.5 h-3.5" />Edit Profile</>}
+                </button>
+              </div>
+            </motion.div>
+
+            {/* Stats — vertical on desktop (2×2 grid) */}
+            <div className="grid grid-cols-2 gap-3">
+              {STATS.map((stat, i) => (
+                <motion.div key={stat.label} {...stagger(i + 1)} className="neu-raised p-4 flex flex-col gap-1.5">
+                  <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center', stat.accentBg)}>
+                    <stat.icon className={cn('w-4 h-4', stat.accent)} />
+                  </div>
+                  <p className={cn('text-2xl font-black leading-none', stat.accent)}>{stat.value}</p>
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">{stat.label}</p>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Footer links */}
+            <div className="pt-2 text-center text-[9px] text-muted-foreground/40 space-y-1.5">
+              <p>© 2026 SUPERGOAT TECHNOLOGIES PVT. LTD.</p>
+              <div className="flex justify-center gap-2 flex-wrap">
+                {[
+                  { href: '/terms-and-conditions', label: 'Terms' },
+                  { href: '/privacy-policy',       label: 'Privacy' },
+                  { href: '/faq',                  label: 'FAQ' },
+                ].map(({ href, label }) => (
+                  <a key={href} href={href} className="hover:text-foreground transition-colors underline underline-offset-2">{label}</a>
+                ))}
               </div>
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-            {[
-              { label: 'Tests Taken', value: profileStats ? String(profileStats.tests_taken) : '—', icon: BookOpen, color: 'text-primary', border: 'border-primary/25', bg: 'bg-primary/8' },
-              { label: 'Study Hours', value: profileStats ? String(profileStats.study_hours) : '—', icon: Clock, color: 'text-emerald-500', border: 'border-emerald-500/25', bg: 'bg-emerald-500/8' },
-              { label: 'Day Streak', value: `${streakData.currentStreak}`, icon: TrendingUp, color: 'text-orange-500', border: 'border-orange-500/25', bg: 'bg-orange-500/8' },
-              { label: 'Global Rank', value: profileStats ? (profileStats.global_rank ? `#${profileStats.global_rank}` : '—') : '—', icon: Trophy, color: 'text-amber-500', border: 'border-amber-400/25', bg: 'bg-amber-400/8' },
-            ].map((stat, i) => (
-              <div
-                key={i}
-                className={cn(
-                  'relative p-4 rounded-2xl bg-card/60 backdrop-blur-sm border overflow-hidden hover:scale-[1.02] transition-all cursor-default',
-                  stat.border
-                )}
-              >
-                <div className={cn('absolute inset-0', stat.bg)} />
-                <div className="relative z-10">
-                  <div className={cn('w-8 h-8 rounded-xl bg-background/60 flex items-center justify-center mb-2.5', stat.color)}>
-                    <stat.icon className="w-4 h-4" />
-                  </div>
-                  <p className={cn('text-2xl font-black leading-none', stat.color)}>{stat.value}</p>
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mt-1">{stat.label}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          {/* ═══ RIGHT MAIN PANEL ════════════════════════════════ */}
+          <div className="flex flex-col gap-4 min-w-0">
 
-          {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="bg-secondary/30 border border-border/40 p-1 w-full h-11 rounded-2xl backdrop-blur-sm mb-6">
-              {[
-                { value: 'progress', icon: TrendingUp, label: 'Progress' },
-                { value: 'photobooth', icon: Sparkles, label: 'AI Booth' },
-                { value: 'achievements', icon: Trophy, label: 'Badges' },
-                { value: 'settings', icon: Settings, label: 'Settings' },
-              ].map((tab) => (
-                <TabsTrigger
+            {/* Tab bar */}
+            <motion.div {...stagger(5)} className="neu-inset rounded-2xl p-1.5 flex gap-1">
+              {TABS.map((tab) => (
+                <button
                   key={tab.value}
-                  value={tab.value}
-                  className="flex-1 h-full rounded-xl data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md text-muted-foreground font-bold text-[11px] sm:text-xs tracking-tight transition-all gap-1.5"
+                  onClick={() => setActiveTab(tab.value)}
+                  className={cn(
+                    'flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all duration-200',
+                    activeTab === tab.value
+                      ? 'neu-raised text-primary'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
                 >
-                  <tab.icon className="w-3.5 h-3.5 hidden sm:block" />
-                  {tab.label}
-                </TabsTrigger>
+                  <tab.icon className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </button>
               ))}
-            </TabsList>
+            </motion.div>
 
-            <TabsContent value="progress">
-              <div className="space-y-5">
-                <div className="p-6 rounded-2xl bg-card/60 backdrop-blur-sm border border-border/50">
-                  <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-5 flex items-center gap-2">
-                    <span className="w-1.5 h-4 bg-primary rounded-full inline-block" />
-                    Subject Performance
-                  </h3>
-                  <div className="space-y-5">
-                    {subjectProgress.length === 0 && (
-                      <p className="text-sm text-muted-foreground text-center py-6">
+            {/* Content */}
+            <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}>
+
+              {/* Progress */}
+              {activeTab === 'progress' && (
+                <div className="space-y-4">
+                  <div className="neu-raised p-5 sm:p-6 space-y-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                      <span className="w-1.5 h-4 bg-primary rounded-full inline-block" />
+                      Subject Performance
+                    </p>
+                    {subjectProgress.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">
                         No practice data yet. Start solving questions to see your progress.
                       </p>
-                    )}
-                    {subjectProgress.map((subject) => (
-                      <div key={subject.subject}>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-sm font-bold">{subject.subject}</span>
-                          <span className="text-sm font-black text-primary">{subject.progress}%</span>
-                        </div>
-                        <div className="h-2 bg-secondary/50 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-primary to-primary/80 rounded-full transition-all duration-700"
-                            style={{ width: `${subject.progress}%` }}
-                          />
-                        </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {subjectProgress.map((s) => (
+                          <div key={s.subject}>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span className="text-sm font-bold text-foreground">{s.subject}</span>
+                              <span className="text-sm font-black text-primary">{s.progress}%</span>
+                            </div>
+                            <div className="h-2 rounded-full overflow-hidden neu-inset">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${s.progress}%` }}
+                                transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+                                className="h-full rounded-full bg-primary"
+                              />
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
                   </div>
-                </div>
 
-                <div className="p-6 rounded-2xl bg-gradient-to-br from-primary/5 to-transparent border border-primary/20 backdrop-blur-sm">
-                  <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-5 flex items-center gap-2">
-                    <span className="w-1.5 h-4 bg-primary rounded-full inline-block" />
-                    Overall Accuracy
-                  </h3>
-                  <div className="flex items-center gap-6">
-                    <div className="w-20 h-20 relative flex-shrink-0">
-                      <svg className="w-full h-full -rotate-90">
-                        <circle cx="40" cy="40" r="34" fill="none" stroke="currentColor" strokeWidth="6" className="text-secondary" />
+                  <div className="neu-raised p-5 sm:p-6 flex items-center gap-6">
+                    <div className="w-24 h-24 relative shrink-0">
+                      <svg className="w-full h-full -rotate-90" viewBox="0 0 80 80">
+                        <circle cx="40" cy="40" r="34" fill="none" stroke="currentColor" strokeWidth="6" className="text-muted/40" />
                         <circle
                           cx="40" cy="40" r="34" fill="none"
                           stroke="hsl(var(--primary))" strokeWidth="6" strokeLinecap="round"
@@ -493,134 +474,109 @@ export default function Profile({
                         <span className="text-xl font-black text-primary">{profileStats?.overall_accuracy ?? 0}%</span>
                       </div>
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 space-y-2">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Overall Accuracy</p>
                       <p className="text-sm text-muted-foreground leading-relaxed">
                         {(profileStats?.overall_accuracy ?? 0) >= 70
-                          ? "You're doing great! Keep pushing your accuracy higher."
+                          ? "You're doing great! Keep pushing higher."
                           : (profileStats?.overall_accuracy ?? 0) > 0
-                          ? "Keep practicing to improve your accuracy. You can do it!"
-                          : "Start practicing questions to track your performance here."}
+                          ? "Keep practising to improve. You can do it!"
+                          : "Start practising to track your performance here."}
                       </p>
-                      <Button
-                        variant="ghost"
-                        className="text-primary p-0 h-auto mt-2 text-sm font-bold hover:bg-transparent"
-                        onClick={onBack}
-                      >
+                      <button onClick={onBack} className="text-xs font-black text-primary uppercase tracking-wider hover:underline">
                         Continue Learning →
-                      </Button>
+                      </button>
                     </div>
                   </div>
                 </div>
-              </div>
-            </TabsContent>
+              )}
 
-            <TabsContent value="photobooth">
-              <PhotoBooth />
-            </TabsContent>
+              {/* AI Photobooth */}
+              {activeTab === 'photobooth' && <PhotoBooth />}
 
-            <TabsContent value="achievements">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {achievements.map((achievement, i) => (
-                  <div
-                    key={i}
-                    className={cn(
-                      'relative p-5 rounded-2xl border overflow-hidden group transition-all',
-                      achievement.unlocked
-                        ? 'bg-card/80 border-primary/25 hover:border-primary/50 hover:scale-[1.02]'
-                        : 'bg-muted/10 border-border/20 opacity-50'
-                    )}
-                  >
-                    {achievement.unlocked && (
-                      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
-                    )}
-                    <div className="relative z-10 text-center">
-                      <div className={cn(
-                        'w-12 h-12 mx-auto rounded-xl flex items-center justify-center mb-3 transition-transform group-hover:scale-110',
-                        achievement.unlocked
-                          ? 'bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/20'
-                          : 'bg-secondary'
-                      )}>
-                        <achievement.icon className={cn('w-6 h-6', achievement.unlocked ? 'text-white' : 'text-muted-foreground')} />
-                      </div>
-                      <h4 className="font-black text-sm leading-tight">{achievement.name}</h4>
-                      <p className="text-[10px] text-muted-foreground mt-1">{achievement.description}</p>
-                      {achievement.unlocked && (
-                        <div className="mt-2 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[9px] font-black uppercase tracking-wider">
-                          <Check className="w-2.5 h-2.5" />UNLOCKED
-                        </div>
+              {/* Achievements */}
+              {activeTab === 'achievements' && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {achievements.map((a, i) => (
+                    <motion.div
+                      key={a.name}
+                      {...stagger(i)}
+                      className={cn(
+                        'neu-raised p-5 text-center flex flex-col items-center gap-2.5',
+                        !a.unlocked && 'opacity-40 grayscale'
                       )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="settings">
-              <div className="space-y-2.5">
-                {socialEnabled && (
-                  <SocialSettingsCard
-                    initialUsername={user.username ?? ''}
-                    initialPrivate={Boolean(user.profilePrivate)}
-                  />
-                )}
-                {[
-                  { icon: User, label: 'Personal Information', desc: 'Update your name, email, and bio', iconBg: 'bg-primary/10', iconColor: 'text-primary' },
-                  { icon: Bell, label: 'Notifications', desc: 'Manage your alert preferences', iconBg: 'bg-blue-500/10', iconColor: 'text-blue-500' },
-                  { icon: Shield, label: 'Privacy & Security', desc: 'Password, 2FA, and sessions', iconBg: 'bg-emerald-500/10', iconColor: 'text-emerald-500' },
-                ].map((item, idx) => (
-                  <button
-                    key={idx}
-                    className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-secondary/40 transition-all border border-transparent hover:border-border/40 group text-left"
-                  >
-                    <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105', item.iconBg, item.iconColor)}>
-                      <item.icon className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-sm">{item.label}</h4>
-                      <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-0.5 transition-all flex-shrink-0" />
-                  </button>
-                ))}
-
-                {premiumEnabled && !user.isPremium && (
-                  <div className="mt-2 p-6 rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground relative overflow-hidden shadow-xl shadow-primary/20">
-                    <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
-                    <div className="flex items-center gap-3 mb-3 relative z-10">
-                      <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                        <Crown className="w-5 h-5 text-amber-300" />
-                      </div>
-                      <h4 className="font-black text-base tracking-tight">Upgrade to ORIGIN Pro</h4>
-                    </div>
-                    <p className="text-primary-foreground/75 text-xs mb-4 relative z-10 leading-relaxed">
-                      Unlock unlimited mock tests, deep performance analysis, and priority doubt resolution.
-                    </p>
-                    <Button
-                      onClick={onUpgrade}
-                      className="w-full bg-background text-primary hover:bg-background/90 font-black h-10 rounded-xl shadow-md relative z-10"
                     >
-                      Unlock Premium Access
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-          </Tabs>
+                      <div className={cn('w-12 h-12 rounded-2xl flex items-center justify-center', a.unlocked ? 'bg-primary/15' : 'bg-muted')}>
+                        <a.icon className={cn('w-6 h-6', a.unlocked ? 'text-primary' : 'text-muted-foreground')} />
+                      </div>
+                      <div>
+                        <p className="font-black text-sm text-foreground">{a.name}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{a.description}</p>
+                      </div>
+                      {a.unlocked && (
+                        <span className="text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 flex items-center gap-1">
+                          <Check className="w-2.5 h-2.5" />Unlocked
+                        </span>
+                      )}
+                    </motion.div>
+                  ))}
+                </div>
+              )}
 
-          {/* Footer */}
-          <div className="mt-10 text-center text-[11px] text-muted-foreground/60 border-t border-border/30 pt-6">
-            <p className="mb-2">© 2026 SUPERGOAT TECHNOLOGIES PRIVATE LIMITED. All rights reserved.</p>
-            <div className="flex justify-center gap-4 flex-wrap">
-              <a href="/terms-and-conditions" className="underline hover:text-foreground transition-colors">Terms and Conditions</a>
-              <span>•</span>
-              <a href="/privacy-policy" className="underline hover:text-foreground transition-colors">Privacy Policy</a>
-              <span>•</span>
-              <a href="/childrens-policy" className="underline hover:text-foreground transition-colors">Children&apos;s Safety Policy</a>
-              <span>•</span>
-              <a href="/faq" className="underline hover:text-foreground transition-colors">FAQ</a>
-            </div>
+              {/* Settings */}
+              {activeTab === 'settings' && (
+                <div className="space-y-3">
+                  {socialEnabled && (
+                    <SocialSettingsCard
+                      initialUsername={user.username ?? ''}
+                      initialPrivate={Boolean(user.profilePrivate)}
+                    />
+                  )}
+                  {[
+                    { icon: User,   label: 'Personal Information', desc: 'Update your name, email, and bio',  accent: 'text-primary',    accentBg: 'bg-primary/10'    },
+                    { icon: Bell,   label: 'Notifications',        desc: 'Manage your alert preferences',     accent: 'text-blue-500',   accentBg: 'bg-blue-500/10'   },
+                    { icon: Shield, label: 'Privacy & Security',   desc: 'Password, 2FA, and sessions',       accent: 'text-emerald-500',accentBg: 'bg-emerald-500/10'},
+                  ].map((item, idx) => (
+                    <button key={idx} className="w-full neu-raised neu-pressable flex items-center gap-4 p-4 text-left group">
+                      <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105', item.accentBg)}>
+                        <item.icon className={cn('w-5 h-5', item.accent)} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm text-foreground">{item.label}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
+                    </button>
+                  ))}
+
+                  {premiumEnabled && !user.isPremium && (
+                    <div className="neu-raised p-6 bg-primary/5 border border-primary/15 space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-amber-400/15 border border-amber-400/30 flex items-center justify-center">
+                          <Crown className="w-5 h-5 text-amber-500" />
+                        </div>
+                        <div>
+                          <p className="font-black text-base text-foreground">Upgrade to ORIGIN Pro</p>
+                          <p className="text-xs text-muted-foreground">Unlock unlimited access</p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Unlimited mock tests, deep performance analysis, and priority doubt resolution.
+                      </p>
+                      <button
+                        onClick={onUpgrade}
+                        className="w-full h-10 rounded-xl bg-primary text-primary-foreground text-[11px] font-black uppercase tracking-wider shadow-lg shadow-primary/25 hover:bg-primary/90 active:scale-[0.98] transition-all"
+                      >
+                        Unlock Premium Access
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+            </motion.div>
           </div>
-        </main>
+        </div>
       </div>
     </div>
   );

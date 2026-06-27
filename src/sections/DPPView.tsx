@@ -371,8 +371,8 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
   const correctCount = checkResults.filter((result) => Boolean(result?.isCorrect ?? result?.is_correct)).length;
 
   return (
-    <div id="tutorial-dpp-hub" className="min-h-screen bg-background text-foreground transition-colors duration-300">
-      <header className="z-40 bg-background/80 border-b border-border backdrop-blur-md">
+    <div id="tutorial-dpp-hub" className="min-h-screen neu-surface text-foreground transition-colors duration-300">
+      <header className="z-40 bg-[hsl(var(--neu-bg)/0.9)] border-b border-border/40 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14 sm:h-16">
             <div className="flex items-center gap-2 sm:gap-4 truncate">
@@ -392,7 +392,7 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
                 </p>
               </div>
             </div>
-            <Badge className="bg-[#3CACA3]/10 text-[#3CACA3] dark:bg-[#3CACA3]/20 hidden xs:flex">
+            <Badge className="bg-primary/10 text-primary dark:bg-primary/20 hidden xs:flex">
               <Sparkles className="w-3 h-3 mr-1" />
               Service Generated
             </Badge>
@@ -403,20 +403,20 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
 
       <main className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
         {loading ? (
-          <Card className="border-0 shadow-lg dark:bg-slate-900/60 dark:ring-1 dark:ring-white/10">
+          <Card className="neu-raised border-0 shadow-none">
             <CardContent className="p-8 flex items-center justify-center gap-3 text-slate-500">
               <Loader2 className="w-5 h-5 animate-spin" />
               Loading DPPs...
             </CardContent>
           </Card>
         ) : error ? (
-          <Card className="border-0 shadow-lg dark:bg-slate-900/60 dark:ring-1 dark:ring-white/10">
+          <Card className="neu-raised border-0 shadow-none">
             <CardContent className="p-8 text-center text-red-500">{error}</CardContent>
           </Card>
         ) : dpps.length === 0 ? (
-          <Card className="border-0 shadow-lg dark:bg-slate-900/60 dark:ring-1 dark:ring-white/10">
+          <Card className="neu-raised border-0 shadow-none">
             <CardContent className="p-8 text-center space-y-3">
-              <Target className="w-10 h-10 text-[#3CACA3] mx-auto" />
+              <Target className="w-10 h-10 text-primary mx-auto" />
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white">No DPPs generated yet</h2>
               <p className="text-slate-500 dark:text-slate-400">
                 Submit a custom or regular test first so the analytics pipeline can generate targeted DPPs.
@@ -426,14 +426,14 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
         ) : !selectedDppId ? (
           <DppSelectionGrid dpps={dpps} onSelect={setSelectedDppId} />
         ) : !currentDpp ? (
-          <Card className="border-0 shadow-lg dark:bg-slate-900/60 dark:ring-1 dark:ring-white/10">
+          <Card className="neu-raised border-0 shadow-none">
             <CardContent className="p-8 flex items-center justify-center gap-3 text-slate-500">
               <Loader2 className="w-5 h-5 animate-spin" />
               Loading DPP...
             </CardContent>
           </Card>
         ) : isCompleted ? (
-          <Card className="border-0 shadow-lg dark:bg-slate-900/60 dark:ring-1 dark:ring-white/10">
+          <Card className="neu-raised border-0 shadow-none">
             <CardContent className="p-8 text-center">
               {submissionAnalysisStatus === 'pending' ? (
                 <div className="mb-6 text-left">
@@ -447,7 +447,7 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
                   <DegradedBanner reason={submissionResult.degradedReason ?? submissionResult.degraded_reason ?? null} />
                 </div>
               ) : null}
-              <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-[#3CACA3] to-[#1E3A5F] flex items-center justify-center mb-6">
+              <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-primary to-[#1E3A5F] flex items-center justify-center mb-6">
                 <CheckCircle2 className="w-12 h-12 text-white" />
               </div>
               <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-2">DPP Completed</h2>
@@ -455,16 +455,16 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
                 {submissionResult?.summary ?? 'Your DPP attempt has been analyzed.'}
               </p>
               <div className="grid grid-cols-3 gap-2 sm:gap-4 max-w-md mx-auto mb-8">
-                <div className="p-3 sm:p-4 rounded-xl bg-green-50 dark:bg-green-900/20">
-                  <div className="text-xl sm:text-3xl font-bold text-green-600">{correctCount}</div>
+                <div className="p-3 sm:p-4 rounded-xl bg-primary/5 dark:bg-primary/10">
+                  <div className="text-xl sm:text-3xl font-bold text-primary">{correctCount}</div>
                   <div className="text-[10px] sm:text-sm text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">Correct</div>
                 </div>
                 <div className="p-3 sm:p-4 rounded-xl bg-red-50 dark:bg-red-900/20">
                   <div className="text-xl sm:text-3xl font-bold text-red-600">{currentQuestions.length - correctCount}</div>
                   <div className="text-[10px] sm:text-sm text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">Wrong</div>
                 </div>
-                <div className="p-3 sm:p-4 rounded-xl bg-[#3CACA3]/10 dark:bg-[#3CACA3]/20">
-                  <div className="text-xl sm:text-3xl font-bold text-[#3CACA3]">
+                <div className="p-3 sm:p-4 rounded-xl bg-primary/10 dark:bg-primary/20">
+                  <div className="text-xl sm:text-3xl font-bold text-primary">
                     {Math.round(submissionResult?.progress_score ?? submissionResult?.progressScore ?? 0)}%
                   </div>
                   <div className="text-[10px] sm:text-sm text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">Score</div>
@@ -497,7 +497,7 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
                     Pick another DPP
                   </Button>
                 ) : null}
-                <Button onClick={onBack} className="rounded-full bg-gradient-to-r from-[#3CACA3] to-[#1E3A5F] text-white">
+                <Button onClick={onBack} className="rounded-full bg-gradient-to-r from-primary to-[#1E3A5F] text-white">
                   Back to Dashboard
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
@@ -507,10 +507,10 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
         ) : (
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
-              <Card className="border-0 shadow-lg dark:bg-slate-900/60 dark:ring-1 dark:ring-white/10">
+              <Card className="neu-raised border-0 shadow-none">
                 <CardContent className="p-6 sm:p-8">
                   <div className="flex items-center gap-3 mb-6">
-                    <Badge className="bg-[#3CACA3]/10 text-[#3CACA3]">
+                    <Badge className="bg-primary/10 text-primary">
                       Q{currentQuestionIndex + 1} of {currentQuestions.length}
                     </Badge>
                     <Badge variant="secondary" className="capitalize">
@@ -536,13 +536,13 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
                             className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
                               showSolution
                                 ? index === getCorrectOption(currentQuestionIndex)
-                                  ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                                  ? 'border-primary bg-primary/5 dark:bg-primary/10'
                                   : selectedOption === index
                                     ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                                     : 'border-slate-200 dark:border-slate-700 opacity-50'
                                 : selectedOption === index
-                                  ? 'border-[#3CACA3] bg-[#3CACA3]/5 dark:bg-[#3CACA3]/10'
-                                  : 'border-slate-200 dark:border-slate-700 hover:border-[#3CACA3]/50 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                  ? 'border-primary bg-primary/5 dark:bg-primary/10'
+                                  : 'border-slate-200 dark:border-slate-700 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-slate-800'
                             }`}
                           >
                             <div className="flex items-center gap-4">
@@ -550,12 +550,12 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
                                 className={`w-8 h-8 rounded-full flex items-center justify-center font-medium ${
                                   showSolution
                                     ? index === getCorrectOption(currentQuestionIndex)
-                                      ? 'bg-green-500 text-white'
+                                      ? 'bg-primary text-white'
                                       : selectedOption === index
                                         ? 'bg-red-500 text-white'
                                         : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                                     : selectedOption === index
-                                      ? 'bg-[#3CACA3] text-white'
+                                      ? 'bg-primary text-white'
                                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                                 }`}
                               >
@@ -570,7 +570,7 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
                               <span
                                 className={`text-base sm:text-lg ${
                                   showSolution && index === getCorrectOption(currentQuestionIndex)
-                                    ? 'text-green-700 dark:text-green-400'
+                                    ? 'text-primary'
                                     : showSolution && selectedOption === index
                                       ? 'text-red-700 dark:text-red-400'
                                       : 'text-slate-700 dark:text-slate-300'
@@ -584,15 +584,15 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
                       </div>
 
                       {showSolution && (
-                        <div className="mb-6 p-6 rounded-xl bg-[#3CACA3]/5 dark:bg-[#3CACA3]/10 border border-[#3CACA3]/20">
+                        <div className="mb-6 p-6 rounded-xl bg-primary/5 dark:bg-primary/10 border border-primary/20">
                           <h4 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-                            <Lightbulb className="w-5 h-5 text-[#3CACA3]" />
+                            <Lightbulb className="w-5 h-5 text-primary" />
                             Explanation
                           </h4>
                           <div className="text-slate-700 dark:text-slate-300 leading-relaxed">
                             <FormattedMessage content={checkResults[currentQuestionIndex]?.explanation ?? currentQuestion.explanation ?? ''} />
                           </div>
-                          <div className="mt-4 pt-4 border-t border-[#3CACA3]/20">
+                          <div className="mt-4 pt-4 border-t border-primary/20">
                             <p className="text-sm text-slate-600 dark:text-slate-400">
                               <strong className="text-slate-900 dark:text-white">Concept:</strong> {currentQuestion.concept}
                             </p>
@@ -610,7 +610,7 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
                           <Button
                             onClick={handleCheck}
                             disabled={selectedOption === null || checking}
-                            className="rounded-full bg-gradient-to-r from-[#3CACA3] to-[#1E3A5F] text-white"
+                            className="rounded-full bg-gradient-to-r from-primary to-[#1E3A5F] text-white"
                           >
                             {checking ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
                             {checking ? 'Checking...' : 'Check Answer'}
@@ -619,7 +619,7 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
                           <Button
                             onClick={handleNext}
                             disabled={submitting}
-                            className="rounded-full bg-gradient-to-r from-[#3CACA3] to-[#1E3A5F] text-white"
+                            className="rounded-full bg-gradient-to-r from-primary to-[#1E3A5F] text-white"
                           >
                             {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                             {currentQuestionIndex === currentQuestions.length - 1 ? 'Finish' : 'Next'}
@@ -634,7 +634,7 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
             </div>
 
             <div className="space-y-4">
-              <Card className="border-0 shadow-soft dark:bg-slate-900/60 dark:ring-1 dark:ring-white/10">
+              <Card className="neu-raised border-0 shadow-none">
                 <CardContent className="p-4">
                   <h3 className="font-semibold text-slate-900 dark:text-white mb-3">{currentDpp.title}</h3>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
@@ -646,11 +646,11 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
                         key={question.id}
                         onClick={() => goToQuestion(index)}
                         className={`w-10 h-10 rounded-lg font-medium text-sm transition-all ${
-                          index === currentQuestionIndex ? 'ring-2 ring-[#3CACA3] ring-offset-2' : ''
+                          index === currentQuestionIndex ? 'ring-2 ring-primary ring-offset-2' : ''
                         } ${
                           answers[index] !== null
                             ? Boolean(checkResults[index]?.isCorrect ?? checkResults[index]?.is_correct)
-                              ? 'bg-green-500 text-white'
+                              ? 'bg-primary text-white'
                               : 'bg-red-500 text-white'
                             : 'bg-slate-100 text-slate-400'
                         }`}
@@ -662,7 +662,7 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
                 </CardContent>
               </Card>
 
-              <Card className="border-0 shadow-soft bg-gradient-to-br from-[#3CACA3] to-[#1E3A5F] text-white dark:ring-1 dark:ring-white/10">
+              <Card className="border-0 shadow-soft bg-gradient-to-br from-primary to-[#1E3A5F] text-white dark:ring-1 dark:ring-white/10">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3 mb-3">
                     <MessageCircle className="w-5 h-5" />
@@ -674,10 +674,10 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
                 </CardContent>
               </Card>
 
-              <Card className="border-0 shadow-soft dark:bg-slate-900/60 dark:ring-1 dark:ring-white/10">
+              <Card className="neu-raised border-0 shadow-none">
                 <CardContent className="p-4">
                   <h3 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-                    <Target className="w-5 h-5 text-[#3CACA3]" />
+                    <Target className="w-5 h-5 text-primary" />
                     Focus Areas
                   </h3>
                   <div className="space-y-2">
@@ -750,7 +750,7 @@ function DppSelectionGrid({
                   onSelect(dpp.id);
                 }
               }}
-              className="h-full cursor-pointer border-0 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl dark:bg-slate-900/60 dark:ring-1 dark:ring-white/10"
+              className="h-full cursor-pointer neu-raised neu-pressable border-0 shadow-none"
             >
               <CardContent className="p-6 space-y-4">
                   <div className="flex items-start justify-between gap-3">
@@ -760,12 +760,12 @@ function DppSelectionGrid({
                           {dpp.subject}
                         </Badge>
                         {dpp.completed ? (
-                          <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
+                          <Badge className="bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary">
                             <CheckCircle2 className="w-3 h-3 mr-1" />
                             Completed
                           </Badge>
                         ) : (
-                          <Badge className="bg-[#3CACA3]/10 text-[#3CACA3]">
+                          <Badge className="bg-primary/10 text-primary">
                             <Sparkles className="w-3 h-3 mr-1" />
                             New
                           </Badge>
@@ -809,12 +809,12 @@ function DppSelectionGrid({
                       {generatedDate ? <span>Generated {generatedDate}</span> : null}
                     </div>
                     {progressScore !== null ? (
-                      <span className="text-[#3CACA3] font-semibold">{Math.round(progressScore)}%</span>
+                      <span className="text-primary font-semibold">{Math.round(progressScore)}%</span>
                     ) : null}
                   </div>
 
                   <div className="pt-2">
-                    <Button asChild className="w-full rounded-full bg-gradient-to-r from-[#3CACA3] to-[#1E3A5F] text-white">
+                    <Button asChild className="w-full rounded-full bg-gradient-to-r from-primary to-[#1E3A5F] text-white">
                       <span>
                       {dpp.completed ? 'Review DPP' : 'Start Solving'}
                       <ArrowRight className="w-4 h-4 ml-2" />

@@ -44,17 +44,17 @@ export default function StudentSearch({ autoFocus, placeholder }: StudentSearchP
 
   return (
     <div className="space-y-4">
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+      <div className="neu-raised rounded-2xl flex items-center gap-3 px-4 h-13">
+        <Search className="w-4 h-4 text-primary shrink-0" />
         <input
           autoFocus={autoFocus}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={placeholder ?? 'Search students by @username or name'}
-          className="w-full h-12 pl-11 pr-11 rounded-2xl bg-card/60 backdrop-blur-sm border border-border/60 text-sm font-medium outline-none focus:border-primary/50 transition-colors"
+          placeholder={placeholder ?? 'Search students by @username or name…'}
+          className="flex-1 h-full bg-transparent text-sm font-medium text-foreground placeholder:text-muted-foreground/50 outline-none py-3.5"
         />
         {loading && (
-          <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
+          <Loader2 className="w-4 h-4 text-primary animate-spin shrink-0" />
         )}
       </div>
 

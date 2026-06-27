@@ -90,7 +90,7 @@ export default function NumbersWall() {
   const inView = useInView(ref, { once: true, margin: '-100px' });
 
   return (
-    <section ref={ref} className="py-24 lg:py-32 relative z-10 overflow-hidden">
+    <section ref={ref} className="py-14 sm:py-24 lg:py-32 relative z-10 overflow-hidden">
       {/* Radial glow */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_50%,rgba(0,102,255,0.07),transparent)] pointer-events-none" />
 
@@ -103,7 +103,7 @@ export default function NumbersWall() {
           className="text-center mb-16"
         >
           <span className="text-[10px] font-black text-primary tracking-[0.4em] uppercase block mb-4">By the Numbers</span>
-          <h2 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tighter">
+          <h2 className="text-3xl xs:text-4xl sm:text-6xl lg:text-7xl font-black tracking-tighter">
             <span className="text-outline">The</span>{' '}
             <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               proof
@@ -121,16 +121,19 @@ export default function NumbersWall() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: i * 0.1 }}
               viewport={{ once: true, margin: '-60px' }}
-              className={`relative rounded-2xl border border-black/10 dark:border-white/10 bg-gradient-to-br ${stat.accent} backdrop-blur-sm p-8 overflow-hidden group`}
+              className={`shine-card relative rounded-2xl neu-raised p-5 sm:p-8 overflow-hidden group`}
             >
+              {/* Accent tint — keeps each card's hue over the neumorphic surface.
+                  Inset by 2px so the shiny border ring stays visible at the edge. */}
+              <div className={`absolute inset-[2px] rounded-2xl bg-gradient-to-br ${stat.accent} opacity-40 pointer-events-none`} />
               {/* Hover shimmer */}
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-white/[0.03] to-transparent pointer-events-none" />
+              <div className="absolute inset-[2px] rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-white/[0.03] to-transparent pointer-events-none" />
 
-              <div className="text-6xl sm:text-7xl lg:text-8xl font-black text-outline tracking-tighter leading-none mb-3 tabular-nums font-heading">
+              <div className="relative text-4xl xs:text-5xl sm:text-7xl lg:text-8xl font-black text-outline tracking-tighter leading-none mb-3 tabular-nums font-heading">
                 {inView ? <OdometerNumber value={stat.value} suffix={stat.suffix} /> : <span>{stat.value}{stat.suffix}</span>}
               </div>
-              <p className="text-base sm:text-lg font-black text-outline mb-1 tracking-tight">{stat.label}</p>
-              <p className="text-xs text-gray-500 dark:text-white/40 font-medium">{stat.sublabel}</p>
+              <p className="relative text-base sm:text-lg font-black text-outline mb-1 tracking-tight">{stat.label}</p>
+              <p className="relative text-xs text-gray-500 dark:text-white/40 font-medium">{stat.sublabel}</p>
             </motion.div>
           ))}
         </div>

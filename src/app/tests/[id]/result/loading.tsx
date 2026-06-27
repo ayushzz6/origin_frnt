@@ -1,7 +1,4 @@
-export default function TestResultLoading() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">
-      Preparing result summary...
-    </div>
-  );
+import OriLoadingScreen from '@/components/ui/OriLoadingScreen';
+export default function TestsidresultLoading() {
+  return <OriLoadingScreen />;
 }

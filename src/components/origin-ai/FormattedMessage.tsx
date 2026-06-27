@@ -440,12 +440,14 @@ function FormattedMessageImpl({ content, className, isAssistant = true, inline =
         components={{
           p: ({ children, node, ...rest }: PProps) =>
             inline ? <>{children}</> : <p className="mb-2 last:mb-0 select-text" {...rest}>{children}</p>,
+          // In inline mode lists must stay inline — a block <ul>/<ol> nested in a
+          // <p>/<span> is invalid HTML and triggers a hydration error.
           ul: ({ children, node, ...rest }: UlProps) =>
-            <ul className="list-disc pl-5 mb-2 space-y-1" {...rest}>{children}</ul>,
+            inline ? <>{children}</> : <ul className="list-disc pl-5 mb-2 space-y-1" {...rest}>{children}</ul>,
           ol: ({ children, node, ...rest }: OlProps) =>
-            <ol className="list-decimal pl-5 mb-2 space-y-1" {...rest}>{children}</ol>,
+            inline ? <>{children}</> : <ol className="list-decimal pl-5 mb-2 space-y-1" {...rest}>{children}</ol>,
           li: ({ children, node, ...rest }: LiProps) =>
-            <li className="leading-relaxed select-text" {...rest}>{children}</li>,
+            inline ? <span className="select-text">{children} </span> : <li className="leading-relaxed select-text" {...rest}>{children}</li>,
           strong: ({ children, node, ...rest }: StrongProps) =>
             <strong className="font-bold" {...rest}>{children}</strong>,
         }}

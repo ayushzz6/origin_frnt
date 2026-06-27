@@ -2,8 +2,9 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ArrowRight, Loader2, Mic, MicOff, Send, MessageSquare } from 'lucide-react';
+import { Loader2, Mic, MicOff, Send, MessageSquare } from 'lucide-react';
 import { ContainerScroll } from '@/components/ui/container-scroll-animation';
+import LandingCTABtn from '@/components/landing/LandingCTABtn';
 
 interface SpeechRecognitionAlternative {
   readonly transcript: string;
@@ -99,14 +100,11 @@ function LimitCard() {
       <p className="text-xs text-gray-500 dark:text-white/40">
         Sign up free to ask unlimited questions, use voice anytime, and unlock the full Origin AI inside.
       </p>
-      <motion.a
+      <LandingCTABtn
+        label="Unlock Free Access"
         href="/auth/register"
-        whileHover={{ scale: 1.04 }}
-        whileTap={{ scale: 0.96 }}
-        className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-primary text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/30"
-      >
-        Unlock Free Access <ArrowRight className="w-3.5 h-3.5" />
-      </motion.a>
+        variant="sm"
+      />
     </div>
   );
 }
@@ -310,7 +308,7 @@ export default function TryOriginAI() {
                 <div className="w-3 h-3 rounded-full bg-emerald-400/50" />
               </div>
               <div className="flex items-center gap-1.5 ml-1">
-                <Sparkles className="w-3.5 h-3.5 text-primary" />
+                <img src="/ori2d/ori-happy.png" alt="Ori" draggable={false} className="w-4 h-4 object-contain select-none" />
                 <span className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-600 dark:text-white/50">Origin AI</span>
               </div>
             </div>
@@ -320,14 +318,14 @@ export default function TryOriginAI() {
                   textLeft === 0 ? 'text-red-400/70 border-red-400/20' : 'text-gray-500 dark:text-white/40 border-black/10 dark:border-white/10'
                 }`}
               >
-                <MessageSquare className="w-3 h-3" /> {textLeft}/{TEXT_LIMIT} text
+                <MessageSquare className="w-3 h-3" /> {textLeft}/{TEXT_LIMIT} <span className="hidden xs:inline">text</span>
               </span>
               <span
                 className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-wider border rounded-full px-2 py-1 transition-colors ${
                   voiceLeft === 0 ? 'text-red-400/70 border-red-400/20' : 'text-gray-500 dark:text-white/40 border-black/10 dark:border-white/10'
                 }`}
               >
-                <Mic className="w-3 h-3" /> {voiceLeft}/{VOICE_LIMIT} voice
+                <Mic className="w-3 h-3" /> {voiceLeft}/{VOICE_LIMIT} <span className="hidden xs:inline">voice</span>
               </span>
             </div>
           </div>
@@ -343,8 +341,8 @@ export default function TryOriginAI() {
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {msg.role === 'ai' && !msg.isLimitMsg && (
-                  <div className="w-6 h-6 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center mr-2 mt-1 shrink-0">
-                    <Sparkles className="w-3 h-3 text-primary" />
+                  <div className="w-6 h-6 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center mr-2 mt-1 shrink-0 overflow-hidden">
+                    <img src="/ori2d/ori-happy.png" alt="Ori" draggable={false} className="w-4 h-4 object-contain select-none" />
                   </div>
                 )}
 
@@ -375,8 +373,8 @@ export default function TryOriginAI() {
 
             {loading && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
-                <div className="w-6 h-6 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center mr-2 mt-1 shrink-0">
-                  <Sparkles className="w-3 h-3 text-primary" />
+                <div className="w-6 h-6 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center mr-2 mt-1 shrink-0 overflow-hidden">
+                  <img src="/ori2d/ori-happy.png" alt="Ori" draggable={false} className="w-4 h-4 object-contain select-none" />
                 </div>
                 <div className="bg-gray-100 dark:bg-white/[0.06] border border-black/[0.08] dark:border-white/[0.08] rounded-2xl px-4 py-3">
                   <div className="flex items-center gap-1.5">

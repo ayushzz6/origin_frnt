@@ -1,9 +1,9 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Clock, Target, CheckCircle2, Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Trophy, Clock, Target, CheckCircle2, Plus, Trash2, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { apiCall } from '@/lib/api';
@@ -87,7 +87,7 @@ export function ChallengeCard({ user, onStartChallenge, initialChallenge }: Chal
     const prevMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
 
     return (
-        <Card className="premium-card bg-card/50 backdrop-blur-xl relative flex flex-col group min-h-[350px] sm:min-h-[400px] border-border/50">
+        <Card className="neu-raised border-0 relative flex flex-col group min-h-[350px] sm:min-h-[400px]">
             {/* Header: Month Navigation */}
             <div className={cn("flex items-center justify-between pt-5 pb-2", isMobile ? "px-3" : "px-5")}>
                 <div>
@@ -144,31 +144,41 @@ export function ChallengeCard({ user, onStartChallenge, initialChallenge }: Chal
                     </div>
                 </div>
 
-                {/* Bottom Section: Start Challenge */}
-                <div className="mt-auto bg-gradient-to-r from-primary/10 to-transparent rounded-xl p-3 border border-primary/20 flex items-center justify-between">
-                    <div className="flex flex-col">
-                        <p className="text-[10px] font-black text-primary uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                            <Trophy className="w-3 h-3" />
-                            Challenge of the Day
-                        </p>
-                        <p className="text-[11px] font-bold text-foreground">
-                            {isLoadingChallenge ? (
-                                <span className="opacity-50">Loading...</span>
-                            ) : challenge ? (
-                                <>Solve <span className="text-primary font-bold">{challenge.concept || challenge.subject}</span></>
-                            ) : (
-                                <span className="text-muted-foreground/50">No challenge today</span>
-                            )}
-                        </p>
+                {/* Daily Mission CTA */}
+                <div className="mt-auto neu-inset rounded-xl p-3.5 flex flex-col gap-2.5">
+                    <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+                            <Target className="w-3.5 h-3.5 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-[9px] font-black text-primary uppercase tracking-[0.15em] leading-none mb-0.5">
+                                Daily Mission
+                            </p>
+                            <p className="text-[11px] font-bold text-foreground truncate">
+                                {isLoadingChallenge ? (
+                                    <span className="opacity-40">Fetching mission…</span>
+                                ) : challenge ? (
+                                    challenge.concept || challenge.subject || 'Today\'s Challenge'
+                                ) : (
+                                    <span className="text-muted-foreground/50">No mission today</span>
+                                )}
+                            </p>
+                        </div>
                     </div>
-                    <Button 
-                        size="sm" 
+                    <button
                         disabled={isLoadingChallenge || !challenge || challenge.isSolved}
                         onClick={() => challenge && onStartChallenge?.(challenge.id.toString())}
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 text-[11px] font-bold px-4 h-8 transition-transform hover:scale-105 rounded-lg disabled:opacity-50"
+                        className={cn(
+                            "w-full h-9 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all duration-200",
+                            challenge?.isSolved
+                                ? "bg-emerald-500/15 text-emerald-600 cursor-default border border-emerald-500/30"
+                                : isLoadingChallenge || !challenge
+                                    ? "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
+                                    : "neu-btn text-primary hover:bg-primary hover:text-primary-foreground active:scale-95"
+                        )}
                     >
-                        {challenge?.isSolved ? 'Solved' : 'Start Now'}
-                    </Button>
+                        {challenge?.isSolved ? '✓ Completed' : 'Accept Mission →'}
+                    </button>
                 </div>
 
             </CardContent>
@@ -217,10 +227,8 @@ export function PastActivitiesCard({ user }: { user: User }) {
     const totalSecs = types.reduce((a, t) => a + t.secs, 0);
 
     return (
-        <Card className="premium-card relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
-
-            <CardContent className={cn("relative z-10 flex flex-col gap-4 sm:gap-5", isMobile ? "p-3" : "p-6")}>
+        <Card className="neu-raised border-0">
+            <CardContent className={cn("flex flex-col gap-4", isMobile ? "p-4" : "p-5")}>
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -272,7 +280,7 @@ export function PlacesToConcentrateCard({ user }: { user?: User }) {
     const data = subjects.map((s, i) => ({ name: s, value: [35, 28, 22, 15][i % 4] }));
 
     return (
-        <div className="min-h-48 h-auto relative flex flex-col items-center justify-center p-4 sm:p-6">
+        <div className="neu-raised min-h-48 h-auto relative flex flex-col items-center justify-center p-4 sm:p-6">
             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Focus Areas</p>
             <div className="relative w-[180px] h-[180px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -306,6 +314,7 @@ export function PlacesToConcentrateCard({ user }: { user?: User }) {
 interface TodoListCardProps {
     tasks: Task[];
     onAddTask: (text: string, due: string) => void;
+    onEditTask: (id: string, text: string) => void;
     onToggleTask: (id: string) => void;
     onRemoveTask: (id: string) => void;
     onViewAll: () => void;
@@ -325,9 +334,28 @@ function getDefaultDueDate(now: number) {
     return d.toISOString().slice(0, 16);
 }
 
-export function TodoListCard({ tasks, onAddTask, onToggleTask, onRemoveTask, onViewAll }: TodoListCardProps) {
+export function TodoListCard({ tasks, onAddTask, onEditTask, onToggleTask, onRemoveTask, onViewAll }: TodoListCardProps) {
     const [newTaskText, setNewTaskText] = useState('');
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editText, setEditText] = useState('');
+    const editInputRef = useRef<HTMLInputElement>(null);
     const hydratedNow = useHydratedNow();
+
+    const startEdit = (id: string, currentText: string) => {
+        setEditingId(id);
+        setEditText(currentText);
+        setTimeout(() => editInputRef.current?.focus(), 0);
+    };
+
+    const commitEdit = (id: string) => {
+        const trimmed = editText.trim();
+        if (trimmed && trimmed !== tasks.find(t => t.id === id)?.text) {
+            onEditTask(id, trimmed);
+        }
+        setEditingId(null);
+    };
+
+    const cancelEdit = () => setEditingId(null);
     const [lastMutationNow, setLastMutationNow] = useState<number | null>(null);
     const [newTaskDue, setNewTaskDue] = useState('');
     const now = lastMutationNow ?? hydratedNow;
@@ -360,11 +388,8 @@ export function TodoListCard({ tasks, onAddTask, onToggleTask, onRemoveTask, onV
     };
 
     return (
-        <Card className="border-0 shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50 bg-card backdrop-blur-xl h-full relative overflow-hidden flex flex-col ring-1 ring-border">
-            {/* Soft decorative background */}
-            <div className="absolute top-0 right-0 w-[40%] h-[40%] bg-gradient-to-bl from-primary/5 to-transparent dark:from-primary/10 pointer-events-none" />
-
-            <CardContent className="relative z-10 p-4 sm:p-6 md:p-8 flex-1 flex flex-col min-h-0">
+        <Card className="neu-raised border-0 h-full flex flex-col">
+            <CardContent className="p-5 flex-1 flex flex-col min-h-0">
                 <div className="flex items-center justify-between mb-4 sm:mb-8">
                     <h3 className="text-base sm:text-xl font-black text-foreground flex items-center gap-2 sm:gap-3">
                         <div className="w-1 h-4 sm:w-1.5 sm:h-6 bg-primary rounded-full shadow-sm shadow-primary/20" />
@@ -426,14 +451,40 @@ export function TodoListCard({ tasks, onAddTask, onToggleTask, onRemoveTask, onV
                                     <CheckCircle2 className="w-3.5 h-3.5" />
                                 </button>
                                 <div className="flex-1 min-w-0">
-                                    <p className={`text-sm font-medium transition-colors truncate ${todo.completed
-                                        ? 'text-black/30 dark:text-slate-600 line-through decoration-black/30'
-                                        : overdue
-                                            ? 'text-primary dark:text-primary/80'
-                                            : 'text-black dark:text-slate-200'
-                                        }`}>
-                                        {todo.text}
-                                    </p>
+                                    {editingId === todo.id ? (
+                                        <input
+                                            ref={editInputRef}
+                                            value={editText}
+                                            onChange={e => setEditText(e.target.value)}
+                                            onBlur={() => commitEdit(todo.id)}
+                                            onKeyDown={e => {
+                                                if (e.key === 'Enter') { e.preventDefault(); commitEdit(todo.id); }
+                                                if (e.key === 'Escape') cancelEdit();
+                                            }}
+                                            className="w-full text-sm font-medium bg-transparent border-b border-primary/40 outline-none text-foreground pb-0.5 focus:border-primary transition-colors"
+                                        />
+                                    ) : (
+                                        <div className="flex items-center gap-1.5 group/text">
+                                            <p
+                                                className={`text-sm font-medium transition-colors truncate cursor-text ${todo.completed
+                                                    ? 'text-black/30 dark:text-slate-600 line-through decoration-black/30'
+                                                    : overdue
+                                                        ? 'text-primary dark:text-primary/80'
+                                                        : 'text-black dark:text-slate-200'
+                                                    }`}
+                                                onClick={() => !todo.completed && startEdit(todo.id, todo.text)}
+                                                title={todo.completed ? undefined : 'Click to edit'}
+                                            >
+                                                {todo.text}
+                                            </p>
+                                            {!todo.completed && (
+                                                <Pencil
+                                                    className="w-3 h-3 text-muted-foreground opacity-0 group-hover/text:opacity-60 shrink-0 cursor-pointer transition-opacity"
+                                                    onClick={() => startEdit(todo.id, todo.text)}
+                                                />
+                                            )}
+                                        </div>
+                                    )}
                                     <div className="flex items-center gap-2 mt-1.5">
                                         <Badge variant="outline" className={`text-[10px] h-4 px-1.5 border-0 font-bold uppercase tracking-wider ${todo.completed
                                             ? 'bg-slate-100 dark:bg-slate-800 text-slate-500'

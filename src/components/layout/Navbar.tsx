@@ -104,7 +104,7 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
             (item.view === 'ogcode' && currentView === 'ogcode-workspace');
     };
 
-    const sidebarBg = 'bg-card/95 dark:bg-slate-950/90 backdrop-blur-xl border-r border-primary/20 dark:border-primary/20 shadow-[2px_0_24px_rgba(0,0,0,0.06)] dark:shadow-[2px_0_24px_rgba(0,0,0,0.3)]';
+    const sidebarBg = 'bg-[hsl(var(--neu-bg))] border-r border-primary/10 shadow-[4px_0_14px_hsl(var(--neu-shadow)/35%),-2px_0_6px_hsl(var(--neu-light)/25%)]';
 
     return (
         <>
@@ -149,7 +149,7 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
                     </motion.button>
                     <div className="absolute left-[72px] top-1/2 -translate-y-1/2 pointer-events-none z-[60] flex items-center">
                         <div className={cn(
-                            'flex items-center h-9 rounded-r-xl bg-card/95 dark:bg-zinc-900/95 backdrop-blur-xl',
+                            'flex items-center h-9 rounded-r-xl bg-[hsl(var(--neu-bg))] backdrop-blur-xl',
                             'border border-l-0 border-primary/20 shadow-lg overflow-hidden',
                             'w-0 group-hover/search:w-24 transition-all duration-200 ease-out'
                         )}>
@@ -166,7 +166,7 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
                     </div>
                     <div className="absolute left-[72px] top-1/2 -translate-y-1/2 pointer-events-none z-[60] flex items-center">
                         <div className={cn(
-                            'flex items-center h-9 rounded-r-xl bg-card/95 dark:bg-zinc-900/95 backdrop-blur-xl',
+                            'flex items-center h-9 rounded-r-xl bg-[hsl(var(--neu-bg))] backdrop-blur-xl',
                             'border border-l-0 border-primary/20 shadow-lg overflow-hidden',
                             'w-0 group-hover/alerts:w-24 transition-all duration-200 ease-out'
                         )}>
@@ -197,7 +197,7 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
                     </motion.button>
                     <div className="absolute left-[72px] top-1/2 -translate-y-1/2 pointer-events-none z-[60] flex items-center">
                         <div className={cn(
-                            'flex items-center h-9 rounded-r-xl bg-card/95 dark:bg-zinc-900/95 backdrop-blur-xl',
+                            'flex items-center h-9 rounded-r-xl bg-[hsl(var(--neu-bg))] backdrop-blur-xl',
                             'border border-l-0 border-primary/20 shadow-lg overflow-hidden',
                             'w-0 group-hover/theme-top:w-28 transition-all duration-200 ease-out'
                         )}>
@@ -259,7 +259,7 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
                                 {!(item.label === 'Explore' && showExploreMenu) && (
                                     <div className="absolute left-[72px] top-1/2 -translate-y-1/2 pointer-events-none z-[60] flex items-center">
                                         <div className={cn(
-                                            'flex items-center h-9 rounded-r-xl bg-card/95 dark:bg-zinc-900/95 backdrop-blur-xl',
+                                            'flex items-center h-9 rounded-r-xl bg-[hsl(var(--neu-bg))] backdrop-blur-xl',
                                             'border border-l-0 border-primary/20 shadow-lg overflow-hidden',
                                             'w-0 group-hover/navitem:w-28 transition-all duration-200 ease-out'
                                         )}>
@@ -277,7 +277,7 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
                                                 animate={{ opacity: 1, x: 0, scale: 1 }}
                                                 exit={{ opacity: 0, x: 10, scale: 0.95 }}
                                                 transition={{ duration: 0.2, ease: 'easeOut' }}
-                                                className="absolute left-[76px] top-0 w-80 bg-card/95 dark:bg-zinc-900/95 backdrop-blur-2xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-primary/20 dark:border-zinc-800 p-2 z-50 origin-left"
+                                                className="absolute left-[76px] top-0 w-80 bg-[hsl(var(--neu-bg))] backdrop-blur-2xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-primary/20 dark:border-zinc-800 p-2 z-50 origin-left"
                                             >
                                                 <div className="px-3 py-2 mb-2">
                                                     <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">Learning Hub</h3>
@@ -365,7 +365,7 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
                         {/* Hover expand tooltip */}
                         <div className="absolute left-[72px] bottom-0 pointer-events-none z-[60] flex items-center">
                             <div className={cn(
-                                'flex items-center h-9 rounded-r-xl bg-card/95 dark:bg-zinc-900/95 backdrop-blur-xl',
+                                'flex items-center h-9 rounded-r-xl bg-[hsl(var(--neu-bg))] backdrop-blur-xl',
                                 'border border-l-0 border-primary/20 shadow-lg overflow-hidden',
                                 'w-0 group-hover/profile:w-28 transition-all duration-200 ease-out'
                             )}>
@@ -379,7 +379,7 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
                                 animate={{ opacity: 1, x: 0, scale: 1 }}
                                 exit={{ opacity: 0, x: 10, scale: 0.95 }}
                                 onMouseLeave={() => setShowProfileMenu(false)}
-                                className="absolute left-[76px] bottom-0 w-64 bg-card/95 dark:bg-zinc-900/95 backdrop-blur-2xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-primary/20 dark:border-zinc-800 py-2 z-50 origin-bottom-left"
+                                className="absolute left-[76px] bottom-0 w-64 bg-[hsl(var(--neu-bg))] backdrop-blur-2xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-primary/20 dark:border-zinc-800 py-2 z-50 origin-bottom-left"
                             >
                                 <div className="px-5 py-4 border-b border-slate-100 dark:border-zinc-800 mb-2">
                                     <p className="text-sm font-black text-black dark:text-white">{user.name}</p>
@@ -454,22 +454,13 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
             {/* ── MOBILE COMPACT TOP BAR ──────────────────────────────────── */}
             <div className={cn(
                 'fixed top-0 left-0 right-0 h-14 z-50 md:hidden flex items-center justify-between px-3',
-                'bg-card/95 dark:bg-slate-950/90 backdrop-blur-xl border-b border-primary/20 dark:border-primary/20',
-                'shadow-[0_2px_24px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_24px_rgba(0,0,0,0.3)]'
+                'bg-[hsl(var(--neu-bg))] border-b border-primary/10',
+                'shadow-[0_4px_14px_hsl(var(--neu-shadow)/35%),0_-1px_0_hsl(var(--neu-light)/25%)_inset]'
             )}>
-                {/* Hamburger */}
-                <button
-                    onClick={() => setShowMobileMenu(true)}
-                    className="p-2 text-slate-600 dark:text-slate-400 hover:text-primary transition-colors bg-primary/5 rounded-xl"
-                >
-                    <Menu className="w-5 h-5" />
-                </button>
-
                 {/* Logo */}
                 <button
                     onClick={() => onNavigate('dashboard')}
                     onMouseEnter={() => onPrefetch?.('dashboard')}
-                    className="absolute left-1/2 -translate-x-1/2"
                 >
                     <img
                         src={user.role?.toLowerCase() === 'student' ? '/origin-new.jpg' : '/O3-Origin-Logo.png'}
@@ -534,7 +525,7 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
                             animate={{ y: 0 }}
                             exit={{ y: '100%' }}
                             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                            className="fixed bottom-0 left-0 right-0 z-[70] md:hidden bg-card/98 dark:bg-slate-950/98 backdrop-blur-2xl rounded-t-3xl border-t border-primary/20 shadow-2xl"
+                            className="fixed bottom-0 left-0 right-0 z-[70] md:hidden bg-[hsl(var(--neu-bg))] backdrop-blur-2xl rounded-t-3xl border-t border-primary/10 shadow-[0_-8px_32px_hsl(var(--neu-shadow)/40%)]"
                         >
                             {/* Handle */}
                             <div className="flex justify-center pt-3 pb-2">
@@ -595,6 +586,45 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
                 currentView={currentView}
                 onNavigate={onNavigate}
             />
+
+            {/* ── MOBILE BOTTOM TAB BAR (student only) ────────────────────── */}
+            {!isTeacher && (
+                <nav className={cn(
+                    'fixed bottom-0 left-0 right-0 z-50 md:hidden',
+                    'bg-[hsl(var(--neu-bg))] border-t border-border/40',
+                    'shadow-[0_-4px_14px_hsl(var(--neu-shadow)/40%),0_-1px_0_hsl(var(--neu-light)/60%)]',
+                    'safe-area-pb pb-safe'
+                )}>
+                    <div className="grid grid-cols-5 h-14">
+                        {[
+                            { label: 'Home', icon: LayoutGrid, view: 'dashboard' as ViewState },
+                            { label: 'Tests', icon: FileText, view: 'test-list' as ViewState },
+                            { label: 'OGCode', icon: Code, view: 'ogcode' as ViewState },
+                            { label: 'DPP', icon: Target, view: 'dpp' as ViewState },
+                            { label: 'More', icon: Menu, view: null },
+                        ].map((item) => {
+                            const active = item.view ? isActive({ label: item.label, view: item.view }) : false;
+                            const Icon = item.icon;
+                            return (
+                                <button
+                                    key={item.label}
+                                    onClick={() => item.view ? onNavigate(item.view) : setShowMobileMenu(true)}
+                                    className={cn(
+                                        'flex flex-col items-center justify-center gap-0.5 py-2 px-1 transition-all active:scale-95',
+                                        active ? 'text-primary' : 'text-muted-foreground hover:text-primary'
+                                    )}
+                                >
+                                    {active && (
+                                        <span className="absolute top-0 w-8 h-0.5 bg-primary rounded-full" />
+                                    )}
+                                    <Icon className="w-5 h-5" />
+                                    <span className="text-[9px] font-bold leading-none">{item.label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </nav>
+            )}
         </>
     );
 }

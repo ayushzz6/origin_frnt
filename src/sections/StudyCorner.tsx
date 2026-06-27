@@ -419,7 +419,7 @@ export default function StudyCorner({ catalog }: StudyCornerProps) {
     }
 
     return (
-        <div className="min-h-screen bg-background font-sans text-foreground transition-colors duration-500 overflow-x-hidden relative">
+        <div className="min-h-screen neu-surface font-sans text-foreground transition-colors duration-500 overflow-x-hidden relative">
             {/* Ambient Background Elements */}
             <div className="fixed inset-0 z-0 pointer-events-none">
                 <div className="absolute top-[20%] right-[-10%] w-[50%] h-[50%] bg-primary/5 rounded-full blur-[120px]" />

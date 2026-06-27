@@ -111,6 +111,32 @@ export async function toggleTaskAction(id: string, completed: boolean): Promise<
   return updated;
 }
 
+export async function editTaskAction(id: string, text: string): Promise<SerializedTask> {
+  const userId = await requireUserId();
+  const trimmed = text.trim();
+  if (!trimmed) throw new Error('text is required.');
+
+  if (isUserPostgresConfigured()) {
+    try {
+      const updated = await dbUpdateTask(id, userId, { text: trimmed });
+      if (!updated) throw new Error('Task not found.');
+      revalidateTaskSurfaces(userId);
+      return serializeTask(updated);
+    } catch (err) {
+      console.error('[task-actions] DB edit failed, falling back to in-memory seed', err instanceof Error ? err.message : err);
+    }
+  }
+
+  const updated = await withStoreAsync(async (store) => {
+    const task = store.tasks.find((t) => t.id === id && t.userId === userId);
+    if (!task) throw new Error('Task not found.');
+    task.text = trimmed;
+    return serializeTask(task);
+  });
+  revalidateTaskSurfaces(userId);
+  return updated;
+}
+
 export async function removeTaskAction(id: string): Promise<void> {
   const userId = await requireUserId();
 

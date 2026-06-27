@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "katex/dist/katex.min.css";
 
@@ -41,47 +40,62 @@
   --font-display: var(--font-display, 'Instrument Serif', serif);
   --font-heading: var(--font-heading, 'Syne', system-ui, sans-serif);
   --font-body: var(--font-body, 'Inter', system-ui, sans-serif);
-  --background: 0 0% 100%;
+  --background: 220 16% 91%;
   --foreground: 222.2 84% 4.9%;
-  --card: 0 0% 100%;
+  --card: 220 16% 91%;
   --card-foreground: 222.2 84% 4.9%;
-  --popover: 0 0% 100%;
+  --popover: 220 16% 91%;
   --popover-foreground: 222.2 84% 4.9%;
   --primary: 199 94% 60%;
   --primary-foreground: 0 0% 0%;
-  --secondary: 220 14.3% 95.9%;
-  --secondary-foreground: 220 8.9% 46.1%;
-  --muted: 220 14.3% 95.9%;
-  --muted-foreground: 220 8.9% 46.1%;
-  --accent: 220 14.3% 95.9%;
+  --secondary: 220 16% 85%;
+  --secondary-foreground: 220 8.9% 36%;
+  --muted: 220 16% 85%;
+  --muted-foreground: 220 8.9% 46%;
+  --accent: 220 16% 85%;
   --accent-foreground: 222.2 84% 4.9%;
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 210 40% 98%;
-  --border: 0 0% 0%;
-  --input: 0 0% 0%;
+  --border: 220 20% 78%;
+  --input: 220 20% 78%;
   --ring: 199 94% 60%;
+
+  /* Neumorphism token layer (Soft UI, light). Mid-tone surface so dual shadows read;
+     same hue, only lightness differs. See Neumorphism.md. */
+  --neu-bg: 220 16% 91%;
+  --neu-light: 0 0% 100%;
+  --neu-shadow: 218 22% 74%;
+  --neu-dist: 6px;
+  --neu-blur: 14px;
+  --neu-radius: 20px;
 }
 
 .dark {
-  --background: 0 0% 0%;
+  --background: 222 16% 13%;
   --foreground: 0 0% 100%;
   --muted-foreground: 240 4% 66%;
   --primary: 199 94% 60%;
   --primary-foreground: 0 0% 0%;
-  --secondary: 0 0% 10%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 0 0% 10%;
-  --accent: 0 0% 10%;
+  --secondary: 222 16% 19%;
+  --secondary-foreground: 0 0% 92%;
+  --muted: 222 16% 19%;
+  --accent: 222 16% 19%;
   --accent-foreground: 0 0% 98%;
-  --border: 0 0% 100% / 30%;
-  --input: 0 0% 100% / 30%;
+  --border: 222 16% 28%;
+  --input: 222 16% 28%;
   --ring: 199 94% 60%;
-  --card: 0 0% 0%;
+  --card: 222 16% 13%;
   --card-foreground: 0 0% 100%;
-  --popover: 0 0% 0%;
+  --popover: 222 16% 13%;
   --popover-foreground: 0 0% 100%;
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 210 40% 98%;
+
+  /* Neumorphism token layer (Soft UI, dark). Hand-tuned: a raised charcoal surface, a
+     subtle top-left highlight, and a near-black bottom-right shadow. */
+  --neu-bg: 222 16% 13%;
+  --neu-light: 222 14% 19%;
+  --neu-shadow: 0 0% 4%;
 }
 
 @layer base {
@@ -111,6 +125,21 @@
   text-shadow: none;
 }
 
+/* Mobile refinements — tighter shadows and thinner strokes on small screens */
+@media (max-width: 640px) {
+  :root, .dark {
+    --neu-dist: 4px;
+    --neu-blur: 10px;
+  }
+  .text-outline {
+    -webkit-text-stroke: 1px #000;
+    text-shadow:
+      -1px -1px 0 #000, 1px -1px 0 #000,
+      -1px 1px 0 #000, 1px 1px 0 #000,
+      0 1px 4px rgba(0, 0, 0, 0.3);
+  }
+}
+
 @keyframes spotlight {
   0%   { opacity: 0; transform: translate(-72%, -62%) scale(0.5); }
   100% { opacity: 1; transform: translate(-50%, -40%) scale(1); }
@@ -121,9 +150,103 @@
 }
 
 @layer utilities {
+  /* ── Neumorphism (Soft UI) utilities ───────────────────────────────────
+     Raised = convex panel; inset = concave well; pressable = raised→inset on
+     :active. Consumes the --neu-* tokens (light + dark). See Neumorphism.md. */
+  /* !important so these full-surface restyles win over shadcn Card base
+     (bg-card / shadow-sm / rounded-xl) without per-component class wars. */
+  .neu-surface {
+    background-color: hsl(var(--neu-bg)) !important;
+  }
+  .neu-raised {
+    background-color: hsl(var(--neu-bg)) !important;
+    border-radius: var(--neu-radius) !important;
+    box-shadow:
+      var(--neu-dist) var(--neu-dist) var(--neu-blur) hsl(var(--neu-shadow)),
+      calc(var(--neu-dist) * -1) calc(var(--neu-dist) * -1) var(--neu-blur) hsl(var(--neu-light)) !important;
+    transform: translateZ(0);
+  }
+  .neu-inset {
+    background-color: hsl(var(--neu-bg)) !important;
+    border-radius: var(--neu-radius) !important;
+    box-shadow:
+      inset var(--neu-dist) var(--neu-dist) var(--neu-blur) hsl(var(--neu-shadow)),
+      inset calc(var(--neu-dist) * -1) calc(var(--neu-dist) * -1) var(--neu-blur) hsl(var(--neu-light)) !important;
+    transform: translateZ(0);
+  }
+  .neu-pressable {
+    transition: box-shadow 0.2s ease, transform 0.1s ease;
+    cursor: pointer;
+  }
+  .neu-pressable:active {
+    box-shadow:
+      inset var(--neu-dist) var(--neu-dist) var(--neu-blur) hsl(var(--neu-shadow)),
+      inset calc(var(--neu-dist) * -1) calc(var(--neu-dist) * -1) var(--neu-blur) hsl(var(--neu-light));
+    transform: translateY(1px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .neu-pressable { transition: none; }
+    .neu-pressable:active { transform: none; }
+  }
+
+  /* ── Universal button press (inset shadow on every click) ────────────
+     Applies to ALL <button> and [role="button"] elements throughout the app.
+     !important overrides the .neu-raised static box-shadow when a raised
+     surface is also a button so the inset always wins on :active. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    transition: box-shadow 0.15s ease, transform 0.12s ease, opacity 0.15s ease;
+  }
+  button:active:not(:disabled),
+  [role="button"]:active:not([aria-disabled="true"]) {
+    box-shadow:
+      inset 4px 4px 12px hsl(var(--neu-shadow)),
+      inset -4px -4px 12px hsl(var(--neu-light)) !important;
+    transform: translateY(1px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    button:active, [role="button"]:active { transform: none; }
+  }
+
+  /* ── Component-scale neumorphism (buttons, fields, toggles, knobs) ──────
+     Smaller radius/depth than the card panels; used on plain elements. */
+  .neu-btn {
+    background-color: hsl(var(--neu-bg));
+    border-radius: 12px;
+    box-shadow: 4px 4px 10px hsl(var(--neu-shadow)), -4px -4px 10px hsl(var(--neu-light));
+    transition: box-shadow 0.2s ease, transform 0.1s ease;
+  }
+  .neu-btn:hover { box-shadow: 3px 3px 8px hsl(var(--neu-shadow)), -3px -3px 8px hsl(var(--neu-light)); }
+  .neu-btn:active, .neu-btn[data-pressed="true"] {
+    box-shadow: inset 4px 4px 8px hsl(var(--neu-shadow)), inset -4px -4px 8px hsl(var(--neu-light));
+    transform: translateY(1px);
+  }
+  .neu-field {
+    background-color: hsl(var(--neu-bg));
+    border-radius: 12px;
+    box-shadow: inset 3px 3px 7px hsl(var(--neu-shadow)), inset -3px -3px 7px hsl(var(--neu-light));
+  }
+  .neu-track {
+    background-color: hsl(var(--neu-bg));
+    border-radius: 999px;
+    box-shadow: inset 3px 3px 6px hsl(var(--neu-shadow)), inset -3px -3px 6px hsl(var(--neu-light));
+  }
+  .neu-knob {
+    background-color: hsl(var(--neu-bg));
+    border-radius: 999px;
+    box-shadow: 3px 3px 6px hsl(var(--neu-shadow)), -3px -3px 6px hsl(var(--neu-light));
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .neu-btn { transition: none; }
+    .neu-btn:active { transform: none; }
+  }
+
   .glass {
-    @apply bg-card/80 dark:bg-slate-950/80 backdrop-blur-[12px] border-b border-[#F1F5F9] dark:border-white/10;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+    background-color: hsl(var(--neu-bg) / 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-color: hsl(var(--border) / 0.4);
+    box-shadow: 0 2px 8px hsl(var(--neu-shadow) / 0.25), 0 -1px 0 hsl(var(--neu-light) / 0.5) inset;
   }
 
   .premium-shadow {
@@ -167,6 +290,28 @@
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* ── Mentor suggested-questions auto-slide strip ───────────────────────── */
+.mentor-marquee {
+  /* fade the edges so chips slide in/out smoothly */
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+}
+.mentor-marquee-track {
+  display: inline-flex;
+  width: max-content;
+  animation: mentor-marquee 34s linear infinite;
+}
+.mentor-marquee:hover .mentor-marquee-track {
+  animation-play-state: paused;
+}
+@keyframes mentor-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mentor-marquee-track { animation: none; }
 }
 
 @keyframes float {
@@ -307,9 +452,7 @@
   }
 }
 
-/* Pure Theme Background Overrides (Force Pure Dark & Pure White) */
-
-/* 1. Hide decorative background glow elements with large blurs */
+/* Neumorphism: hide large decorative glow blobs — shadows provide the depth now */
 [class*="blur-[60px]"],
 [class*="blur-[80px]"],
 [class*="blur-[100px]"],
@@ -320,76 +463,20 @@
   display: none !important;
 }
 
-/* 2. Force slate/zinc/gray backgrounds in dark mode to be pure black (#000000) */
-.dark .bg-slate-900,
-.dark .bg-slate-950,
-.dark .bg-zinc-900,
-.dark .bg-zinc-950,
-.dark .bg-neutral-900,
-.dark .bg-neutral-950,
-.dark .bg-gray-900,
-.dark .bg-gray-950,
-.dark [class*="bg-slate-900/"],
-.dark [class*="bg-slate-950/"],
-.dark [class*="bg-zinc-900/"],
-.dark [class*="bg-zinc-950/"],
-.dark [class*="bg-neutral-900/"],
-.dark [class*="bg-neutral-950/"],
-.dark [class*="bg-gray-900/"],
-.dark [class*="bg-gray-950/"] {
-  background-color: #000000 !important;
-}
+/* Neumorphism border system — depth from shadows, not hard borders */
 
-/* 3. Force white/slate/zinc/gray light backgrounds in light mode to be pure white (#ffffff) */
-html:not(.dark) .bg-slate-50,
-html:not(.dark) .bg-slate-100,
-html:not(.dark) .bg-gray-50,
-html:not(.dark) .bg-gray-100,
-html:not(.dark) .bg-zinc-50,
-html:not(.dark) .bg-zinc-100,
-html:not(.dark) [class*="bg-slate-50/"],
-html:not(.dark) [class*="bg-slate-100/"],
-html:not(.dark) [class*="bg-gray-50/"],
-html:not(.dark) [class*="bg-gray-100/"],
-html:not(.dark) [class*="bg-zinc-50/"],
-html:not(.dark) [class*="bg-zinc-100/"] {
-  background-color: #ffffff !important;
-}
-
-/* Custom Border Alignment (Shiny Light White in Dark Mode, solid Black in Light Mode) */
-
-/* 1. Dark Theme Borders: Override explicit gray/slate/zinc/white border classes to be shiny light white and thicker (2px) */
+/* Dark mode: soft white-tinted borders (1px, not 2px) */
 .dark .border:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]) {
-  border-color: rgba(255, 255, 255, 0.3) !important;
-  border-width: 2px !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
 }
-.dark .border-t:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]) {
-  border-color: rgba(255, 255, 255, 0.3) !important;
-  border-top-width: 2px !important;
-}
-.dark .border-b:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]) {
-  border-color: rgba(255, 255, 255, 0.3) !important;
-  border-bottom-width: 2px !important;
-}
-.dark .border-l:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]) {
-  border-color: rgba(255, 255, 255, 0.3) !important;
-  border-left-width: 2px !important;
-}
-.dark .border-r:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]) {
-  border-color: rgba(255, 255, 255, 0.3) !important;
-  border-right-width: 2px !important;
-}
-.dark .border-x:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]) {
-  border-color: rgba(255, 255, 255, 0.3) !important;
-  border-left-width: 2px !important;
-  border-right-width: 2px !important;
-}
+.dark .border-t:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]),
+.dark .border-b:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]),
+.dark .border-l:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]),
+.dark .border-r:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]),
+.dark .border-x:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]),
 .dark .border-y:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]) {
-  border-color: rgba(255, 255, 255, 0.3) !important;
-  border-top-width: 2px !important;
-  border-bottom-width: 2px !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
 }
-
 .dark [class*="border-slate-"],
 .dark [class*="border-zinc-"],
 .dark [class*="border-gray-"],
@@ -397,26 +484,7 @@ html:not(.dark) [class*="bg-zinc-100/"] {
 .dark [class*="border-white/10"],
 .dark [class*="border-white/5"],
 .dark [class*="border-border"] {
-  border-color: rgba(255, 255, 255, 0.3) !important;
-}
-
-/* 2. Light Theme Borders: Override explicit gray/slate/zinc/black border classes to be solid black */
-html:not(.dark) .border:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]),
-html:not(.dark) .border-t:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]),
-html:not(.dark) .border-b:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]),
-html:not(.dark) .border-l:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]),
-html:not(.dark) .border-r:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]),
-html:not(.dark) .border-x:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]),
-html:not(.dark) .border-y:not([class*="border-primary"]):not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]):not([class*="border-green"]):not([class*="border-red"]),
-html:not(.dark) [class*="border-slate-"],
-html:not(.dark) [class*="border-zinc-"],
-html:not(.dark) [class*="border-gray-"],
-html:not(.dark) [class*="border-[#F1F5F9]"],
-html:not(.dark) [class*="border-[#E2E8F0]"],
-html:not(.dark) [class*="border-[#e2e8f0]"],
-html:not(.dark) [class*="border-[#f1f5f9]"],
-html:not(.dark) [class*="border-border"] {
-  border-color: #000000 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
 }
 
 /* Smooth, native-feeling scroll on all scrollable containers.
@@ -551,6 +619,315 @@ main {
       0 5px 0 rgba(255,255,255,0.03),
       0 30px 20px rgba(0,0,0,0.5);
   }
+}
+
+/* ── Landing hero CTA button ─────────────────────────────────────────────── */
+.landing-cta-btn {
+  cursor: pointer;
+  border-radius: 14px;
+  border: none;
+  outline: none;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+  box-shadow:
+    0 0.5px 0.5px 1px rgba(255, 255, 255, 0.22),
+    0 10px 22px rgba(0, 0, 0, 0.28),
+    0 4px 5px 0 rgba(0, 0, 0, 0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  min-width: 200px;
+  height: 64px;
+  padding: 0 40px;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  background: hsl(var(--primary));
+  color: #000;
+  overflow: hidden;
+}
+
+.landing-cta-btn:hover {
+  transform: scale(1.025) translateY(-1px);
+  box-shadow:
+    0 0 1px 2px rgba(255, 255, 255, 0.28),
+    0 16px 32px rgba(0, 0, 0, 0.32),
+    0 10px 4px -4px rgba(0, 0, 0, 0.05);
+}
+
+.landing-cta-btn:active {
+  transform: scale(0.985);
+  box-shadow:
+    0 0 1px 2px rgba(255, 255, 255, 0.2),
+    0 6px 3px -2px rgba(0, 0, 0, 0.22);
+}
+
+/* Gradient border frame */
+.landing-cta-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  border: 2.5px solid transparent;
+  background:
+    linear-gradient(rgba(255,255,255,0.1), rgba(0,0,0,0.05)) padding-box,
+    linear-gradient(to bottom, rgba(255,255,255,0.55), rgba(0,0,0,0.42)) border-box;
+  z-index: 0;
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+  pointer-events: none;
+}
+
+.landing-cta-btn:hover::after {
+  transform: scale(1.04, 1.1);
+  box-shadow: inset 0 -1px 3px 0 rgba(255, 255, 255, 0.45);
+}
+
+/* Inner gloss */
+.landing-cta-btn::before {
+  content: "";
+  position: absolute;
+  inset: 7px 6px 6px 6px;
+  background: linear-gradient(to top, hsl(var(--primary) / 0.45), hsl(var(--primary) / 0.08));
+  border-radius: 30px;
+  filter: blur(1px);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Spinning conic outline — appears on hover */
+.landing-cta-btn .cta-outline {
+  position: absolute;
+  border-radius: inherit;
+  overflow: hidden;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  inset: -2px -3px;
+  pointer-events: none;
+}
+
+.landing-cta-btn .cta-outline::before {
+  content: "";
+  position: absolute;
+  inset: -100%;
+  background: conic-gradient(
+    from 180deg,
+    transparent 60%,
+    rgba(255, 255, 255, 0.85) 80%,
+    transparent 100%
+  );
+  animation: landing-cta-spin 2s linear infinite;
+  animation-play-state: paused;
+}
+
+@keyframes landing-cta-spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.landing-cta-btn:hover .cta-outline            { opacity: 1; }
+.landing-cta-btn:hover .cta-outline::before    { animation-play-state: running; }
+
+/* State wrapper */
+.landing-cta-btn .cta-state {
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding-left: 30px;
+  gap: 0;
+}
+
+/* Icon — left of text, rotates on hover */
+.landing-cta-btn .cta-icon {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  margin: auto;
+  height: 20px;
+  width: 20px;
+  transform: scale(1.2);
+  transition: transform 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.landing-cta-btn:hover .cta-icon {
+  transform: rotate(45deg) scale(1.2);
+}
+
+/* Letter-by-letter animation */
+.landing-cta-btn .cta-state span {
+  display: inline-block;
+  opacity: 0;
+  animation: cta-arrive 0.75s ease forwards calc(var(--i) * 0.035s);
+}
+
+.landing-cta-btn:hover .cta-state span {
+  opacity: 1;
+  animation: cta-wave 0.5s ease forwards calc(var(--i) * 0.025s);
+}
+
+@keyframes cta-wave {
+  30%  { opacity: 1; transform: translateY(3px); }
+  55%  { opacity: 1; transform: translateY(-3px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cta-arrive {
+  0% {
+    opacity: 0;
+    transform: translateY(-16px) translateX(4px) rotate(-75deg);
+    filter: blur(4px);
+  }
+  38% {
+    opacity: 1;
+    transform: translateY(3px) translateX(0) rotate(0);
+    filter: blur(0);
+  }
+  56% { opacity: 1; transform: translateY(-2px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Click / fire — icon takes off, letters scatter then vanish */
+.landing-cta-btn[data-firing] .cta-icon {
+  animation: cta-takeoff 0.46s cubic-bezier(0.55, 0, 1, 0.45) forwards !important;
+}
+@keyframes cta-takeoff {
+  0%   { transform: scale(1.2); opacity: 1; }
+  18%  { transform: rotate(45deg) scale(1.25) translate(3px, -3px); opacity: 1; }
+  68%  { transform: rotate(45deg) scale(1.1) translate(22px, -22px); opacity: 0.35; }
+  100% { transform: rotate(45deg) scale(0.4) translate(38px, -38px); opacity: 0; }
+}
+.landing-cta-btn[data-firing] .cta-state span {
+  animation: cta-scatter 0.38s ease forwards calc(var(--i) * 0.018s) !important;
+}
+@keyframes cta-scatter {
+  0%   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  100% { opacity: 0; transform: translateY(-10px) scale(0.75); filter: blur(2px); }
+}
+
+/* ── Size variants ───────────────────────────────────────────────────────── */
+.landing-cta-btn--sm {
+  height: 46px;
+  min-width: 130px;
+  padding: 0 22px;
+  font-size: 11px;
+  border-radius: 12px;
+}
+.landing-cta-btn--sm::after  { border-radius: 12px; }
+.landing-cta-btn--sm::before { inset: 5px 4px 4px 4px; border-radius: 22px; }
+.landing-cta-btn--sm .cta-outline { inset: -1.5px -2px; border-radius: 12px; }
+.landing-cta-btn--sm .cta-state   { padding-left: 22px; }
+.landing-cta-btn--sm .cta-icon    { height: 16px; width: 16px; }
+
+.landing-cta-btn--xs {
+  height: 34px;
+  min-width: 96px;
+  padding: 0 14px;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  border-radius: 10px;
+  box-shadow: 0 0.5px 0.5px 1px rgba(255,255,255,0.18), 0 6px 14px rgba(0,0,0,0.22), 0 2px 4px 0 rgba(0,0,0,0.06);
+}
+.landing-cta-btn--xs::after  { border-radius: 10px; }
+.landing-cta-btn--xs::before { inset: 4px 3px 3px 3px; border-radius: 18px; }
+.landing-cta-btn--xs .cta-outline { inset: -1px -2px; border-radius: 10px; }
+.landing-cta-btn--xs .cta-state   { padding-left: 18px; }
+.landing-cta-btn--xs .cta-icon    { height: 12px; width: 12px; }
+
+/* ── Mascot idle float ───────────────────────────────────────────────────── */
+.mascot-float-anim {
+  animation: mascot-float 6s ease-in-out infinite;
+}
+@keyframes mascot-float {
+  0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+  28%       { transform: translateY(-18px) rotate(0.7deg) scale(1.012); }
+  68%       { transform: translateY(12px) rotate(-0.5deg) scale(0.988); }
+}
+
+/* ── Shiny animated border (UIverse blob-orbit) ───────────────────────────
+   A blurred primary-coloured blob orbits the four quadrants behind the card;
+   an inset surface (::after) covers the centre so the blob only glows through
+   a thin ring at the edge. Both pseudo-elements use NEGATIVE z-index so they
+   paint above the card's own background but below ALL real content — no child
+   needs a z-index or position change (which would break absolutely-positioned
+   children). `isolation` keeps the negative layers from escaping behind the
+   card's neumorphic shadow / the page. Theme-aware via --neu-bg / --primary;
+   pair with a neumorphic surface. */
+.shine-card {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.shine-card::before {
+  content: "";
+  position: absolute;
+  z-index: -2;
+  top: 50%;
+  left: 50%;
+  width: 52%;
+  height: 52%;
+  border-radius: 50%;
+  background: hsl(var(--primary));
+  opacity: 0.85;
+  filter: blur(28px);
+  pointer-events: none;
+  animation: shine-blob-orbit 6s infinite ease-in-out;
+}
+.shine-card::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 2px;
+  border-radius: inherit;
+  background: hsl(var(--neu-bg));
+  pointer-events: none;
+}
+@keyframes shine-blob-orbit {
+  0%   { transform: translate(-100%, -100%) translate3d(0, 0, 0); }
+  25%  { transform: translate(-100%, -100%) translate3d(100%, 0, 0); }
+  50%  { transform: translate(-100%, -100%) translate3d(100%, 100%, 0); }
+  75%  { transform: translate(-100%, -100%) translate3d(0, 100%, 0); }
+  100% { transform: translate(-100%, -100%) translate3d(0, 0, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shine-card::before { animation: none; }
+}
+
+/* ── Feature-card ghost number: bright blink on card hover ─────────────── */
+.group:hover .ghost-num {
+  animation: ghost-num-blink 0.7s ease-in-out 1 forwards;
+}
+@keyframes ghost-num-blink {
+  0% {
+    opacity: 0.55;
+    color: hsl(var(--primary) / 0.5);
+    text-shadow: none;
+  }
+  45% {
+    opacity: 1;
+    color: hsl(var(--primary));
+    text-shadow: 0 0 28px hsl(var(--primary) / 0.95), 0 0 10px hsl(var(--primary) / 0.7);
+  }
+  70% {
+    opacity: 0.75;
+    color: hsl(var(--primary) / 0.75);
+    text-shadow: 0 0 10px hsl(var(--primary) / 0.4);
+  }
+  100% {
+    opacity: 1;
+    color: hsl(var(--primary));
+    text-shadow: 0 0 22px hsl(var(--primary) / 0.85), 0 0 8px hsl(var(--primary) / 0.6);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .group:hover .ghost-num { animation: none; opacity: 1; color: hsl(var(--primary)); }
 }
 
 
