@@ -70,14 +70,20 @@ export function ImportJobsManager({ workspaceId, initialJobs, defaultJobId }: Pr
 
     async function fetchQuestions() {
       setLoadingQuestions(true);
-      const result = await apiJson<ImportJobQuestion[]>(
-        `/api/teacher/workspaces/${workspaceId}/import-jobs/${jobId}`,
+      const result = await apiJson<{
+        questions?: ImportJobQuestion[];
+        job?: { questionsPreview?: ImportJobQuestion[] };
+      }>(
+        `/api/teacher/workspaces/${workspaceId}/import-jobs/${jobId}?type=questions`,
         { method: "GET" }
       );
       if (!active) return;
 
       if (result.ok) {
-        const list = (result.data as any).questionsPreview || result.data || [];
+        const list =
+          result.data.questions ??
+          result.data.job?.questionsPreview ??
+          [];
         if (list.length === 0) {
           const mockQuestions: ImportJobQuestion[] = [
             {
