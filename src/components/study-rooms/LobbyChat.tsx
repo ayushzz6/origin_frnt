@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { SendHorizonal } from 'lucide-react';
+import { SendHorizonal, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
+import { ChatBackdrop } from '@/components/chat/ChatBackdrop';
 import type { PendingMessage } from '@/context/StudyRoomContext';
 import type { RoomMessage } from '@/lib/study-rooms/events';
 
@@ -14,6 +14,40 @@ function typingLabel(typingUsers: { user_id: string; display_name: string }[]): 
   if (names.length === 1) return `${names[0]} is typing…`;
   if (names.length === 2) return `${names[0]} and ${names[1]} are typing…`;
   return `${names[0]} and ${names.length - 1} others are typing…`;
+}
+
+// Deterministic colour per user so each participant keeps a consistent avatar.
+const AVATAR_COLORS = [
+  'bg-rose-500/20 text-rose-600 dark:text-rose-300',
+  'bg-amber-500/20 text-amber-600 dark:text-amber-300',
+  'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300',
+  'bg-sky-500/20 text-sky-600 dark:text-sky-300',
+  'bg-violet-500/20 text-violet-600 dark:text-violet-300',
+  'bg-fuchsia-500/20 text-fuchsia-600 dark:text-fuchsia-300',
+  'bg-cyan-500/20 text-cyan-600 dark:text-cyan-300',
+  'bg-orange-500/20 text-orange-600 dark:text-orange-300',
+];
+
+function avatarColor(userId: string): string {
+  let hash = 0;
+  for (let i = 0; i < userId.length; i += 1) hash = (hash * 31 + userId.charCodeAt(i)) >>> 0;
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+}
+
+function MessageAvatar({ name, userId }: { name: string; userId: string }) {
+  const initials = (name?.trim() || '?').slice(0, 2).toUpperCase();
+  return (
+    <div
+      className={cn(
+        'h-8 w-8 flex-shrink-0 self-end rounded-full flex items-center justify-center text-[11px] font-black select-none',
+        avatarColor(userId),
+      )}
+      title={name}
+      aria-hidden
+    >
+      {initials}
+    </div>
+  );
 }
 
 export function LobbyChat({
@@ -37,6 +71,10 @@ export function LobbyChat({
   const [isSending, setIsSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
+  // My display name, inferred from my own confirmed messages (used for the
+  // avatar on optimistic/pending messages where no name is attached yet).
+  const myName = messages.find((m) => m.user_id === currentUserId)?.display_name ?? 'You';
+
   // Keep the latest message in view as the conversation grows.
   useEffect(() => {
     const node = scrollRef.current;
@@ -58,51 +96,74 @@ export function LobbyChat({
   };
 
   return (
-    <section className="flex min-h-[420px] flex-col rounded-lg border border-primary/20 bg-card/40 backdrop-blur-md shadow-sm dark:border-slate-800 dark:bg-slate-950/40">
-      <div className="border-b border-slate-100 px-5 py-4 dark:border-slate-800">
-        <h2 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">Lobby Chat</h2>
+    <section className="neu-raised rounded-2xl flex flex-col h-[520px] lg:h-[calc(100vh-13rem)] overflow-hidden">
+      {/* Header */}
+      <div className="border-b border-border/40 px-5 py-4 flex items-center gap-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+          <MessageSquare className="h-4 w-4 text-primary" />
+        </div>
+        <h2 className="text-[10px] font-black uppercase tracking-[0.22em] text-muted-foreground">Lobby Chat</h2>
       </div>
-      <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
+
+      {/* Messages — WhatsApp-inspired chat canvas, recoloured for Origin */}
+      <div ref={scrollRef} className="chat-canvas relative flex-1 min-h-0 overflow-y-auto px-4 py-4">
+        <ChatBackdrop />
+
+        <div className="relative z-10 space-y-3">
         {messages.length === 0 && pendingMessages.length === 0 ? (
-          <div className="flex h-full min-h-[180px] items-center justify-center text-sm font-medium text-slate-400">
-            No messages yet
+          <div className="flex h-full min-h-[180px] items-center justify-center text-sm font-medium text-muted-foreground">
+            No messages yet — say hi!
           </div>
         ) : (
           <>
             {messages.map((message) => {
               const isMine = message.user_id === currentUserId;
               return (
-                <div key={message.id} className={isMine ? 'flex justify-end' : 'flex justify-start'}>
-                  <div className={isMine
-                    ? 'max-w-[80%] rounded-lg bg-primary/40 backdrop-blur-md px-3 py-2 text-foreground border border-primary/20 shadow-sm'
-                    : 'max-w-[80%] rounded-lg bg-slate-100/50 backdrop-blur-md px-3 py-2 border border-slate-200/50 dark:bg-slate-900/50 dark:border-slate-800/50'
-                  }>
-                    {!isMine && <p className="mb-1 text-[10px] font-black uppercase tracking-wider text-slate-500">{message.display_name}</p>}
+                <div key={message.id} className={cn('flex items-end gap-2', isMine ? 'justify-end' : 'justify-start')}>
+                  {!isMine && <MessageAvatar name={message.display_name} userId={message.user_id} />}
+                  <div className={cn(
+                    'max-w-[76%] px-3.5 py-2.5 shadow-sm',
+                    isMine
+                      ? 'bg-primary text-primary-foreground rounded-2xl rounded-br-sm shadow-[2px_2px_6px_hsl(var(--neu-shadow))]'
+                      : 'bg-card border border-border/60 rounded-2xl rounded-bl-sm'
+                  )}>
+                    {!isMine && (
+                      <p className="mb-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                        {message.display_name}
+                      </p>
+                    )}
                     <p className="whitespace-pre-wrap break-words text-sm">{message.content}</p>
                   </div>
+                  {isMine && <MessageAvatar name={myName} userId={currentUserId} />}
                 </div>
               );
             })}
             {/* Optimistic messages — shown instantly, dimmed until confirmed. */}
             {pendingMessages.map((message) => (
-              <div key={message.tempId} className="flex justify-end">
-                <div className="max-w-[80%] rounded-lg bg-primary/20 px-3 py-2 text-foreground border border-primary/10 opacity-60">
+              <div key={message.tempId} className="flex items-end justify-end gap-2">
+                <div className="max-w-[76%] bg-primary/40 opacity-60 rounded-2xl rounded-br-sm px-3.5 py-2.5 text-foreground shadow-sm">
                   <p className="whitespace-pre-wrap break-words text-sm">{message.content}</p>
                 </div>
+                <MessageAvatar name={myName} userId={currentUserId} />
               </div>
             ))}
           </>
         )}
+        </div>
       </div>
+
+      {/* Typing indicator */}
       {typingUsers.length > 0 && (
-        <div className="px-5 pb-1 text-xs italic text-slate-400" aria-live="polite">
+        <div className="px-5 pb-1 text-xs italic text-muted-foreground" aria-live="polite">
           {typingLabel(typingUsers)}
         </div>
       )}
+
+      {/* Input */}
       {!locked && (
-        <div className="border-t border-slate-100 p-4 dark:border-slate-800">
-          <div className="flex gap-2">
-            <Textarea
+        <div className="border-t border-border/40 p-4">
+          <div className="neu-inset rounded-xl flex gap-2 p-2">
+            <textarea
               value={content}
               onChange={(event) => {
                 setContent(event.target.value);
@@ -117,12 +178,17 @@ export function LobbyChat({
               }}
               rows={2}
               maxLength={1000}
-              placeholder="Message the room"
-              className="resize-none"
+              placeholder="Message the room…"
+              className="flex-1 bg-transparent outline-none text-sm px-2 py-1 resize-none placeholder:text-muted-foreground/50"
             />
-            <Button size="icon" className="h-auto w-11" onClick={submit} disabled={isSending || !content.trim()}>
+            <button
+              type="button"
+              onClick={submit}
+              disabled={isSending || !content.trim()}
+              className="self-end h-9 w-9 flex-shrink-0 rounded-lg bg-primary text-primary-foreground flex items-center justify-center transition-transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <SendHorizonal className="h-4 w-4" />
-            </Button>
+            </button>
           </div>
         </div>
       )}

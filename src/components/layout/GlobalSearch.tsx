@@ -132,7 +132,7 @@ export default function GlobalSearch({ isOpen, onClose, currentView, onNavigate 
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm"
+          className="absolute inset-0 bg-foreground/20 dark:bg-black/60 backdrop-blur-sm"
         />
 
         {/* Modal */}
@@ -140,30 +140,30 @@ export default function GlobalSearch({ isOpen, onClose, currentView, onNavigate 
           initial={{ opacity: 0, scale: 0.95, y: -20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: -20 }}
-          className="relative w-full max-w-2xl bg-card dark:bg-slate-900 rounded-2xl shadow-2xl border border-primary/20 dark:border-slate-800 overflow-hidden"
+          className="relative w-full max-w-2xl bg-card rounded-2xl shadow-2xl border border-border overflow-hidden"
         >
           {/* Search Header */}
-          <div className="flex items-center px-4 py-3 border-b border-slate-200 dark:border-slate-800">
-            <Search className="w-5 h-5 text-slate-400 mr-3" />
+          <div className="flex items-center px-4 py-3 border-b border-border">
+            <Search className="w-5 h-5 text-muted-foreground mr-3" />
             <input
               ref={inputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search tests, questions, books..."
-              className="flex-1 bg-transparent border-none outline-none text-slate-900 dark:text-white placeholder-slate-400 text-lg"
+              className="flex-1 bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground text-lg"
             />
             <div className="flex items-center gap-2">
-              <span className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-[10px] text-slate-500 font-medium">
+              <span className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] text-muted-foreground font-medium">
                 <Command className="w-3 h-3" /> K
               </span>
-              <button onClick={onClose} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-400">
+              <button onClick={onClose} className="p-1 hover:bg-muted rounded-lg transition-colors text-muted-foreground">
                 <X className="w-5 h-5" />
               </button>
             </div>
           </div>
 
           {/* Categories/Tabs */}
-          <div className="flex items-center gap-1 px-4 py-2 bg-slate-50/50 dark:bg-slate-950/20 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-1 px-4 py-2 bg-muted/30 border-b border-border">
             {categories.map((cat) => {
               const Icon = cat.icon;
               const isActive = activeCategory === cat.id;
@@ -173,9 +173,9 @@ export default function GlobalSearch({ isOpen, onClose, currentView, onNavigate 
                   onClick={() => setActiveCategory(cat.id)}
                   className={cn(
                     "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
-                    isActive 
-                      ? "bg-blue-600 text-white shadow-md shadow-blue-500/20" 
-                      : "text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800"
+                    isActive
+                      ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                      : "text-muted-foreground hover:bg-muted"
                   )}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -200,7 +200,7 @@ export default function GlobalSearch({ isOpen, onClose, currentView, onNavigate 
                       <button
                         key={s}
                         onClick={() => setQuery(s)}
-                        className="px-3 py-1.5 rounded-full bg-background border border-border text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all flex items-center gap-1.5"
+                        className="px-3 py-1.5 rounded-full bg-background border border-border text-xs font-bold text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all flex items-center gap-1.5"
                       >
                         <TrendingUp className="w-2.5 h-2.5" />
                         {s}
@@ -282,23 +282,23 @@ export default function GlobalSearch({ isOpen, onClose, currentView, onNavigate 
               </div>
             ) : (
               <div className="py-12 text-center">
-                <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
-                  <Search className="w-8 h-8 text-slate-300" />
+                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                  <Search className="w-8 h-8 text-muted-foreground/40" />
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">No results for "{query}"</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Try searching for something else or change category.</p>
+                <h3 className="text-lg font-bold text-foreground mb-1">No results for "{query}"</h3>
+                <p className="text-sm text-muted-foreground">Try searching for something else or change category.</p>
               </div>
             )}
           </div>
 
           {/* Footer / Shortcuts */}
-          <div className="flex items-center justify-between px-4 py-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 text-[10px] font-bold text-slate-400">
+          <div className="flex items-center justify-between px-4 py-2 border-t border-border bg-muted/30 text-[10px] font-bold text-muted-foreground">
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-1"><ArrowRight className="w-3 h-3 rotate-90" /> Select</span>
               <span className="flex items-center gap-1"><ArrowRight className="w-3 h-3" /> Navigate</span>
             </div>
             <div className="flex items-center gap-1">
-              <span className="px-1 py-0.5 rounded border border-slate-200 dark:border-slate-700">ESC</span>
+              <span className="px-1 py-0.5 rounded border border-border">ESC</span>
               <span>to close</span>
             </div>
           </div>

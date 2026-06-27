@@ -12,6 +12,7 @@ import { QuotaProvider } from "@/context/QuotaContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { getCanonicalSiteUrl } from "@/lib/site-url";
 import { isFeatureEnabled } from "@/lib/feature-flags";
+import { getServerFrontendUser } from "@/lib/auth-server";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-body", display: "swap" });
 const syne = Syne({ subsets: ["latin"], variable: "--font-heading", display: "swap" });
@@ -53,36 +54,27 @@ export const metadata: Metadata = {
   },
 };
 
-/**
- * Keep the root layout free of request-specific cookie reads.
- * AuthProvider hydrates the user on the client via /api/users/me so the root
- * shell never reads request cookies during production rendering.
- */
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Env-only read (no request cookies) — safe in the root layout. Gates the
-  // student "Connect" nav entry so it mirrors the server `teacherConnect` gate.
   const connectEnabled = isFeatureEnabled("teacherConnect");
-  // Same pattern for the premium surface: when the flag is off (default), the
-  // premium nav/upsell entry points stay hidden, mirroring the dark server gate.
   const premiumEnabled = isFeatureEnabled("premiumSubscriptions");
-  // Gates the student "Social" nav entry (follow + public profiles), mirroring
-  // the server `studentSocial` gate on /social and /api/social/*.
   const socialEnabled = isFeatureEnabled("studentSocial");
+  // Seed the client AuthProvider with the server-resolved user so the client
+  // skips the /api/users/me waterfall on every page load.
+  const initialUser = await getServerFrontendUser().catch(() => null);
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable} ${syne.variable} ${instrumentSerif.variable}`}>
       <body className="antialiased" suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
-          enableSystem
           disableTransitionOnChange
         >
           <Suspense fallback={<div className="min-h-screen bg-background" />}>
-            <AuthProvider initialUser={null}>
+            <AuthProvider initialUser={initialUser}>
               <NotificationProvider>
                 <QuotaProvider>
                   <ClientShell connectEnabled={connectEnabled} premiumEnabled={premiumEnabled} socialEnabled={socialEnabled}>{children}</ClientShell>

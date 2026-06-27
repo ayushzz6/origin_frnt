@@ -16,7 +16,6 @@ import {
   CheckCircle2,
   ArrowRight,
   XCircle,
-  Sparkles,
   FileText,
   BookOpen
 } from 'lucide-react';
@@ -232,7 +231,7 @@ export default function TestResultView({
     <div className="min-h-screen neu-surface text-foreground font-sans selection:bg-primary/30">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-[hsl(var(--neu-bg)/0.9)] backdrop-blur-xl border-b border-border/40">
-        <div className="max-w-4xl mx-auto px-4">
+        <div className="max-w-6xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-2 sm:gap-4 truncate">
               <button
@@ -312,7 +311,7 @@ export default function TestResultView({
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 py-6 space-y-8 pb-24">
+      <main className="max-w-6xl mx-auto px-4 py-5 space-y-5 pb-24">
         {isAnalysisPending ? (
           <DegradedBanner
             title="Analytics processing"
@@ -322,14 +321,17 @@ export default function TestResultView({
           <DegradedBanner reason={degradedReason} />
         ) : null}
         {showSummary && (
-          <div className="p-4 sm:p-6 bg-primary/10 border border-primary/20 rounded-2xl sm:rounded-3xl flex items-center gap-4 sm:gap-6 animate-in fade-in slide-in-from-top-4 duration-700">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-primary flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary/20">
-              <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-            </div>
+          <div className="p-4 sm:p-5 bg-primary/10 border border-primary/20 rounded-2xl flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-700">
+            <img
+              src="/ori2d/ori-thubmsup.png"
+              alt=""
+              draggable={false}
+              className="h-12 w-12 sm:h-14 sm:w-14 shrink-0 select-none object-contain"
+            />
             <div>
               <h2 className="text-lg sm:text-xl font-black text-foreground tracking-tight">Attempt Summary</h2>
-              <p className="text-xs sm:text-slate-800 dark:text-muted-foreground font-medium">
-                You scored <span className="text-primary font-bold">{currentStats.score}</span> with <span className="text-primary font-bold">{currentStats.accuracy}%</span> accuracy. 
+              <p className="text-xs sm:text-sm text-muted-foreground font-medium">
+                You scored <span className="text-primary font-bold">{currentStats.score}</span> with <span className="text-primary font-bold">{currentStats.accuracy}%</span> accuracy.
               </p>
             </div>
           </div>
@@ -344,61 +346,50 @@ export default function TestResultView({
           </div>
         )}
 
-        {/* Marks Obtained Card */}
-        <section className="relative group">
-          <div className="absolute -inset-1 bg-gradient-to-r from-primary/30 to-primary/20 rounded-[2.5rem] blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
-          <Card className="relative neu-raised border-0 rounded-[1.5rem] sm:rounded-[2rem] overflow-hidden">
-            <CardContent className="p-6 sm:p-8 flex flex-col items-center">
-              <div className="text-[8px] sm:text-[10px] uppercase tracking-[0.3em] font-black text-slate-800 dark:text-muted-foreground mb-4 sm:mb-6 bg-primary/5 px-4 py-1.5 rounded-full border border-primary/5">
+        {/* Score + Quick Stats — side by side to use the width */}
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+          {/* Marks Obtained */}
+          <Card className="neu-raised border-0 rounded-2xl overflow-hidden">
+            <CardContent className="p-5 sm:p-6 flex h-full flex-col items-center justify-center">
+              <div className="text-[9px] sm:text-[10px] uppercase tracking-[0.3em] font-black text-muted-foreground mb-3 bg-primary/5 px-4 py-1.5 rounded-full border border-primary/10">
                 Marks Obtained
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-5xl sm:text-7xl font-black text-foreground tracking-tighter drop-shadow-2xl">
+                <span className="text-5xl sm:text-6xl font-black text-foreground tracking-tighter">
                   {currentStats.score}
                 </span>
-                <span className="text-lg sm:text-2xl font-bold text-slate-700 dark:text-muted-foreground">/ {currentStats.totalMarks}</span>
+                <span className="text-lg sm:text-2xl font-bold text-muted-foreground">/ {currentStats.totalMarks}</span>
               </div>
-              <div className="mt-4 sm:mt-6 flex items-center gap-2">
-                <div className={`h-1 w-32 sm:h-1.5 sm:w-48 bg-muted rounded-full overflow-hidden border border-border/5`}>
-                  <div 
+              <div className="mt-4 flex w-full max-w-[260px] items-center gap-2">
+                <div className="h-1.5 flex-1 bg-muted rounded-full overflow-hidden border border-border/10">
+                  <div
                     className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-1000 ease-out"
                     style={{ width: `${(currentStats.score / currentStats.totalMarks) * 100}%` }}
                   />
                 </div>
-                <span className="text-[8px] sm:text-[10px] font-bold text-slate-700 dark:text-muted-foreground uppercase tracking-widest">
+                <span className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest tabular-nums">
                   {Math.round((currentStats.score / currentStats.totalMarks) * 100)}%
                 </span>
               </div>
             </CardContent>
           </Card>
-        </section>
 
-
-        {/* Quick Stats Grid */}
-        <section className="grid grid-cols-3 gap-2 sm:gap-4">
-          <Card className="neu-raised border-0 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex flex-col items-center text-center group hover:bg-primary/5 transition-colors">
-            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-2xl bg-purple-500/10 flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-110 transition-transform">
-              <HelpCircle className="w-4 h-4 sm:w-6 sm:h-6 text-purple-400" />
-            </div>
-            <div className="text-sm sm:text-xl font-black text-foreground leading-none mb-1">{currentStats.correct + currentStats.incorrect}</div>
-            <div className="text-[8px] sm:text-[10px] text-slate-800 dark:text-muted-foreground font-bold uppercase tracking-widest leading-tight">Attempted</div>
-          </Card>
-          <Card className="neu-raised border-0 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex flex-col items-center text-center group hover:bg-primary/5 transition-colors">
-            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-2xl bg-primary/10 flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-110 transition-transform">
-              <Target className="w-4 h-4 sm:w-6 sm:h-6 text-primary" />
-            </div>
-            <div className="text-sm sm:text-xl font-black text-foreground leading-none mb-1">{currentStats.accuracy}%</div>
-            <div className="text-[8px] sm:text-[10px] text-slate-800 dark:text-muted-foreground font-bold uppercase tracking-widest leading-tight">Accuracy</div>
-          </Card>
-          <Card className="neu-raised border-0 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex flex-col items-center text-center group hover:bg-primary/5 transition-colors">
-            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-2xl bg-orange-500/10 flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-110 transition-transform">
-              <Clock className="w-4 h-4 sm:w-6 sm:h-6 text-orange-400" />
-            </div>
-            <div className="text-sm sm:text-xl font-black text-foreground leading-none mb-1">
-              {Math.floor(currentStats.timeTaken / 60)}m
-            </div>
-            <div className="text-[8px] sm:text-[10px] text-slate-800 dark:text-muted-foreground font-bold uppercase tracking-widest leading-tight">Time</div>
-          </Card>
+          {/* Quick Stats */}
+          <div className="grid grid-cols-3 gap-3">
+            {([
+              { Icon: HelpCircle, tint: 'bg-violet-500/10 text-violet-500', value: currentStats.correct + currentStats.incorrect, label: 'Attempted' },
+              { Icon: Target,     tint: 'bg-primary/10 text-primary',       value: `${currentStats.accuracy}%`, label: 'Accuracy' },
+              { Icon: Clock,      tint: 'bg-orange-500/10 text-orange-500', value: `${Math.floor(currentStats.timeTaken / 60)}m`, label: 'Time' },
+            ] as const).map((s) => (
+              <Card key={s.label} className="neu-raised border-0 rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center text-center group hover:bg-primary/5 transition-colors">
+                <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center mb-2 group-hover:scale-110 transition-transform ${s.tint}`}>
+                  <s.Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                </div>
+                <div className="text-base sm:text-xl font-black text-foreground leading-none mb-1 tabular-nums">{s.value}</div>
+                <div className="text-[8px] sm:text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-tight">{s.label}</div>
+              </Card>
+            ))}
+          </div>
         </section>
 
         {/* Performance Trend (if history exists) */}
@@ -408,7 +399,7 @@ export default function TestResultView({
               <div className="w-1.5 h-6 bg-primary rounded-full" />
               <h3 className="text-xl font-black text-foreground tracking-tight">Performance Trend</h3>
             </div>
-            <Card className="neu-raised border-0 rounded-[2rem] p-8">
+            <Card className="neu-raised border-0 rounded-2xl p-5 sm:p-6">
               <div className="h-48">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={[...history].reverse().slice(-5).map((h, i, arr) => ({
@@ -435,7 +426,7 @@ export default function TestResultView({
                 </ResponsiveContainer>
               </div>
               <div className="mt-4 text-center">
-                <p className="text-[10px] text-slate-800 dark:text-muted-foreground font-black uppercase tracking-widest leading-tight">Last {Math.min(history.length, 5)} attempts progress</p>
+                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest leading-tight">Last {Math.min(history.length, 5)} attempts progress</p>
               </div>
             </Card>
           </section>
@@ -444,6 +435,8 @@ export default function TestResultView({
 
 
 
+        {/* Analysis + Time — side by side on desktop to use the width */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
         {/* Attempt Analysis Section */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
@@ -456,11 +449,11 @@ export default function TestResultView({
             </Badge>
           </div>
 
-          <Card className="neu-raised border-0 rounded-[2.5rem] overflow-hidden">
-            <CardContent className="p-10">
-              <div className="flex flex-col md:flex-row items-center justify-around gap-12">
+          <Card className="neu-raised border-0 rounded-2xl overflow-hidden">
+            <CardContent className="p-6 sm:p-8">
+              <div className="flex flex-col md:flex-row items-center justify-around gap-8">
                 {/* Donut Chart */}
-                <div className="relative h-48 w-48 sm:h-64 sm:w-64 animate-in fade-in zoom-in duration-700">
+                <div className="relative h-44 w-44 sm:h-56 sm:w-56 animate-in fade-in zoom-in duration-700">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -487,7 +480,7 @@ export default function TestResultView({
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <span className="text-3xl sm:text-5xl font-black text-foreground leading-none">{currentStats.totalQs}</span>
-                    <span className="text-[8px] sm:text-[10px] text-slate-800 dark:text-muted-foreground uppercase font-black tracking-[0.2em] mt-1 sm:mt-2">Total Qs</span>
+                    <span className="text-[8px] sm:text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em] mt-1 sm:mt-2">Total Qs</span>
                   </div>
                 </div>
 
@@ -496,21 +489,21 @@ export default function TestResultView({
                   <div className="group flex items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-primary/5 border border-border/5 hover:bg-primary/10 transition-all">
                     <div className="flex items-center gap-3">
                       <div className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_10px_var(--primary)]" />
-                      <span className="text-[10px] font-bold text-slate-800 dark:text-muted-foreground uppercase tracking-widest">Correct</span>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Correct</span>
                     </div>
                     <span className="text-lg sm:text-xl font-black text-foreground">{currentStats.correct}</span>
                   </div>
                   <div className="group flex items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-primary/5 border border-border/5 hover:bg-primary/10 transition-all">
                     <div className="flex items-center gap-3">
                       <div className="w-2.5 h-2.5 rounded-full bg-primary/70 shadow-[0_0_10px_var(--primary)]" />
-                      <span className="text-[10px] font-bold text-slate-800 dark:text-muted-foreground uppercase tracking-widest">Incorrect</span>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Incorrect</span>
                     </div>
                     <span className="text-lg sm:text-xl font-black text-foreground">{currentStats.incorrect}</span>
                   </div>
                   <div className="group flex items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-primary/5 border border-border/5 hover:bg-primary/10 transition-all">
                     <div className="flex items-center gap-3">
                       <div className="w-2.5 h-2.5 rounded-full bg-slate-500" />
-                      <span className="text-[10px] font-bold text-slate-800 dark:text-muted-foreground uppercase tracking-widest">Skipped</span>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Skipped</span>
                     </div>
                     <span className="text-lg sm:text-xl font-black text-foreground">{currentStats.unattempted}</span>
                   </div>
@@ -534,8 +527,8 @@ export default function TestResultView({
             </div>
           </div>
 
-          <Card className="neu-raised border-0 rounded-[1.5rem] sm:rounded-[2.5rem] p-6 sm:p-8 overflow-hidden">
-            <div className="h-48 sm:h-72 mt-4">
+          <Card className="neu-raised border-0 rounded-2xl p-5 sm:p-6 overflow-hidden">
+            <div className="h-44 sm:h-56 mt-2">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={[
                   { name: 'Correct', time: currentStats.timeSpentCorrect, color: 'hsl(var(--primary))' },
@@ -586,25 +579,26 @@ export default function TestResultView({
               </ResponsiveContainer>
             </div>
 
-            <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="mt-6 grid grid-cols-3 gap-3">
                <div className="bg-primary/5 border border-border/5 rounded-2xl p-4 flex flex-col items-center">
                  <div className="w-2 h-2 rounded-full bg-primary mb-2 shadow-[0_0_8px_var(--primary)]" />
-                 <span className="text-[10px] text-slate-800 dark:text-muted-foreground font-bold uppercase tracking-widest mb-1">On Correct</span>
+                 <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">On Correct</span>
                  <span className="text-sm font-black text-foreground">{formatTimeDigital(currentStats.timeSpentCorrect)}</span>
                </div>
                <div className="bg-primary/5 border border-border/5 rounded-2xl p-4 flex flex-col items-center">
                  <div className="w-2 h-2 rounded-full bg-primary mb-2 shadow-[0_0_8px_var(--primary)]" />
-                 <span className="text-[10px] text-slate-800 dark:text-muted-foreground font-bold uppercase tracking-widest mb-1">On Incorrect</span>
+                 <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">On Incorrect</span>
                  <span className="text-sm font-black text-foreground">{formatTimeDigital(currentStats.timeSpentIncorrect)}</span>
                </div>
                <div className="bg-primary/5 border border-border/5 rounded-2xl p-4 flex flex-col items-center">
                  <div className="w-2 h-2 rounded-full bg-slate-500 mb-2" />
-                 <span className="text-[10px] text-slate-800 dark:text-muted-foreground font-bold uppercase tracking-widest mb-1">On Skipped</span>
+                 <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">On Skipped</span>
                  <span className="text-sm font-black text-foreground">{formatTimeDigital(currentStats.timeSpentUnattempted)}</span>
                </div>
             </div>
           </Card>
         </section>
+        </div>
 
 
         {/* Detailed Analysis Tabs */}
@@ -619,8 +613,8 @@ export default function TestResultView({
         >
           <TabsList className="bg-card/40 backdrop-blur-lg border border-border/5 p-1 mb-6 rounded-2xl w-full flex overflow-x-auto no-scrollbar">
             <TabsTrigger value="analysis" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-white rounded-xl transition-all font-bold py-3">
-              <Sparkles className="w-4 h-4 mr-2" />
-              AI Insights
+              <img src="/ori2d/ori-reading.png" alt="" draggable={false} className="w-4 h-4 mr-2 object-contain" />
+              Insights
             </TabsTrigger>
             <TabsTrigger value="mistakes" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-white rounded-xl transition-all font-bold py-3">
               <AlertCircle className="w-4 h-4 mr-2" />
@@ -637,28 +631,28 @@ export default function TestResultView({
           </TabsList>
 
           <TabsContent value="analysis">
-            <Card className="bg-card/40 backdrop-blur-xl border-border/40 rounded-[2rem] overflow-hidden group">
-              <CardContent className="p-10">
-                <div className="flex items-center gap-5 mb-8">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center p-0.5 shadow-lg shadow-primary/20">
-                    <div className="w-full h-full bg-background rounded-[0.9rem] flex items-center justify-center">
-                      <Sparkles className="w-8 h-8 text-primary animate-pulse" />
-                    </div>
-                  </div>
+            <Card className="neu-raised border-0 rounded-2xl overflow-hidden group">
+              <CardContent className="p-6 sm:p-8">
+                <div className="flex items-center gap-4 mb-6">
+                  <img
+                    src="/ori2d/ori-reading.png"
+                    alt=""
+                    draggable={false}
+                    className="h-14 w-14 shrink-0 select-none object-contain"
+                  />
                   <div>
-                    <h3 className="text-2xl font-black text-foreground tracking-tight">AI Diagnostic Report</h3>
-                    <p className="text-sm text-slate-900 dark:text-muted-foreground font-medium">Deep learning analysis of your attempt patterns</p>
+                    <h3 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">Diagnostic Report</h3>
+                    <p className="text-sm text-muted-foreground font-medium">A deep analysis of your attempt patterns</p>
                   </div>
                 </div>
 
-
                 <div className="prose prose-invert max-w-none">
-                  <p className="text-foreground/80 leading-relaxed text-lg font-medium">
-                    {result.aiAnalysis?.summary || "AI is analyzing your summary of attempt for loading"}
+                  <p className="text-foreground/80 leading-relaxed text-base font-medium">
+                    {result.aiAnalysis?.summary || "Your attempt is being analysed — insights will appear here shortly."}
                   </p>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-8 mt-12 pt-8 border-t border-border/40">
+                <div className="grid md:grid-cols-2 gap-6 mt-8 pt-6 border-t border-border/40">
                   <div className="space-y-4">
                     <h4 className="font-black text-foreground text-sm uppercase tracking-widest flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-primary" />
@@ -672,7 +666,7 @@ export default function TestResultView({
                           </Badge>
                         ))
                       ) : (
-                        <p className="text-sm text-slate-900 dark:text-muted-foreground italic">No significant strengths identified yet.</p>
+                        <p className="text-sm text-muted-foreground italic">No significant strengths identified yet.</p>
                       )}
                     </div>
                   </div>
@@ -689,7 +683,7 @@ export default function TestResultView({
                           </Badge>
                         ))
                       ) : (
-                        <p className="text-sm text-slate-900 dark:text-slate-500 italic">Excellent consistency across topics!</p>
+                        <p className="text-sm text-muted-foreground italic">Excellent consistency across topics!</p>
                       )}
                     </div>
                   </div>
@@ -721,7 +715,7 @@ export default function TestResultView({
                           <p className={`font-black uppercase tracking-tighter text-sm ${selectedReviewEntry === index ? 'text-primary' : 'text-foreground'}`}>
                             Question {index + 1}
                           </p>
-                          <p className="text-xs text-slate-800 dark:text-muted-foreground font-bold truncate max-w-[150px]">{mistake.concept}</p>
+                          <p className="text-xs text-muted-foreground font-bold truncate max-w-[150px]">{mistake.concept}</p>
                         </div>
                       </div>
                       {selectedReviewEntry === index && <div className="absolute right-0 top-0 bottom-0 w-1 bg-primary" />}
@@ -731,15 +725,15 @@ export default function TestResultView({
                   <div className="p-8 text-center bg-card/40 border border-border/5 rounded-2xl">
                     {(!result.aiAnalysis || !result.aiAnalysis.summary) ? (
                       <>
-                        <Sparkles className="w-12 h-12 text-primary mx-auto mb-4 animate-pulse" />
+                        <img src="/ori2d/ori-reading.png" alt="" draggable={false} className="w-14 h-14 mx-auto mb-4 object-contain animate-pulse" />
                         <p className="text-sm text-foreground font-bold uppercase tracking-[0.15em] leading-relaxed">
-                          AI is analyzing your summary of attempt for loading
+                          Analysing your attempt — insights are loading
                         </p>
                       </>
                     ) : (
                       <>
                         <CheckCircle2 className="w-12 h-12 text-primary mx-auto mb-4 opacity-20" />
-                        <p className="text-sm text-slate-800 dark:text-muted-foreground font-bold uppercase tracking-widest">No mistakes recorded!</p>
+                        <p className="text-sm text-muted-foreground font-bold uppercase tracking-widest">No mistakes recorded!</p>
                       </>
                     )}
                   </div>
@@ -747,8 +741,8 @@ export default function TestResultView({
               </div>
 
               {/* Mistake Detail */}
-              <Card className="lg:col-span-2 neu-raised border-0 rounded-[2rem] overflow-hidden group">
-                <CardContent className="p-10">
+              <Card className="lg:col-span-2 neu-raised border-0 rounded-2xl overflow-hidden group">
+                <CardContent className="p-6 sm:p-8">
                   {selectedReviewItem ? (
                     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
                       <div>
@@ -788,14 +782,14 @@ export default function TestResultView({
                           Fix Concept
                         </Button>
                         <Button variant="outline" className="rounded-2xl bg-primary/10 border border-primary/20 text-primary font-black uppercase tracking-widest text-xs px-8 h-14 hover:bg-primary/20 transition-colors">
-                          <Sparkles className="w-4 h-4 mr-3 text-primary" />
-                          Explain with AI
+                          <img src="/ori2d/ori-happy.png" alt="" draggable={false} className="w-4 h-4 mr-3 object-contain" />
+                          Explain with Ori
                         </Button>
                       </div>
                     </div>
                   ) : (
                     <div className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-50">
-                      <Sparkles className="w-16 h-16 text-teal-400" />
+                      <img src="/ori2d/ori-thinking.png" alt="" draggable={false} className="w-20 h-20 object-contain" />
                       <p className="text-lg font-bold text-foreground">Select a mistake to see deep analysis</p>
                     </div>
                   )}
@@ -825,7 +819,7 @@ export default function TestResultView({
                           <p className={`font-black uppercase tracking-tighter text-sm ${selectedReviewEntry === index ? 'text-primary' : 'text-foreground'}`}>
                             Question {index + 1}
                           </p>
-                          <p className="text-xs text-slate-800 dark:text-muted-foreground font-bold truncate max-w-[150px]">{correct.concept}</p>
+                          <p className="text-xs text-muted-foreground font-bold truncate max-w-[150px]">{correct.concept}</p>
                         </div>
                       </div>
                       {selectedReviewEntry === index && <div className="absolute right-0 top-0 bottom-0 w-1 bg-primary" />}
@@ -834,14 +828,14 @@ export default function TestResultView({
                 ) : (
                    <div className="p-8 text-center bg-card/40 border border-border/5 rounded-2xl">
                     <CheckCircle2 className="w-12 h-12 text-primary mx-auto mb-4 opacity-20" />
-                    <p className="text-sm text-slate-800 dark:text-muted-foreground font-bold uppercase tracking-widest">No correct answers recorded.</p>
+                    <p className="text-sm text-muted-foreground font-bold uppercase tracking-widest">No correct answers recorded.</p>
                   </div>
                 )}
               </div>
 
               {/* Correct Detail */}
-              <Card className="lg:col-span-2 neu-raised border-0 rounded-[2rem] overflow-hidden group">
-                <CardContent className="p-10">
+              <Card className="lg:col-span-2 neu-raised border-0 rounded-2xl overflow-hidden group">
+                <CardContent className="p-6 sm:p-8">
                   {selectedReviewItem ? (
                     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
                       <div>
@@ -867,11 +861,11 @@ export default function TestResultView({
 
 
           <TabsContent value="recommendations">
-            <Card className="neu-raised border-0 rounded-[2rem] overflow-hidden group">
-              <CardContent className="p-10">
+            <Card className="neu-raised border-0 rounded-2xl overflow-hidden group">
+              <CardContent className="p-6 sm:p-8">
                 <div className="flex items-center gap-4 mb-8">
-                  <div className="w-12 h-12 rounded-xl bg-teal-500/10 flex items-center justify-center">
-                    <Target className="w-6 h-6 text-teal-400" />
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Target className="w-6 h-6 text-primary" />
                   </div>
                   <h3 className="text-2xl font-black text-foreground tracking-tight">Adaptive Learning Path</h3>
                 </div>
@@ -882,23 +876,23 @@ export default function TestResultView({
                       key={index}
                       className="flex items-center gap-5 p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:translate-x-1 transition-all group/item"
                     >
-                      <div className="w-10 h-10 rounded-full bg-teal-500/20 text-teal-400 flex items-center justify-center flex-shrink-0 font-black text-sm">
+                      <div className="w-10 h-10 rounded-full bg-primary/15 text-primary flex items-center justify-center flex-shrink-0 font-black text-sm">
                         {index + 1}
                       </div>
                       <p className="text-foreground/80 font-medium leading-relaxed">{rec}</p>
-                      <ArrowRight className="w-5 h-5 text-teal-500 ml-auto opacity-0 group-hover/item:opacity-100 transition-opacity" />
+                      <ArrowRight className="w-5 h-5 text-primary ml-auto opacity-0 group-hover/item:opacity-100 transition-opacity" />
                     </div>
                   ))}
                 </div>
 
-                <div className="mt-12 p-10 rounded-[2.5rem] bg-gradient-to-br from-teal-500/20 to-primary/20 border border-teal-500/20 relative overflow-hidden group/dpp">
-                  <div className="absolute top-0 right-0 p-8 opacity-10 group-hover/dpp:scale-110 transition-transform">
-                    <Sparkles className="w-32 h-32 text-teal-400" />
+                <div className="mt-8 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/20 border border-primary/20 relative overflow-hidden group/dpp">
+                  <div className="absolute -top-2 right-2 opacity-20 group-hover/dpp:scale-110 transition-transform pointer-events-none">
+                    <img src="/ori2d/ori-determined.png" alt="" draggable={false} className="w-28 h-28 object-contain" />
                   </div>
                   <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
                     <div className="flex-1 text-center md:text-left">
                       <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
-                        <Badge className="bg-teal-500 text-white font-black px-3 py-1 rounded-lg text-[10px] uppercase tracking-widest shadow-lg shadow-teal-500/40">AI Generated</Badge>
+                        <Badge className="bg-primary text-primary-foreground font-black px-3 py-1 rounded-lg text-[10px] uppercase tracking-widest shadow-lg shadow-primary/40">Generated</Badge>
                         <h4 className="font-black text-foreground text-xl tracking-tight">Generated DPPs Ready</h4>
                       </div>
                       <p className="text-slate-600 dark:text-slate-400 font-medium leading-relaxed">

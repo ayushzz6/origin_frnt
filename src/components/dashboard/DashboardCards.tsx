@@ -3,8 +3,7 @@ import { useState, useMemo, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Clock, Target, CheckCircle2, Plus, Trash2, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Clock, Target, CheckCircle2, Plus, Trash2, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { apiCall } from '@/lib/api';
 import { useEffect } from 'react';
@@ -201,111 +200,73 @@ export function PastActivitiesCard({ user }: { user: User }) {
     };
 
     const types = [
-        {
-            label: 'Webpage',
-            icon: '🌐',
-            secs: today.webpageTime || 0,
-            color: 'bg-indigo-600',
-            textColor: 'text-indigo-600',
-        },
-        {
-            label: 'Practice',
-            icon: '📝',
-            secs: today.practiceTime || 0,
-            color: 'bg-emerald-600',
-            textColor: 'text-emerald-600',
-        },
-        {
-            label: 'Pomodoro',
-            icon: '🍅',
-            secs: today.pomodoroTime || 0,
-            color: 'bg-amber-600',
-            textColor: 'text-amber-600',
-        },
+        { label: 'Webpage',  secs: today.webpageTime || 0,  color: '#6366f1' },
+        { label: 'Practice', secs: today.practiceTime || 0, color: '#10b981' },
+        { label: 'Pomodoro', secs: today.pomodoroTime || 0, color: '#f59e0b' },
     ];
 
     const totalSecs = types.reduce((a, t) => a + t.secs, 0);
+    const chartData = types.map((t) => ({ name: t.label, value: t.secs, color: t.color }));
 
     return (
         <Card className="neu-raised border-0">
-            <CardContent className={cn("flex flex-col gap-4", isMobile ? "p-4" : "p-5")}>
+            <CardContent className={cn("flex flex-col gap-5", isMobile ? "p-4" : "p-5")}>
                 {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className={cn("rounded-xl bg-primary/10 flex items-center justify-center text-primary", isMobile ? "w-8 h-8" : "w-10 h-10")}>
-                            <Clock className={isMobile ? "w-4 h-4" : "w-5 h-5"} />
-                        </div>
-                        <div>
-                            <h3 className="text-sm font-bold text-[#334155]">Time Spent</h3>
-                            {!isMobile && <p className="text-[10px] text-[#64748B] font-medium">Today — {toHM(totalSecs)} total</p>}
-                        </div>
+                <div className="flex items-center gap-3">
+                    <div className={cn("rounded-xl bg-primary/10 flex items-center justify-center text-primary", isMobile ? "w-8 h-8" : "w-10 h-10")}>
+                        <Clock className={isMobile ? "w-4 h-4" : "w-5 h-5"} />
                     </div>
-                    <div className="text-right">
-                        <p className={cn("font-black text-[#334155]", isMobile ? "text-lg" : "text-xl")}>{toHM(totalSecs)}</p>
-                        <p className="text-[9px] text-[#64748B] uppercase tracking-widest font-bold">This session</p>
+                    <div>
+                        <h3 className="text-sm font-bold text-foreground">Time Spent</h3>
+                        <p className="text-[10px] text-muted-foreground font-medium">Today&apos;s breakdown</p>
                     </div>
                 </div>
 
-                <div className="space-y-3">
-                    {types.map((t) => {
-                        const pct = totalSecs > 0 ? (t.secs / totalSecs) * 100 : 0;
-                        return (
-                            <div key={t.label} className="space-y-1">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-[11px] font-bold text-[#64748B] flex items-center gap-1.5">
-                                        <span>{t.icon}</span> {t.label}
-                                    </span>
-                                    <span className={`text-[11px] font-black ${t.textColor}`}>{toHM(t.secs)}</span>
-                                </div>
-                                <div className="w-full h-2 bg-primary/10 rounded-full overflow-hidden">
-                                    <motion.div
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${pct}%` }}
-                                        transition={{ duration: 0.8, ease: 'easeOut' }}
-                                        className={`h-full ${t.color} rounded-full`}
-                                    />
-                                </div>
+                {totalSecs === 0 ? (
+                    <div className="flex items-center gap-4 py-2">
+                        <div className="w-11 h-11 rounded-full bg-muted flex items-center justify-center shrink-0">
+                            <Clock className="w-5 h-5 text-muted-foreground/40" />
+                        </div>
+                        <p className="text-xs font-medium text-muted-foreground">No activity tracked yet today — start a session to see your breakdown.</p>
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-5 sm:gap-6">
+                        {/* Donut */}
+                        <div className="relative w-[112px] h-[112px] shrink-0">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie data={chartData} cx="50%" cy="50%" innerRadius="64%" outerRadius="100%" paddingAngle={3} dataKey="value" strokeWidth={0}>
+                                        {chartData.map((d, i) => <Cell key={i} fill={d.color} />)}
+                                    </Pie>
+                                    <Tooltip formatter={(v) => [toHM(Number(v)), '']} contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 11 }} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                <span className="text-base font-black text-foreground leading-none tabular-nums">{toHM(totalSecs)}</span>
+                                <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground mt-1">Total</span>
                             </div>
-                        );
-                    })}
-                </div>
+                        </div>
+
+                        {/* Stat tiles spread across the remaining width */}
+                        <div className="grid grid-cols-3 gap-2.5 sm:gap-3 flex-1 min-w-0">
+                            {types.map((t) => {
+                                const pct = totalSecs > 0 ? Math.round((t.secs / totalSecs) * 100) : 0;
+                                return (
+                                    <div key={t.label} className="neu-inset rounded-xl px-3 py-2.5 flex flex-col gap-1 min-w-0">
+                                        <div className="flex items-center gap-1.5 min-w-0">
+                                            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: t.color }} />
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground truncate">{t.label}</span>
+                                        </div>
+                                        <span className="text-base font-black text-foreground leading-none tabular-nums">{toHM(t.secs)}</span>
+                                        <span className="text-[10px] font-bold tabular-nums" style={{ color: t.color }}>{pct}%</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
             </CardContent>
         </Card>
-    );
-}
-
-export function PlacesToConcentrateCard({ user }: { user?: User }) {
-    const subjects = user?.subjects?.length ? user.subjects.slice(0, 4) : ['Physics', 'Chemistry', 'Mathematics', 'Biology'];
-    const COLORS = ['#f87171', '#fb923c', '#34d399', '#60a5fa'];
-    const data = subjects.map((s, i) => ({ name: s, value: [35, 28, 22, 15][i % 4] }));
-
-    return (
-        <div className="neu-raised min-h-48 h-auto relative flex flex-col items-center justify-center p-4 sm:p-6">
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Focus Areas</p>
-            <div className="relative w-[180px] h-[180px]">
-                <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                        <Pie data={data} cx="50%" cy="50%" innerRadius="52%" outerRadius="78%" paddingAngle={3} dataKey="value" strokeWidth={0}>
-                            {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                        </Pie>
-                        <Tooltip formatter={(v) => [`${v}%`, '']} contentStyle={{ background: 'var(--card)', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 11 }} />
-                    </PieChart>
-                </ResponsiveContainer>
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <Target className="w-5 h-5 text-emerald-500 mb-0.5" />
-                    <span className="text-[9px] font-black uppercase tracking-wider text-muted-foreground">Focus</span>
-                </div>
-            </div>
-            <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-3">
-                {data.map((d, i) => (
-                    <div key={d.name} className="flex items-center gap-1">
-                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
-                        <span className="text-[10px] font-semibold text-muted-foreground">{d.name}</span>
-                        <span className="text-[10px] font-black" style={{ color: COLORS[i % COLORS.length] }}>{d.value}%</span>
-                    </div>
-                ))}
-            </div>
-        </div>
     );
 }
 

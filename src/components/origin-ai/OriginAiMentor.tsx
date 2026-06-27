@@ -3,7 +3,7 @@
 import React from 'react';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { Loader2, Mic, Send, Square, TriangleAlert, X, PanelLeft, PanelRight } from 'lucide-react';
+import { Loader2, Mic, Send, Square, TriangleAlert, X, PanelLeft, PanelRight, Sparkles } from 'lucide-react';
 
 import {
   getOriginAiSession,
@@ -17,6 +17,7 @@ import type { OriginAiSnapshot, OriginAiVoiceStatus } from '@/types';
 import { FormattedMessage } from './FormattedMessage';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ChatBackdrop } from '@/components/chat/ChatBackdrop';
 import { toast } from 'sonner';
 import { useQuota } from '@/context/QuotaContext';
 import {
@@ -68,6 +69,30 @@ function PolicyBadge({ snapshot }: { snapshot: OriginAiSnapshot }) {
         {snapshot.pagePolicy.title}
       </div>
       <p className="mt-1 opacity-90">{snapshot.pagePolicy.reason}</p>
+    </div>
+  );
+}
+
+/** A single-line policy + page-context bar for the compact panel (space-saving). */
+function CompactPolicyBar({ snapshot }: { snapshot: OriginAiSnapshot }) {
+  const tone =
+    snapshot.pagePolicy.mode === 'answer_blocked'
+      ? 'text-amber-600 dark:text-amber-400'
+      : snapshot.pagePolicy.mode === 'hint_only'
+        ? 'text-sky-600 dark:text-sky-400'
+        : 'text-emerald-600 dark:text-emerald-400';
+
+  return (
+    <div
+      className="flex shrink-0 items-center gap-2 border-b border-border/40 px-4 py-2 text-[11px]"
+      title={snapshot.pagePolicy.reason}
+    >
+      <TriangleAlert className={cn('h-3.5 w-3.5 shrink-0', tone)} />
+      <span className={cn('shrink-0 font-bold', tone)}>{snapshot.pagePolicy.title}</span>
+      <span className="truncate text-muted-foreground">{snapshot.pagePolicy.reason}</span>
+      <span className="ml-auto shrink-0 rounded-full bg-foreground/5 px-2 py-0.5 font-medium capitalize text-muted-foreground">
+        {snapshot.pageContext.pageKind.replace(/_/g, ' ')}
+      </span>
     </div>
   );
 }
@@ -223,17 +248,28 @@ const SAMPLE_QUESTIONS = [
   'Suggest a trick to memorise this',
 ];
 
+/** Short label for a sample prompt so the below-bar chips stay compact. */
+const SAMPLE_CHIPS: { label: string; prompt: string }[] = [
+  { label: 'Real-life example', prompt: 'Explain this concept with a real-life example' },
+  { label: 'Quick summary',     prompt: 'Give me a quick summary of this topic' },
+  { label: 'Key formulas',      prompt: 'What are the key formulas I should remember?' },
+  { label: 'Give me a hint',    prompt: 'Give me a hint — not the full solution' },
+  { label: 'Quiz me',           prompt: 'Quiz me with 3 questions on this' },
+  { label: 'Common mistakes',   prompt: 'What mistakes do students usually make here?' },
+];
+
 function SuggestedQuestions({ onPick }: { onPick: (q: string) => void }) {
   return (
-    <div className="no-scrollbar flex gap-1.5 overflow-x-auto px-4 pt-2.5 pb-0.5">
-      {SAMPLE_QUESTIONS.map((q, i) => (
+    <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto pb-0.5 pt-2">
+      <Sparkles className="h-3 w-3 shrink-0 text-primary/60" />
+      {SAMPLE_CHIPS.map((c) => (
         <button
-          key={i}
+          key={c.label}
           type="button"
-          onClick={() => onPick(q)}
-          className="flex-shrink-0 max-w-[140px] truncate rounded-full border border-border/40 bg-background/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground/60 transition hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
+          onClick={() => onPick(c.prompt)}
+          className="shrink-0 whitespace-nowrap rounded-full border border-border/50 bg-muted/40 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground transition hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
         >
-          {q}
+          {c.label}
         </button>
       ))}
     </div>
@@ -270,6 +306,7 @@ export default function OriginAiMentor({
   const pathname = usePathname();
   const [snapshot, setSnapshot] = React.useState<OriginAiSnapshot | null>(null);
   const [message, setMessage] = React.useState('');
+  const [placeholderIdx, setPlaceholderIdx] = React.useState(0);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isSending, setIsSending] = React.useState(false);
   const [voiceStatus, setVoiceStatus] = React.useState<OriginAiVoiceStatus>('idle');
@@ -281,6 +318,16 @@ export default function OriginAiMentor({
   const voiceControllerRef = React.useRef<OriginAiVoiceController | null>(null);
   const lastAutoAskedSelectionNonceRef = React.useRef(0);
   const lastPageKeyRef = React.useRef<string | null>(null);
+
+  // Rotate the empty-state placeholder through the sample prompts.
+  const composerIsEmpty = message.trim().length === 0;
+  React.useEffect(() => {
+    if (!composerIsEmpty) return;
+    const timer = window.setInterval(() => {
+      setPlaceholderIdx((i) => (i + 1) % SAMPLE_QUESTIONS.length);
+    }, 3200);
+    return () => window.clearInterval(timer);
+  }, [composerIsEmpty]);
 
   const pageContext = useOriginAiPageContext(pathname || '/dashboard');
   const highlightedText = useHighlightedText();
@@ -524,75 +571,77 @@ export default function OriginAiMentor({
   if (compact) {
     return (
       <div id="tutorial-mentor" className={shellClassName} data-origin-ai-root="true">
-        <div className="flex items-center justify-between border-b border-border/40 bg-indigo-500/10 px-4 py-3">
+        <div className="flex items-center justify-between gap-2 border-b border-border/40 bg-primary/5 px-4 py-3">
+          {/* Identity */}
           <div className="flex min-w-0 items-center gap-3">
-            <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-border/20 bg-muted p-1">
+            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/30 bg-muted p-1">
               <OriMascot state={mascotState} title="Origin AI" className="h-full w-full" />
+              <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-card bg-emerald-500" />
             </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h2 className="truncate text-sm font-bold leading-tight text-foreground">Origin AI</h2>
+                <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                  Online
+                </span>
+              </div>
+              <p className="truncate text-[11px] leading-tight text-muted-foreground">
+                Friendly mentor with page awareness & study memory.
+              </p>
+            </div>
+          </div>
+          {/* Controls */}
+          <div className="flex shrink-0 items-center gap-1">
             {onSideToggle && (
               <button
+                type="button"
                 onClick={onSideToggle}
-                className="p-1 rounded-md hover:bg-foreground/5 text-muted-foreground transition-colors shrink-0"
-                title={side === 'left' ? "Move to Right" : "Move to Left"}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+                title={side === 'left' ? 'Move to right' : 'Move to left'}
+                aria-label={side === 'left' ? 'Move panel to right' : 'Move panel to left'}
               >
                 {side === 'left' ? <PanelRight className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
               </button>
             )}
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-semibold text-foreground">Origin AI</h2>
-                <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.25em] text-emerald-600 dark:text-emerald-300">
-                  online
-                </span>
-              </div>
-              <p className="max-w-[12rem] truncate text-[11px] leading-4 text-muted-foreground">
-                Friendly mentor with page awareness and study memory.
-              </p>
-            </div>
+            {onClose ? (
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
+                title="Close"
+                aria-label="Close Origin AI"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            ) : null}
           </div>
-          {onClose ? (
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onClose}
-              className="shrink-0 text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
-            >
-              Close
-            </Button>
-          ) : null}
         </div>
 
-        <div className="shrink-0 space-y-2 border-b border-border/40 px-4 py-3">
-          {snapshot ? <PolicyBadge snapshot={snapshot} /> : null}
-          {snapshot ? (
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <span className="rounded-full bg-foreground/5 px-2.5 py-1">
-                Page: {snapshot.pageContext.pageKind.replace(/_/g, ' ')}
-              </span>
-            </div>
-          ) : null}
-        </div>
+        {snapshot ? <CompactPolicyBar snapshot={snapshot} /> : null}
 
         <div
           ref={compactScrollRef}
-          className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4"
+          className="chat-canvas relative custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4"
         >
-          {isLoading ? (
-            <div className="flex h-full min-h-[140px] items-center justify-center text-slate-400">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Loading Origin AI...
-            </div>
-          ) : snapshot ? (
-            <MessageList snapshot={snapshot} />
-          ) : (
-            <div className="flex h-full min-h-[140px] items-center justify-center text-slate-400">
-              Origin AI could not load.
-            </div>
-          )}
-          <AnimatePresence>
-            {isSending ? <MentorThinkingBubble state={mascotState} /> : null}
-          </AnimatePresence>
-          <div ref={scrollAnchorRef} />
+          <ChatBackdrop />
+          <div className="relative z-10">
+            {isLoading ? (
+              <div className="flex h-full min-h-[140px] items-center justify-center text-slate-400">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading Origin AI...
+              </div>
+            ) : snapshot ? (
+              <MessageList snapshot={snapshot} />
+            ) : (
+              <div className="flex h-full min-h-[140px] items-center justify-center text-slate-400">
+                Origin AI could not load.
+              </div>
+            )}
+            <AnimatePresence>
+              {isSending ? <MentorThinkingBubble state={mascotState} /> : null}
+            </AnimatePresence>
+            <div ref={scrollAnchorRef} />
+          </div>
         </div>
 
         <div className="shrink-0 border-t border-border/40 bg-card/40 px-3 py-3">
@@ -628,10 +677,7 @@ export default function OriginAiMentor({
           ) : null}
           <div className="flex min-w-0 items-end gap-2">
             <TooltipProvider delayDuration={0}>
-              <div className={cn('min-w-0 flex-1 rounded-3xl border border-border/40 bg-muted/40 transition focus-within:border-primary/40 focus-within:bg-muted/60', isTextQuotaReached && 'opacity-50')}>
-                {!isSending && !isVoiceActive && !highlightedText && !message.trim() ? (
-                  <SuggestedQuestions onPick={handlePickSuggestion} />
-                ) : null}
+              <div className={cn('flex min-w-0 flex-1 items-center rounded-full border border-border/40 bg-muted/40 transition focus-within:border-primary/40 focus-within:bg-muted/60', isTextQuotaReached && 'opacity-50')}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <textarea
@@ -648,16 +694,16 @@ export default function OriginAiMentor({
                       disabled={isTextQuotaReached}
                       placeholder={
                         isTextQuotaReached
-                          ? 'Daily text quota reached...'
+                          ? 'Daily text quota reached…'
                           : highlightedText
-                          ? 'Ask about the selected text...'
+                          ? 'Ask about the selected text…'
                           : snapshot?.pagePolicy.mode === 'answer_blocked'
-                            ? 'Ask for strategy, not answers...'
+                            ? 'Ask for strategy, not answers…'
                             : snapshot?.pagePolicy.mode === 'hint_only'
-                              ? 'Ask for a hint or a concept nudge...'
-                              : 'Ask Origin AI anything about your studies...'
+                              ? 'Ask for a hint or a concept nudge…'
+                              : `Try: ${SAMPLE_QUESTIONS[placeholderIdx]}`
                       }
-                      className="no-scrollbar min-w-0 w-full resize-none bg-transparent px-4 py-3 text-sm leading-6 text-foreground outline-none transition disabled:cursor-not-allowed"
+                      className="no-scrollbar h-11 max-h-11 min-w-0 w-full resize-none overflow-hidden truncate whitespace-nowrap bg-transparent px-4 py-3 text-sm leading-5 text-foreground outline-none transition placeholder:text-muted-foreground/70 disabled:cursor-not-allowed"
                     />
                   </TooltipTrigger>
                   <TooltipContent className="p-4 w-64 bg-card border-border/40 shadow-xl backdrop-blur-md">
@@ -682,7 +728,7 @@ export default function OriginAiMentor({
                     onClick={() => void handleToggleVoice()}
                     disabled={isVoiceQuotaReached && !isVoiceActive}
                     className={cn(
-                      'h-12 w-12 shrink-0 rounded-3xl px-0 py-0 text-foreground transition-colors',
+                      'h-11 w-11 shrink-0 rounded-full px-0 py-0 text-foreground transition-colors',
                       isVoiceActive
                         ? 'border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400'
                         : 'border border-border/40 bg-muted/40 hover:bg-muted/80',
@@ -716,7 +762,7 @@ export default function OriginAiMentor({
                 type="button"
                 onClick={() => void handleSend()}
                 disabled={isSending || isTextQuotaReached || (!message.trim() && !highlightedText)}
-                className="h-12 w-12 shrink-0 rounded-3xl bg-primary px-0 py-0 text-white hover:bg-primary/90 disabled:opacity-50"
+                className="h-11 w-11 shrink-0 rounded-full bg-primary px-0 py-0 text-white hover:bg-primary/90 disabled:opacity-50"
               >
                 {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
@@ -794,42 +840,48 @@ export default function OriginAiMentor({
           </div>
 
           {compact ? (
-            <div ref={compactScrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-              {isLoading ? (
-                <div className="flex h-full min-h-[160px] items-center justify-center text-slate-400">
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Loading Origin AI...
-                </div>
-              ) : snapshot ? (
-                <MessageList snapshot={snapshot} />
-              ) : (
-                <div className="flex h-full min-h-[160px] items-center justify-center text-slate-400">
-                  Origin AI could not load.
-                </div>
-              )}
-              <AnimatePresence>
-                {isSending ? <MentorThinkingBubble state={mascotState} /> : null}
-              </AnimatePresence>
-              <div ref={scrollAnchorRef} />
+            <div ref={compactScrollRef} className="chat-canvas relative min-h-0 flex-1 overflow-y-auto px-4 py-4">
+              <ChatBackdrop />
+              <div className="relative z-10">
+                {isLoading ? (
+                  <div className="flex h-full min-h-[160px] items-center justify-center text-slate-400">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading Origin AI...
+                  </div>
+                ) : snapshot ? (
+                  <MessageList snapshot={snapshot} />
+                ) : (
+                  <div className="flex h-full min-h-[160px] items-center justify-center text-slate-400">
+                    Origin AI could not load.
+                  </div>
+                )}
+                <AnimatePresence>
+                  {isSending ? <MentorThinkingBubble state={mascotState} /> : null}
+                </AnimatePresence>
+                <div ref={scrollAnchorRef} />
+              </div>
             </div>
           ) : (
-            <ScrollArea className="min-h-0 flex-1 px-5 py-5">
-              {isLoading ? (
-                <div className="flex h-full min-h-[240px] items-center justify-center text-slate-400">
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Loading Origin AI...
-                </div>
-              ) : snapshot ? (
-                <MessageList snapshot={snapshot} />
-              ) : (
-                <div className="flex h-full min-h-[240px] items-center justify-center text-slate-400">
-                  Origin AI could not load.
-                </div>
-              )}
-              <AnimatePresence>
-                {isSending ? <MentorThinkingBubble state={mascotState} /> : null}
-              </AnimatePresence>
-              <div ref={scrollAnchorRef} />
+            <ScrollArea className="chat-canvas relative min-h-0 flex-1 px-5 py-5">
+              <ChatBackdrop />
+              <div className="relative z-10">
+                {isLoading ? (
+                  <div className="flex h-full min-h-[240px] items-center justify-center text-slate-400">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading Origin AI...
+                  </div>
+                ) : snapshot ? (
+                  <MessageList snapshot={snapshot} />
+                ) : (
+                  <div className="flex h-full min-h-[240px] items-center justify-center text-slate-400">
+                    Origin AI could not load.
+                  </div>
+                )}
+                <AnimatePresence>
+                  {isSending ? <MentorThinkingBubble state={mascotState} /> : null}
+                </AnimatePresence>
+                <div ref={scrollAnchorRef} />
+              </div>
             </ScrollArea>
           )}
 

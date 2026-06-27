@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, Mic, MicOff, Send, MessageSquare } from 'lucide-react';
 import { ContainerScroll } from '@/components/ui/container-scroll-animation';
+import { ChatBackdrop } from '@/components/chat/ChatBackdrop';
 import LandingCTABtn from '@/components/landing/LandingCTABtn';
 
 interface SpeechRecognitionAlternative {
@@ -331,7 +332,9 @@ export default function TryOriginAI() {
           </div>
 
           {/* Messages */}
-          <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
+          <div ref={messagesContainerRef} className="chat-canvas relative flex-1 min-h-0 overflow-y-auto p-4">
+            <ChatBackdrop />
+            <div className="relative z-10 space-y-4">
             {messages.map((msg) => (
               <motion.div
                 key={msg.id}
@@ -386,6 +389,7 @@ export default function TryOriginAI() {
               </motion.div>
             )}
             <div ref={messagesEndRef} />
+            </div>
           </div>
 
           {/* Voice error */}

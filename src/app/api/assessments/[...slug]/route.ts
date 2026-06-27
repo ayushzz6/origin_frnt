@@ -41,6 +41,7 @@ import {
   TEST_SUBMIT_PERSIST_COLLECTIONS,
   PRACTICE_SUBMIT_PERSIST_COLLECTIONS,
 } from "@/server/store";
+import { getOgcodeLeaderboardForRender } from "@/server/render-loaders";
 
 function revalidateUserProgress(userId: string) {
   revalidateTag("milestones", "max");
@@ -200,12 +201,15 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     if (root === "ogcode" && first === "leaderboard") {
       const url = new URL(request.url);
-      return ok(await getOgcodeLeaderboard(
-        store,
-        user,
-        url.searchParams.get("subject"),
-        url.searchParams.get("location")
-      ));
+      const subject = url.searchParams.get("subject");
+      const location = url.searchParams.get("location");
+      // The common (no-location) view goes through the cached loader
+      // (60s revalidate, tag:"leaderboard") so it isn't recomputed on every
+      // client mount. The regional view stays live — it's not part of the cache.
+      if (!location) {
+        return ok(await getOgcodeLeaderboardForRender(user.id, subject));
+      }
+      return ok(await getOgcodeLeaderboard(store, user, subject, location));
     }
 
     if (root === "focus-areas") {

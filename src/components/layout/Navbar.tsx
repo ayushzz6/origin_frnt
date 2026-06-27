@@ -22,6 +22,8 @@ import {
     Building2,
     FileText,
     Target,
+    Sparkles,
+    UsersRound,
     ChevronRight,
     Trophy,
     ArrowRight,
@@ -596,13 +598,13 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
                     'safe-area-pb pb-safe'
                 )}>
                     <div className="grid grid-cols-5 h-14">
-                        {[
+                        {([
                             { label: 'Home', icon: LayoutGrid, view: 'dashboard' as ViewState },
-                            { label: 'Tests', icon: FileText, view: 'test-list' as ViewState },
+                            { label: 'Rooms', icon: UsersRound, view: 'study-rooms' as ViewState },
                             { label: 'OGCode', icon: Code, view: 'ogcode' as ViewState },
-                            { label: 'DPP', icon: Target, view: 'dpp' as ViewState },
+                            { label: 'AI', icon: Sparkles, view: 'doubt-solver' as ViewState, iconSrc: '/iconsax/Ai-Icon.png' },
                             { label: 'More', icon: Menu, view: null },
-                        ].map((item) => {
+                        ] as { label: string; icon: typeof LayoutGrid; view: ViewState | null; iconSrc?: string }[]).map((item) => {
                             const active = item.view ? isActive({ label: item.label, view: item.view }) : false;
                             const Icon = item.icon;
                             return (
@@ -617,7 +619,16 @@ export default function Navbar({ user, currentView, onNavigate, onPrefetch, onLo
                                     {active && (
                                         <span className="absolute top-0 w-8 h-0.5 bg-primary rounded-full" />
                                     )}
-                                    <Icon className="w-5 h-5" />
+                                    {item.iconSrc ? (
+                                        <img
+                                            src={item.iconSrc}
+                                            alt=""
+                                            draggable={false}
+                                            className={cn('w-5 h-5 object-contain transition-opacity', active ? 'opacity-100' : 'opacity-70')}
+                                        />
+                                    ) : (
+                                        <Icon className="w-5 h-5" />
+                                    )}
                                     <span className="text-[9px] font-bold leading-none">{item.label}</span>
                                 </button>
                             );

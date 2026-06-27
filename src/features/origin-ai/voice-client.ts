@@ -127,7 +127,12 @@ async function decodeAudioBuffer(
 }
 
 function createAudioPlayer(callbacks: OriginAiVoiceCallbacks, onIdle: () => void): AudioPlayer {
-  const AudioContextCtor = window.AudioContext;
+  // iOS Safari (mobile) exposes the constructor only as `webkitAudioContext`,
+  // so fall back to it — otherwise voice mode throws on mobile.
+  const AudioContextCtor = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AudioContextCtor) {
+    throw new Error('This browser does not support audio playback for voice mode.');
+  }
   const audioContext = new AudioContextCtor();
   const activeSources = new Set<AudioBufferSourceNode>();
   let nextPlaybackTime = 0;

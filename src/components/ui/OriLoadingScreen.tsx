@@ -4,11 +4,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 const FRAMES = [
-  { src: '/ori2d/ori-thinking.png',   msg: 'Thinking…'       },
-  { src: '/ori2d/ori-reading.png',    msg: 'Loading…'         },
-  { src: '/ori2d/ori-cheerful.png',   msg: 'Almost there!'    },
-  { src: '/ori2d/ori-exited.png',     msg: 'Getting ready…'   },
-  { src: '/ori2d/ori-happy.png',      msg: 'Here we go!'      },
+  { src: '/ori2d/ori-thinking.png',   msg: 'Thinking…'        },
+  { src: '/ori2d/ori-reading.png',    msg: 'Loading…'          },
+  { src: '/ori2d/ori-curious.png',    msg: 'Fetching data…'    },
+  { src: '/ori2d/ori-cheerful.png',   msg: 'Almost there!'     },
+  { src: '/ori2d/ori-determined.png', msg: 'Getting ready…'    },
+  { src: '/ori2d/ori-exited.png',     msg: 'One moment!'       },
+  { src: '/ori2d/ori-happy.png',      msg: 'Here we go!'       },
 ];
 
 interface Props { fullscreen?: boolean }
@@ -79,14 +81,11 @@ export default function OriLoadingScreen({ fullscreen = false }: Props) {
         {FRAMES.map((_, i) => (
           <motion.div
             key={i}
-            className="rounded-full h-[6px]"
-            animate={{
-              width: i === idx ? 18 : 6,
-              backgroundColor:
-                i === idx
-                  ? 'hsl(var(--primary))'
-                  : 'hsl(var(--muted-foreground) / 0.25)',
-            }}
+            className={cn(
+              'h-[6px] rounded-full transition-colors duration-300',
+              i === idx ? 'bg-primary' : 'bg-muted-foreground/25',
+            )}
+            animate={{ width: i === idx ? 18 : 6 }}
             transition={{ duration: 0.3 }}
           />
         ))}

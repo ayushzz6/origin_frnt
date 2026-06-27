@@ -620,115 +620,98 @@ function TestCard({ test, onStart, onViewAnalysis, user, getDifficultyColor }: T
   const isLocked = false;
 
   return (
-    <Card className={`group relative border-0 neu-raised neu-pressable transition-all duration-500 overflow-hidden ${isLocked ? 'grayscale opacity-80' : ''}`}>
-      <CardContent className="p-5 sm:p-8">
-        {/* Header Section — status badges only (subject icon removed) */}
-        {(test.attempted || isLocked) && (
-          <div className="flex justify-end mb-4 sm:mb-8">
-            <div className="flex flex-col items-end gap-2">
-              {test.attempted && (
-                <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 px-3 py-1 rounded-full font-black text-[9px] uppercase tracking-widest">
-                  <CheckCircle2 className="w-3 h-3 mr-1" />
-                  Completed
-                </Badge>
-              )}
-              {isLocked && (
-                <Badge className="bg-amber-500 text-white border-0 px-3 py-1 rounded-full font-black text-[9px] uppercase tracking-widest shadow-lg shadow-amber-500/20">
-                  <Lock className="w-3 h-3 mr-1" />
-                  Premium
-                </Badge>
-              )}
-            </div>
-          </div>
-        )}
+    <Card className={`group relative flex flex-col border-0 neu-raised neu-pressable transition-all duration-300 overflow-hidden ${isLocked ? 'grayscale opacity-80' : ''}`}>
+      <CardContent className="flex flex-1 flex-col p-5">
+        {/* Title + description */}
+        <h3 className="text-base sm:text-lg font-black text-foreground leading-tight tracking-tight transition-colors group-hover:text-primary">
+          {test.title}
+        </h3>
+        <p className="mt-1.5 text-xs font-medium text-muted-foreground line-clamp-2 leading-relaxed">
+          {test.description}
+        </p>
 
-        {/* Content Section */}
-        <div className="mb-4 sm:mb-6">
-          <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mb-2 leading-tight uppercase tracking-tighter transition-colors group-hover:text-primary transition-colors">
-            {test.title}
-          </h3>
-          <p className="text-[10px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
-            {test.description}
-          </p>
-        </div>
-
-        {/* Intelligence Stats */}
-        <div className="grid grid-cols-2 gap-3 mb-8">
-          <div className="bg-slate-50 dark:bg-white/5 p-3 rounded-2xl border border-border/40 flex items-center gap-3">
-            <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
-              <HelpCircle className="w-3.5 h-3.5" />
-            </div>
-            <div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Questions</p>
-                <p className="text-xs font-black text-slate-900 dark:text-white leading-none">{test.totalQuestions}</p>
-            </div>
-          </div>
-          <div className="bg-slate-50 dark:bg-white/5 p-3 rounded-2xl border border-border/40 flex items-center gap-3">
-            <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
-              <Clock className="w-3.5 h-3.5" />
-            </div>
-            <div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Duration</p>
-                <p className="text-xs font-black text-slate-900 dark:text-white leading-none">{test.duration}m</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Difficulty Anchor */}
-        <div className="flex items-center justify-between mb-6 sm:mb-8">
-            <Badge variant="outline" className={`${getDifficultyColor(test.difficulty)} border px-3 sm:px-4 py-1 rounded-full font-black text-[9px] sm:text-[10px] uppercase tracking-[0.15em]`}>
-                {test.difficulty}
+        {/* Inline meta stats — difficulty + status sit alongside to save vertical space */}
+        <div className="mt-4 flex items-center gap-3 text-xs">
+          <span className="flex items-center gap-1.5 font-bold text-foreground">
+            <HelpCircle className="w-3.5 h-3.5 text-primary" />
+            {test.totalQuestions}
+            <span className="font-medium text-muted-foreground">Qs</span>
+          </span>
+          <span className="h-3 w-px bg-border" />
+          <span className="flex items-center gap-1.5 font-bold text-foreground">
+            <Clock className="w-3.5 h-3.5 text-primary" />
+            {test.duration}
+            <span className="font-medium text-muted-foreground">min</span>
+          </span>
+          {test.score !== undefined && test.score !== null && (
+            <>
+              <span className="h-3 w-px bg-border" />
+              <span className="flex items-center gap-1.5 font-bold text-primary">
+                <BarChart3 className="w-3.5 h-3.5" />
+                {test.score}%
+              </span>
+            </>
+          )}
+          <div className="ml-auto flex items-center gap-1.5">
+            <Badge variant="outline" className={`${getDifficultyColor(test.difficulty)} border px-2.5 py-0.5 rounded-full font-black text-[9px] uppercase tracking-[0.15em]`}>
+              {test.difficulty}
             </Badge>
-            {test.score !== undefined && test.score !== null && (
-                <div className="text-right">
-                    <p className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Score</p>
-                    <p className="text-base sm:text-lg font-black text-primary leading-none">{test.score}%</p>
-                </div>
-            )}
+            {test.attempted ? (
+              <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 px-2 py-0.5 rounded-full font-black text-[9px] uppercase tracking-widest">
+                <CheckCircle2 className="w-3 h-3 mr-1" />
+                Done
+              </Badge>
+            ) : isLocked ? (
+              <Badge className="bg-amber-500 text-white border-0 px-2 py-0.5 rounded-full font-black text-[9px] uppercase tracking-widest">
+                <Lock className="w-3 h-3 mr-1" />
+                Premium
+              </Badge>
+            ) : null}
+          </div>
         </div>
 
-        {/* Force-Action Primary */}
-        <div className="space-y-3">
+        {/* Action */}
+        <div className="mt-5 flex flex-col gap-2">
           {isLocked ? (
             <Button
               disabled
-              className="w-full h-12 rounded-2xl bg-slate-200 dark:bg-white/5 text-slate-400 dark:text-slate-500 font-bold uppercase text-[10px] tracking-widest cursor-not-allowed"
+              className="w-full h-11 rounded-xl bg-muted text-muted-foreground font-bold uppercase text-[10px] tracking-widest cursor-not-allowed"
             >
               <Lock className="w-3.5 h-3.5 mr-2" />
               Subscribe to Unlock
             </Button>
           ) : test.attempted ? (
-            <div className="flex flex-col gap-3">
+            <div className="flex gap-2">
               <Button
                 onClick={onViewAnalysis}
-                className="w-full h-14 rounded-[20px] bg-primary text-white font-black uppercase text-xs tracking-widest transition-all shadow-lg shadow-primary/20 group/btn"
+                className="flex-1 h-11 rounded-xl bg-primary text-primary-foreground font-black uppercase text-[11px] tracking-widest transition-all shadow-lg shadow-primary/20 hover:bg-primary/90 group/btn"
               >
                 <BarChart3 className="w-4 h-4 mr-2 group-hover/btn:scale-110 transition-transform" />
-                Deep Intelligence
+                View Result
               </Button>
               <Button
                 onClick={onStart}
-                variant="ghost"
-                className="w-full h-12 rounded-2xl text-slate-500 hover:text-primary font-black uppercase text-[10px] tracking-widest transition-colors"
+                variant="outline"
+                title="Retake test"
+                className="h-11 w-11 shrink-0 rounded-xl border-border/60 text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors p-0"
               >
-                <RotateCcw className="w-3.5 h-3.5 mr-2" />
-                Retest Simulation
+                <RotateCcw className="w-4 h-4" />
               </Button>
             </div>
           ) : (
             <Button
               onClick={onStart}
-              className="w-full h-12 sm:h-14 rounded-xl sm:rounded-[20px] bg-primary hover:scale-[1.02] active:scale-[0.98] text-white font-black uppercase text-[10px] sm:text-xs tracking-widest transition-all shadow-xl shadow-primary/30 group/btn"
+              className="w-full h-11 sm:h-12 rounded-xl bg-primary hover:bg-primary/90 active:scale-[0.98] text-primary-foreground font-black uppercase text-[11px] sm:text-xs tracking-widest transition-all shadow-lg shadow-primary/25 group/btn"
             >
-              <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 fill-current group-hover/btn:translate-x-1 transition-transform" />
-              Initialize Mock
+              <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 fill-current" />
+              Start Test
               <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-2 opacity-0 -translate-x-2 group-hover/btn:opacity-100 group-hover/btn:translate-x-0 transition-all" />
             </Button>
           )}
         </div>
       </CardContent>
-      {/* Decorative pulse glow */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -translate-y-16 translate-x-16 group-hover:bg-primary/10 transition-colors" />
+      {/* Decorative glow */}
+      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -translate-y-16 translate-x-16 group-hover:bg-primary/10 transition-colors pointer-events-none" />
     </Card>
   );
 }

@@ -44,32 +44,34 @@ export default function StudyMusicPlayer() {
   };
 
   return (
-    <div>
-      {/* Spotify player */}
-      <iframe
-        key={`${embed.type}-${embed.id}`}
-        title="Spotify player"
-        src={`https://open.spotify.com/embed/${embed.type}/${embed.id}?utm_source=generator&theme=0`}
-        width="100%"
-        height={embed.type === 'track' ? 152 : 352}
-        className="rounded-2xl"
-        style={{ border: 0 }}
-        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-        loading="lazy"
-      />
+    <div className="space-y-3">
+      {/* Spotify player — inset like a player "screen" */}
+      <div className="neu-inset overflow-hidden rounded-2xl p-1">
+        <iframe
+          key={`${embed.type}-${embed.id}`}
+          title="Spotify player"
+          src={`https://open.spotify.com/embed/${embed.type}/${embed.id}?utm_source=generator&theme=0`}
+          width="100%"
+          height={embed.type === 'track' ? 152 : 352}
+          className="block rounded-xl"
+          style={{ border: 0 }}
+          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          loading="lazy"
+        />
+      </div>
 
-      {/* Paste a Spotify link */}
-      <form onSubmit={handleLoad} className="relative mt-3">
-        <Link2 className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+      {/* Paste a Spotify link — neumorphic inset field */}
+      <form onSubmit={handleLoad} className="relative">
+        <Link2 className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Paste a Spotify link…"
-          className="w-full rounded-2xl border border-border/40 bg-white/60 py-2.5 pl-9 pr-3 text-xs font-bold text-slate-700 placeholder:font-medium placeholder:text-slate-400 focus:border-primary/40 focus:outline-none dark:bg-slate-900/40 dark:text-slate-200"
+          className="neu-inset w-full rounded-xl bg-transparent py-2.5 pl-9 pr-3 text-xs font-bold text-foreground placeholder:font-medium placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/30"
         />
       </form>
-      <p className="mt-2 flex items-center gap-1.5 text-[9px] font-semibold leading-relaxed text-slate-400">
+      <p className="flex items-center gap-1.5 text-[9px] font-semibold leading-relaxed text-muted-foreground">
         <Music className="h-3 w-3 shrink-0" />
         In Spotify: Share → Copy link, then paste here. Log in to Spotify for full songs (otherwise 30s previews).
       </p>
