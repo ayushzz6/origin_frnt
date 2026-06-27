@@ -77,7 +77,10 @@ export function ImportJobsManager({ workspaceId, initialJobs, defaultJobId }: Pr
       if (!active) return;
 
       if (result.ok) {
-        const list = (result.data as any).questionsPreview || result.data || [];
+        const list =
+          (result.data as any).questions ??
+          (result.data as any).job?.questionsPreview ??
+          (Array.isArray(result.data) ? result.data : []);
         if (list.length === 0) {
           setQuestions([]);
           setActiveQuestion(null);
