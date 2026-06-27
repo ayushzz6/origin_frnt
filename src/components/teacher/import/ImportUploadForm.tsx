@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -40,7 +39,6 @@ const TARGET_SURFACES = [
 ] as const;
 
 export function ImportUploadForm({ workspaceId }: Props) {
-  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [sourceType, setSourceType] = useState<"pdf" | "docx" | "image">("pdf");
   const [targetSurface, setTargetSurface] =
@@ -86,7 +84,8 @@ export function ImportUploadForm({ workspaceId }: Props) {
         throw new Error(data.detail ?? `Upload failed (${res.status})`);
       }
       const data = (await res.json()) as { job: { id: string } };
-      router.push(
+      // Full navigation avoids client-side RSC/chunk failures after upload.
+      window.location.assign(
         `/teacher/workspaces/${workspaceId}/question-bag/import/${data.job.id}`,
       );
     } catch (err) {
