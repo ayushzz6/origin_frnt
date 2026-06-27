@@ -793,25 +793,25 @@ export default function Pomodoro({ onBack, user, setTimeMode, onNavigate: _onNav
       {/* ── NAV LOCK OVERLAY ── */}
       {showNavLock && (
         <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 p-8 max-w-sm w-full text-center">
-            <div className="w-16 h-16 bg-primary/10 dark:bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-5">
+          <div className="neu-raised rounded-3xl p-8 max-w-sm w-full text-center">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-5">
               <Flame className="w-8 h-8 text-primary animate-pulse" />
             </div>
-            <h2 className="text-xl font-black text-slate-900 dark:text-white mb-2">🚫 Focus in Progress</h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-6">
-              Your focus timer is still running! Leaving now will <span className="font-bold text-primary">interrupt your session</span>. 
+            <h2 className="text-xl font-black text-foreground mb-2">🚫 Focus in Progress</h2>
+            <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+              Your focus timer is still running! Leaving now will <span className="font-bold text-primary">interrupt your session</span>.
               Stay locked in — you've got this!
             </p>
             <div className="flex flex-col gap-3">
               <button
                 onClick={() => setShowNavLock(false)}
-                className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-white font-bold hover:opacity-90 transition-all active:scale-95"
+                className="w-full py-3 px-6 rounded-xl bg-primary text-primary-foreground font-bold shadow-[3px_3px_8px_hsl(var(--neu-shadow))] hover:-translate-y-0.5 transition-all active:scale-95"
               >
                 🔒 Stay Focused
               </button>
               <button
                 onClick={handleForceLeave}
-                className="w-full py-2.5 px-6 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+                className="w-full py-2.5 px-6 rounded-xl neu-raised text-muted-foreground text-sm hover:-translate-y-0.5 transition-all"
               >
                 Stop Timer & Leave
               </button>
@@ -821,7 +821,7 @@ export default function Pomodoro({ onBack, user, setTimeMode, onNavigate: _onNav
       )}
 
       {/* Header */}
-      <header className="z-40 bg-white/40 dark:bg-slate-950/40 border-b border-border/40 backdrop-blur-xl">
+      <header className="z-40 bg-[hsl(var(--neu-bg)/0.85)] border-b border-border/40 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
@@ -841,14 +841,26 @@ export default function Pomodoro({ onBack, user, setTimeMode, onNavigate: _onNav
               </div>
             </div>
 
-            <div className="flex items-center gap-1 sm:gap-2">
-              <button
-                onClick={() => setShowAtmosphere(!showAtmosphere)}
-                className={`p-2 sm:p-2.5 rounded-xl transition-all ${showAtmosphere ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-white/50 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400'}`}
-                title="Toggle Atmosphere"
-              >
-                <Flame className={`w-4 h-4 sm:w-5 sm:h-5 ${showAtmosphere ? 'animate-pulse' : ''}`} />
-              </button>
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Zen / Atmosphere on-off toggle */}
+              <label className="zen-toggle-wrapper" title="Toggle Zen Atmosphere">
+                <input
+                  type="checkbox"
+                  className="zen-toggle-checkbox"
+                  checked={showAtmosphere}
+                  onChange={() => setShowAtmosphere(!showAtmosphere)}
+                  aria-label="Toggle Zen Atmosphere"
+                />
+                <div className="zen-toggle-container">
+                  <div className="zen-toggle-button">
+                    <div className="zen-toggle-button-circles-container">
+                      {Array.from({ length: 12 }).map((_, i) => (
+                        <div key={i} className="zen-toggle-button-circle" />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </label>
               <button
                 onClick={() => setShowHistory(true)}
                 className="p-2 sm:p-2.5 rounded-xl hover:bg-white/50 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400"
@@ -871,7 +883,7 @@ export default function Pomodoro({ onBack, user, setTimeMode, onNavigate: _onNav
           
           {/* Top Selection Bar */}
           <div className="flex flex-wrap items-center justify-between gap-6">
-            <div className="flex gap-1 sm:gap-2 p-1 sm:p-1.5 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-border/40 w-full sm:w-fit overflow-x-auto no-scrollbar">
+            <div className="flex gap-1 sm:gap-2 p-1 sm:p-1.5 neu-inset rounded-xl sm:rounded-2xl w-full sm:w-fit overflow-x-auto no-scrollbar">
               {(['focus', 'shortBreak', 'longBreak'] as const).map((m) => (
                 <button
                   key={m}
@@ -901,26 +913,7 @@ export default function Pomodoro({ onBack, user, setTimeMode, onNavigate: _onNav
             
             {/* Main Engine (Timer) */}
             <div className="lg:col-span-8 relative flex flex-col gap-8">
-              {/* Zen Mode toggle */}
-              <button
-                type="button"
-                onClick={() => setShowAtmosphere(!showAtmosphere)}
-                role="switch"
-                aria-checked={showAtmosphere}
-                aria-label="Toggle Zen Mode"
-                className={`absolute left-[276px] top-[10px] z-30 flex h-11 w-full max-w-[222px] items-center justify-between gap-2 rounded-full border px-4 text-[10px] font-black uppercase tracking-widest backdrop-blur-xl transition-all ${
-                  showAtmosphere
-                    ? 'border-primary/50 bg-primary text-white shadow-lg shadow-primary/20'
-                    : 'border-border/40 bg-white/40 text-slate-600 hover:border-primary/30 dark:bg-white/5 dark:text-slate-400'
-                }`}
-              >
-                <span className="flex items-center gap-2">
-                  <Flame className={`h-4 w-4 ${showAtmosphere ? 'animate-pulse' : ''}`} />
-                  Zen Mode
-                </span>
-                <span>{showAtmosphere ? 'On' : 'Off'}</span>
-              </button>
-              <Card className="border-0 bg-white/20 dark:bg-white/5 backdrop-blur-sm shadow-soft rounded-[48px] overflow-hidden group">
+              <Card className="border-0 neu-raised rounded-[48px] overflow-hidden group" style={{boxShadow: 'var(--neu-dist) var(--neu-dist) var(--neu-blur) hsl(var(--neu-shadow)), calc(var(--neu-dist) * -1) calc(var(--neu-dist) * -1) var(--neu-blur) hsl(var(--neu-light))'}}>
                 <CardContent className="p-10 sm:p-20 flex flex-col items-center">
                    {/* Interruption Indicator */}
                   {mode === 'focus' && isRunning && interruptionCount > 0 && (
@@ -950,7 +943,7 @@ export default function Pomodoro({ onBack, user, setTimeMode, onNavigate: _onNav
 
                     {isAlarmRinging ? (
                        <div className="w-72 h-72 sm:w-[400px] sm:h-[400px] flex items-center justify-center relative z-10">
-                        <div className="bg-white/90 dark:bg-slate-950/90 backdrop-blur-3xl rounded-[64px] shadow-2xl p-8 w-full text-center border border-white/20">
+                        <div className="neu-raised rounded-[64px] p-8 w-full text-center">
                           <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-4 tracking-tighter uppercase">
                             Phase Concluded
                           </h2>
@@ -969,7 +962,7 @@ export default function Pomodoro({ onBack, user, setTimeMode, onNavigate: _onNav
                             cx="50%"
                             cy="50%"
                             r="46%"
-                            className="stroke-slate-100 dark:stroke-white/5 fill-none"
+                            className="stroke-[hsl(var(--neu-shadow))] fill-none"
                             strokeWidth="4"
                           />
                           <motion.circle
@@ -1028,7 +1021,7 @@ export default function Pomodoro({ onBack, user, setTimeMode, onNavigate: _onNav
                     </button>
                     <button
                       onClick={resetTimer}
-                      className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-slate-100 dark:bg-white/5 text-slate-500 hover:text-primary flex items-center justify-center transition-all active:scale-95"
+                      className="w-12 h-12 sm:w-16 sm:h-16 rounded-full neu-raised text-muted-foreground hover:text-primary flex items-center justify-center transition-all active:scale-95"
                     >
                       <RotateCcw className="w-5 h-5 sm:w-6 sm:h-6" />
                     </button>
@@ -1042,7 +1035,7 @@ export default function Pomodoro({ onBack, user, setTimeMode, onNavigate: _onNav
                   { label: 'Minutes Focused', value: todayMinutes, icon: History, color: 'text-primary', bg: 'bg-primary/10' },
                   { label: 'Sessions Today', value: todaySessions, icon: Target, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
                  ].map((stat, i) => (
-                    <Card key={i} className="border-0 bg-white/40 dark:bg-white/5 backdrop-blur-xl shadow-soft rounded-[24px] sm:rounded-[32px]">
+                    <Card key={i} className="border-0 neu-raised rounded-2xl">
                       <CardContent className="p-5 sm:p-8 flex items-center justify-between">
                         <div>
                           <p className="text-[8px] sm:text-[10px] uppercase font-black tracking-widest text-slate-500 mb-1">{stat.label}</p>
@@ -1058,11 +1051,16 @@ export default function Pomodoro({ onBack, user, setTimeMode, onNavigate: _onNav
             </div>
 
             {/* Sidebar Controls */}
-            <div className="lg:col-span-4 flex flex-col gap-8">
+            <div className="lg:col-span-4 flex flex-col gap-6">
               {/* Task Selection */}
-              <Card className="border-0 bg-white/40 dark:bg-white/5 backdrop-blur-xl shadow-soft overflow-hidden rounded-[28px]">
+              <Card className="border-0 neu-raised overflow-hidden rounded-3xl">
                 <CardContent className="p-5">
-                  <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white mb-3">Active Objective</h3>
+                  <div className="mb-3 flex items-center gap-3">
+                    <span className="neu-raised flex h-9 w-9 items-center justify-center rounded-full text-primary">
+                      <Target className="h-4 w-4" />
+                    </span>
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-foreground">Active Objective</h3>
+                  </div>
 
                   {tasks.length > 0 ? (
                     <Select
@@ -1070,7 +1068,7 @@ export default function Pomodoro({ onBack, user, setTimeMode, onNavigate: _onNav
                       onValueChange={(value) => setSelectedTaskId(value === NO_OBJECTIVE ? null : value)}
                       disabled={isRunning}
                     >
-                      <SelectTrigger className="w-full rounded-2xl border-border/40 bg-white/60 dark:bg-slate-900/40 text-xs font-bold">
+                      <SelectTrigger className="neu-inset w-full rounded-xl border-0 bg-transparent text-xs font-bold">
                         <SelectValue placeholder="No objective" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1083,17 +1081,22 @@ export default function Pomodoro({ onBack, user, setTimeMode, onNavigate: _onNav
                       </SelectContent>
                     </Select>
                   ) : (
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest text-center py-4">Select a task from your dashboard</p>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest text-center py-4">Select a task from your dashboard</p>
                   )}
                 </CardContent>
               </Card>
 
-              {/* Study Music (Spotify) */}
-              <Card className="border-0 bg-white/40 dark:bg-white/5 backdrop-blur-xl shadow-soft overflow-hidden rounded-[28px]">
+              {/* Study Music — neumorphic player */}
+              <Card className="border-0 neu-raised overflow-hidden rounded-3xl">
                 <CardContent className="p-5">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Music className="w-4 h-4 text-primary" />
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white">Study Music</h3>
+                  <div className="mb-4 flex items-center gap-3">
+                    <span className="neu-raised flex h-9 w-9 items-center justify-center rounded-full text-primary">
+                      <Music className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <h3 className="text-[10px] font-black uppercase tracking-widest text-foreground leading-none">Study Music</h3>
+                      <p className="mt-1 text-[9px] font-semibold text-muted-foreground">Lo-fi & focus playlists</p>
+                    </div>
                   </div>
 
                   <StudyMusicPlayer />
@@ -1104,9 +1107,9 @@ export default function Pomodoro({ onBack, user, setTimeMode, onNavigate: _onNav
 
           {/* Protocol & Guide */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <Card className="border-0 bg-white/40 dark:bg-white/5 backdrop-blur-xl shadow-soft rounded-[40px]">
+            <Card className="border-0 neu-raised rounded-2xl">
               <CardContent className="p-8">
-                <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white mb-6 flex items-center gap-3">
+                <h3 className="text-sm font-black uppercase tracking-widest text-foreground mb-6 flex items-center gap-3">
                   <ShieldAlert className="w-5 h-5 text-primary" />
                   Focus Protocol
                 </h3>
@@ -1125,7 +1128,7 @@ export default function Pomodoro({ onBack, user, setTimeMode, onNavigate: _onNav
               </CardContent>
             </Card>
 
-            <Card className="border-0 bg-emerald-500/10 border-emerald-500/20 backdrop-blur-xl rounded-[40px]">
+            <Card className="border-0 neu-raised rounded-2xl bg-emerald-500/10">
               <CardContent className="p-8">
                 <h3 className="text-sm font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-6 flex items-center gap-3">
                   <Coffee className="w-5 h-5" />
@@ -1144,14 +1147,14 @@ export default function Pomodoro({ onBack, user, setTimeMode, onNavigate: _onNav
 
       {/* Settings Modal */}
       {showSettings && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-300">
-          <Card className="w-full max-w-lg border-0 bg-white dark:bg-slate-900 shadow-2xl rounded-[40px] overflow-hidden">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <Card className="w-full max-w-lg border-0 neu-raised rounded-3xl overflow-hidden">
             <CardContent className="p-10">
               <div className="flex items-center justify-between mb-10">
                 <div>
-                  <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Laboratory Settings</h3>
+                  <h3 className="text-2xl font-black text-foreground uppercase tracking-tighter">Laboratory Settings</h3>
                 </div>
-                <button onClick={() => setShowSettings(false)} className="p-3 rounded-full hover:bg-slate-100 dark:hover:bg-white/5 transition-all text-slate-400">
+                <button onClick={() => setShowSettings(false)} className="p-3 rounded-full neu-raised hover:-translate-y-0.5 transition-all text-muted-foreground">
                   <X className="w-6 h-6" />
                 </button>
               </div>
@@ -1185,7 +1188,7 @@ export default function Pomodoro({ onBack, user, setTimeMode, onNavigate: _onNav
 
       {/* History Side Panel */}
       <Sheet open={showHistory} onOpenChange={setShowHistory}>
-        <SheetContent side="right" className="w-full sm:max-w-md bg-white/80 dark:bg-slate-950/80 backdrop-blur-2xl border-l border-border/40 p-0 overflow-hidden flex flex-col">
+        <SheetContent side="right" className="w-full sm:max-w-md bg-[hsl(var(--neu-bg))] backdrop-blur-2xl border-l border-border/40 p-0 overflow-hidden flex flex-col">
           <SheetHeader className="p-8 border-b border-border/40">
             <h3 className="text-2xl font-black tracking-tighter dark:text-white uppercase">Focus Log</h3>
           </SheetHeader>
@@ -1195,7 +1198,7 @@ export default function Pomodoro({ onBack, user, setTimeMode, onNavigate: _onNav
               const { date, time } = formatSessionDate(session.start_time);
               const isFocus = session.mode === 'focus';
               return (
-                <div key={idx} className="p-5 rounded-3xl bg-white/50 dark:bg-white/5 border border-border/40 shadow-sm">
+                <div key={idx} className="p-5 rounded-2xl neu-raised">
                   <div className="flex items-center justify-between">
                      <div className="flex items-center gap-3">
                         <div className={`p-2 rounded-xl ${isFocus ? 'bg-primary' : 'bg-emerald-500'} text-white`}>
@@ -1219,13 +1222,13 @@ export default function Pomodoro({ onBack, user, setTimeMode, onNavigate: _onNav
 
       {/* Break Reason Modal */}
       {showReasonModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-300">
-          <Card className="w-full max-w-lg border-0 bg-white dark:bg-slate-900 shadow-2xl rounded-[40px] overflow-hidden transform animate-in zoom-in-95">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <Card className="w-full max-w-lg border-0 neu-raised rounded-3xl overflow-hidden transform animate-in zoom-in-95">
             <CardContent className="p-10 text-center">
-              <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-8">Rest Intel</h3>
+              <h3 className="text-2xl font-black text-foreground uppercase tracking-tighter mb-8">Rest Intel</h3>
               <div className="space-y-6">
                 <Select value={selectedReason} onValueChange={setSelectedReason}>
-                    <SelectTrigger className="h-14 rounded-2xl bg-slate-50 dark:bg-white/5 border-border/40">
+                    <SelectTrigger className="h-14 rounded-2xl neu-inset border-0">
                       <SelectValue placeholder="Choose classification..." />
                     </SelectTrigger>
                     <SelectContent className="rounded-2xl">

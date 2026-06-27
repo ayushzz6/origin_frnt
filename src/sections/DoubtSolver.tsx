@@ -34,6 +34,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { usePublishOriginAiPageContext } from '@/features/origin-ai/page-context-store';
 import { FormattedMessage } from '@/components/origin-ai/FormattedMessage';
+import { ChatBackdrop } from '@/components/chat/ChatBackdrop';
 import { useQuota } from '@/context/QuotaContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { useAuth } from '@/context/AuthContext';
@@ -889,8 +890,9 @@ export default function DoubtSolver({ onBack, user }: DoubtSolverProps) {
                   }}
                 />
                 {/* Scrollable Message Area */}
-                <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 sm:py-8 custom-scrollbar">
-                  <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
+                <div className="chat-canvas relative flex-1 overflow-y-auto px-4 sm:px-6 py-6 sm:py-8 custom-scrollbar">
+                  <ChatBackdrop />
+                  <div className="relative z-10 max-w-4xl mx-auto space-y-6 sm:space-y-8">
                     {activeSession.messages.map((msg, i) => (
                       <ChatMessage key={msg.id || i} message={msg} />
                     ))}
@@ -1149,11 +1151,22 @@ function SelectionView({ onCreate, onUpload, sessions, onSelectSession, lastSess
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
 
-  const quickTopics: { name: string; subjectKey: SubjectKey | 'general'; icon: typeof Atom; color: string; desc: string }[] = [
-    { name: 'Physics', subjectKey: 'phy', icon: Atom, color: 'text-blue-400', desc: 'Chapters & Concepts' },
-    { name: 'Chemistry', subjectKey: 'chem', icon: FlaskConical, color: 'text-emerald-400', desc: 'Chapters & Concepts' },
-    { name: 'Mathematics', subjectKey: 'math', icon: Calculator, color: 'text-violet-400', desc: 'Chapters & Concepts' },
-    { name: 'Biology', subjectKey: 'bio', icon: Leaf, color: 'text-green-400', desc: 'Chapters & Concepts' },
+  const SUBJECT_ORI: Record<string, string> = {
+    phy: '/ori2d/ori-physics.png',
+    chem: '/ori2d/ori-chemistry.png',
+    math: '/ori2d/ori-maths.png',
+    bio: '/ori2d/ori-biology.png',
+  };
+
+  const heroOriSrc = lastSession?.subject && SUBJECT_ORI[lastSession.subject]
+    ? SUBJECT_ORI[lastSession.subject]
+    : '/ori2d/ori-cheerful.png';
+
+  const quickTopics: { name: string; subjectKey: SubjectKey | 'general'; icon: typeof Atom; color: string; desc: string; oriImg?: string }[] = [
+    { name: 'Physics', subjectKey: 'phy', icon: Atom, color: 'text-blue-400', desc: 'Chapters & Concepts', oriImg: '/ori2d/ori-physics.png' },
+    { name: 'Chemistry', subjectKey: 'chem', icon: FlaskConical, color: 'text-emerald-400', desc: 'Chapters & Concepts', oriImg: '/ori2d/ori-chemistry.png' },
+    { name: 'Mathematics', subjectKey: 'math', icon: Calculator, color: 'text-violet-400', desc: 'Chapters & Concepts', oriImg: '/ori2d/ori-maths.png' },
+    { name: 'Biology', subjectKey: 'bio', icon: Leaf, color: 'text-green-400', desc: 'Chapters & Concepts', oriImg: '/ori2d/ori-biology.png' },
     { name: 'General', subjectKey: 'general', icon: MessageCircle, color: 'text-amber-400', desc: 'Ask Anything' },
   ];
 
@@ -1179,46 +1192,48 @@ function SelectionView({ onCreate, onUpload, sessions, onSelectSession, lastSess
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-8 py-6 sm:py-10">
 
         {/* Hero */}
-        <div className="neu-raised relative overflow-hidden rounded-3xl p-6 sm:p-9 mb-8">
-          <div className="relative z-10 max-w-2xl">
-            <p className="text-[10px] font-black uppercase tracking-[0.35em] text-primary mb-3">AI Doubt Solver</p>
-            <h2 className="text-2xl sm:text-4xl font-black tracking-tight text-foreground mb-3 leading-[1.1]">
-              Master your subjects with <span className="text-primary">AI precision.</span>
-            </h2>
-            <p className="text-sm sm:text-base text-muted-foreground mb-6 leading-relaxed max-w-xl">
-              Stuck on a problem at 2 AM? Get step-by-step guidance and conceptual deep-dives instantly.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <button
-                id="tutorial-doubt-solver-new"
-                onClick={onStartNewChat}
-                className="inline-flex items-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-black text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary/90"
-              >
-                <Plus className="w-4 h-4" /> Start New Chat
-              </button>
-              {lastSession && (
+        <div className="neu-raised relative overflow-hidden rounded-3xl p-6 sm:p-7 mb-8">
+          <div className="relative z-10 flex items-center gap-5 sm:gap-8">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-primary mb-2.5">AI Doubt Solver</p>
+              <h2 className="text-2xl sm:text-4xl font-black tracking-tight text-foreground leading-[1.1] mb-3">
+                Got a doubt? Let&apos;s crack it <span className="text-primary">together.</span>
+              </h2>
+              <p className="text-sm sm:text-base text-muted-foreground mb-5 leading-relaxed max-w-xl">
+                Stuck on a problem at 2 AM? Snap a photo or just ask — get step-by-step guidance and conceptual deep-dives instantly.
+              </p>
+              <div className="flex flex-wrap gap-3">
                 <button
-                  onClick={() => onSelectSession(lastSession)}
-                  className="neu-btn inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-black text-primary"
+                  id="tutorial-doubt-solver-new"
+                  onClick={onStartNewChat}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-black text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary/90"
                 >
-                  Continue last chat
+                  <Plus className="w-4 h-4" /> Start New Chat
                 </button>
-              )}
-              <button
-                onClick={onUpload}
-                className="neu-btn inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-black text-foreground"
-              >
-                <ImagePlus className="w-4 h-4" /> Scan Problem
-              </button>
+                {lastSession && (
+                  <button
+                    onClick={() => onSelectSession(lastSession)}
+                    className="neu-btn inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-black text-primary"
+                  >
+                    Continue last chat
+                  </button>
+                )}
+                <button
+                  onClick={onUpload}
+                  className="neu-btn inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-black text-foreground"
+                >
+                  <ImagePlus className="w-4 h-4" /> Scan Problem
+                </button>
+              </div>
             </div>
+            {/* Friendlier Ori — large, fills the right-side vertical space */}
+            <img
+              src={heroOriSrc}
+              alt=""
+              draggable={false}
+              className="pointer-events-none hidden shrink-0 select-none object-contain sm:block sm:h-36 sm:w-36 lg:h-44 lg:w-44"
+            />
           </div>
-          {/* Decorative Ori */}
-          <img
-            src="/ori2d/ori-thinking.png"
-            alt=""
-            draggable={false}
-            className="pointer-events-none absolute -bottom-4 right-4 hidden w-36 select-none object-contain opacity-90 sm:block lg:w-44"
-          />
         </div>
 
         {/* Subjects — responsive grid uses the full width */}
@@ -1237,8 +1252,12 @@ function SelectionView({ onCreate, onUpload, sessions, onSelectSession, lastSess
                 }}
                 className="neu-raised group flex flex-col items-start gap-3 rounded-2xl p-4 sm:p-5 text-left transition-transform hover:-translate-y-0.5"
               >
-                <div className="neu-inset flex h-12 w-12 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
-                  <topic.icon className={`h-6 w-6 ${topic.color}`} />
+                <div className="neu-inset flex h-14 w-14 items-center justify-center rounded-xl transition-transform group-hover:scale-105 overflow-hidden">
+                  {topic.oriImg ? (
+                    <img src={topic.oriImg} alt={topic.name} draggable={false} className="w-12 h-12 object-contain select-none" />
+                  ) : (
+                    <topic.icon className={`h-6 w-6 ${topic.color}`} />
+                  )}
                 </div>
                 <div>
                   <p className="text-sm font-black text-foreground sm:text-base">{topic.name}</p>
@@ -1276,8 +1295,12 @@ function SelectionView({ onCreate, onUpload, sessions, onSelectSession, lastSess
                     tabIndex={0}
                   >
                     <div className="flex min-w-0 flex-1 items-center gap-3">
-                      <div className="neu-inset flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl">
-                        <Icon className="h-5 w-5 text-primary" />
+                      <div className="neu-inset flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl overflow-hidden">
+                        {s.subject && SUBJECT_ORI[s.subject] ? (
+                          <img src={SUBJECT_ORI[s.subject]} alt={s.subject} draggable={false} className="w-8 h-8 object-contain select-none" />
+                        ) : (
+                          <Icon className="h-5 w-5 text-primary" />
+                        )}
                       </div>
                       <div className="min-w-0 flex-1">
                         {editingId === s.id ? (

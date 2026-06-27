@@ -58,7 +58,8 @@ function ClientShellInner({ children, connectEnabled, premiumEnabled, socialEnab
   const isTestsPath = pathname === '/tests' || pathname.startsWith('/tests/');
   const isStudyRoomTestPath = /^\/study-rooms\/[^/]+\/test/.test(pathname);
   const isResultPath = pathname.endsWith('/result');
-  const isSpecialPath = pathname.startsWith('/tests/') || pathname.startsWith('/ogcode/') || isStudyRoomTestPath;
+  // Result pages are post-test summaries — keep the nav so students can leave.
+  const isSpecialPath = (pathname.startsWith('/tests/') && !isResultPath) || pathname.startsWith('/ogcode/') || isStudyRoomTestPath;
   const isFullViewportApp = pathname === '/doubt-solver' || (pathname.startsWith('/tests/') && !isResultPath) || pathname.startsWith('/ogcode/') || isStudyRoomTestPath;
   const shouldHideOriginAi = isTestsPath || isStudyRoomTestPath;
 
@@ -145,29 +146,6 @@ function ClientShellInner({ children, connectEnabled, premiumEnabled, socialEnab
     return () => window.clearTimeout(timeoutId);
   }, [mounted]);
 
-  // Route-based default theme initialization
-  React.useEffect(() => {
-    if (!mounted) return;
-
-    const isLanding = pathname === '/';
-    // Define app routes as anything authenticated and not a public/auth page
-    const isApp = !!user && !['/', '/auth', '/role-selection'].includes(pathname);
-
-    if (isLanding) {
-      const landingInit = localStorage.getItem('origin-landing-init');
-      if (!landingInit) {
-        setTheme('dark');
-        localStorage.setItem('origin-landing-init', 'true');
-      }
-    } else if (isApp) {
-      const appInit = localStorage.getItem('origin-app-init');
-      if (!appInit) {
-        setTheme('light');
-        localStorage.setItem('origin-app-init', 'true');
-      }
-    }
-  }, [pathname, user, mounted, setTheme]);
-
   const prefetchRoute = React.useCallback((view: string) => {
     router.prefetch(resolveRoute(view));
   }, [router]);
@@ -199,7 +177,7 @@ function ClientShellInner({ children, connectEnabled, premiumEnabled, socialEnab
     !noNavbarPaths.includes(pathname) &&
     !shouldHideOriginAi;
   
-  const currentTheme = (mounted ? resolvedTheme : 'dark') || 'dark';
+  const currentTheme = (mounted ? resolvedTheme : 'light') || 'light';
   const showNavbar = mounted && !!user && user.role === 'student' && !isNavigationLocked && !noNavbarPaths.includes(pathname) && !isSpecialPath;
 
   return (

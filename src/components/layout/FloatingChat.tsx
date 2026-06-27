@@ -126,23 +126,36 @@ export default function FloatingChat({ onOpen, hideMainButton, userName }: Float
           <AnimatePresence>
             {bubbleVisible && (
               <motion.div
-                initial={{ opacity: 0, scale: 0.85, y: 8 }}
+                initial={{ opacity: 0, scale: 0.8, y: 12 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.85, y: 8 }}
-                transition={{ type: 'spring', stiffness: 320, damping: 22 }}
-                className="relative mr-2 max-w-[180px] rounded-2xl rounded-br-sm border border-border/40 bg-background/95 px-3 py-2 shadow-xl backdrop-blur-md"
+                exit={{ opacity: 0, scale: 0.8, y: 12 }}
+                transition={{ type: 'spring', stiffness: 280, damping: 20 }}
+                className="relative mr-12 w-[180px]"
               >
-                <button
-                  type="button"
-                  onClick={() => setBubbleVisible(false)}
-                  className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-destructive/20 hover:text-destructive"
-                  aria-label="Dismiss"
+                {/* Cloud body */}
+                <div
+                  className="relative bg-white dark:bg-slate-800 px-4 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.14),0_2px_8px_rgba(99,102,241,0.10)] border border-white/80 dark:border-slate-700/60"
+                  style={{ borderRadius: '22px 22px 22px 6px' }}
                 >
-                  <X className="h-2.5 w-2.5" />
-                </button>
-                <p className="text-[11px] font-medium leading-snug text-foreground">{bubbleText}</p>
-                {/* Tail pointing down-right toward mascot */}
-                <div className="absolute -bottom-[7px] right-3 h-3 w-3 rotate-45 border-b border-r border-border/40 bg-background/95" />
+                  {/* Subtle gradient overlay for cloud depth */}
+                  <div
+                    className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/60 via-transparent to-primary/5 dark:from-slate-700/40"
+                    style={{ borderRadius: 'inherit' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setBubbleVisible(false)}
+                    className="absolute -right-1.5 -top-1.5 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-red-100 hover:text-red-400 dark:bg-slate-700 dark:text-slate-400 shadow-sm"
+                    aria-label="Dismiss"
+                  >
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                  <p className="relative z-10 text-[11px] font-semibold leading-snug text-slate-700 dark:text-slate-200">{bubbleText}</p>
+                </div>
+                {/* Cloud tail pointing down-right toward mascot */}
+                <div
+                  className="absolute -bottom-[6px] right-3 h-3.5 w-3.5 rotate-45 bg-white dark:bg-slate-800 border-b border-r border-white/80 dark:border-slate-700/60 shadow-[2px_2px_4px_rgba(0,0,0,0.08)]"
+                />
               </motion.div>
             )}
           </AnimatePresence>
@@ -162,12 +175,12 @@ export default function FloatingChat({ onOpen, hideMainButton, userName }: Float
             <div className="relative group">
               <div className="absolute inset-0 rounded-full bg-primary/20 blur-2xl scale-0 transition-transform duration-500 group-hover:scale-150" />
               <div className="absolute inset-0 z-0 flex items-center justify-center text-blue-100">
-                <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7" />
+                <Sparkles className="h-4 w-4 lg:h-5 lg:w-5" />
               </div>
-              <div className="relative z-10 block h-36 w-36 drop-shadow-2xl lg:h-[267px] lg:w-[282px]">
+              <div className="relative z-10 block h-24 w-24 drop-shadow-2xl lg:h-28 lg:w-28">
                 <OriMascot state={hovered ? 'curious' : 'idle'} title="Origin AI" preload={false} />
               </div>
-              <div className="absolute right-2 top-2 z-20 h-3 w-3 rounded-full border-2 border-white bg-primary shadow-md dark:border-slate-900 sm:right-2.5 sm:top-2.5 sm:h-3.5 sm:w-3.5 lg:right-4 lg:top-4 lg:h-4 lg:w-4" />
+              <div className="absolute right-1.5 top-1.5 z-20 h-3 w-3 rounded-full border-2 border-white bg-primary shadow-md dark:border-slate-900 lg:right-2 lg:top-2 lg:h-3.5 lg:w-3.5" />
             </div>
           </motion.button>
         </div>

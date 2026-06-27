@@ -12,7 +12,6 @@ import {
   ChallengeCard,
   type DashboardChallengePreview,
   PastActivitiesCard,
-  PlacesToConcentrateCard,
   TodoListCard,
 } from '@/components/dashboard/DashboardCards';
 import PointsSummary from '@/components/dashboard/PointsSummary';
@@ -136,6 +135,14 @@ export default function Dashboard({
   
   const [regStatus, setRegStatus] = useState<{ count: number; limit: number; seatsLeft: number } | null>(null);
 
+  // Live practice stats from the backend (solved count, streak, rank, accuracy).
+  const [userStats, setUserStats] = useState<{
+    solvedCount: number;
+    streak: number;
+    rank: number | null;
+    accuracy: number;
+  } | null>(null);
+
   useEffect(() => {
     const fetchRegStatus = async () => {
       const status = await getRegistrationStatusAction();
@@ -212,6 +219,12 @@ export default function Dashboard({
     const checkAchievements = async () => {
       try {
         const stats = await apiCall('/assessments/ogcode/user-stats/', { silentAuth: true });
+        setUserStats({
+          solvedCount: Number(stats.solvedCount ?? 0),
+          streak: Number(stats.streak ?? 0),
+          rank: stats.rank ?? null,
+          accuracy: Number(stats.accuracy ?? 0),
+        });
         const newAchievements = stats.achievements || {};
         
         // Initial load - don't notify
@@ -306,17 +319,6 @@ export default function Dashboard({
     return Math.floor(((t.practiceTime || 0) + (t.webpageTime || 0) + (t.pomodoroTime || 0)) / 60);
   }, [user.timeAnalytics]);
 
-  const TIER_BADGE: Record<string, string> = {
-    Novice: 'text-slate-500 border-slate-300 bg-slate-100 dark:bg-slate-800',
-    Learner: 'text-blue-600 border-blue-300 bg-blue-50 dark:bg-blue-900/30',
-    Scholar: 'text-indigo-600 border-indigo-300 bg-indigo-50 dark:bg-indigo-900/30',
-    Expert: 'text-violet-600 border-violet-300 bg-violet-50 dark:bg-violet-900/30',
-    Master: 'text-pink-600 border-pink-300 bg-pink-50 dark:bg-pink-900/30',
-    Grandmaster: 'text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-900/30',
-    Legend: 'text-primary border-primary/40 bg-primary/10',
-  };
-  const tierBadgeCls = pointsData ? (TIER_BADGE[pointsData.currentTier] ?? TIER_BADGE.Novice) : TIER_BADGE.Novice;
-
   const stagger = (i: number) => ({ initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.35, delay: 0.06 * i } });
 
   return (
@@ -343,20 +345,6 @@ export default function Dashboard({
           <div className="flex items-start justify-between gap-4">
             {/* Left */}
             <div className="flex-1 min-w-0 space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className={`text-[10px] font-black uppercase tracking-[0.18em] px-2.5 py-1 rounded-full border ${tierBadgeCls}`}>
-                  {pointsData?.currentTier ?? 'Novice'}
-                </span>
-                {streakCount > 0 && (
-                  <motion.span
-                    animate={{ scale: [1, 1.12, 1] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                    className="flex items-center gap-1 text-[11px] font-black text-orange-500"
-                  >
-                    <Flame className="w-3.5 h-3.5" />{streakCount} day streak
-                  </motion.span>
-                )}
-              </div>
               <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight leading-tight">
                 {getGreeting()},<br className="sm:hidden" /> {displayName}!
               </h1>
@@ -395,12 +383,16 @@ export default function Dashboard({
 
         {/* ── QUICK STATS STRIP ─────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {([
-            { icon: BookOpen,   color: 'text-emerald-500', label: 'Solved',      value: totalSolved.toLocaleString() },
-            { icon: Flame,      color: 'text-orange-500',  label: 'Day Streak',  value: streakCount > 0 ? String(streakCount) : '—' },
-            { icon: Award,      color: 'text-violet-500',  label: 'Rank',        value: pointsData?.currentTier ?? '—' },
-            { icon: TrendingUp, color: 'text-cyan-500',    label: 'Today',       value: todayStudyMins > 0 ? `${todayStudyMins}m` : '—' },
-          ] as const).map((s, i) => (
+          {(() => {
+            const solved = userStats?.solvedCount ?? totalSolved;
+            const streak = userStats?.streak ?? streakCount;
+            return [
+              { icon: BookOpen,   color: 'text-emerald-500', label: 'Solved',     value: solved.toLocaleString() },
+              { icon: Flame,      color: 'text-orange-500',  label: 'Day Streak', value: streak > 0 ? String(streak) : '—' },
+              { icon: Award,      color: 'text-violet-500',  label: 'Rank',       value: pointsData?.currentTier ?? '—' },
+              { icon: TrendingUp, color: 'text-cyan-500',    label: 'Today',      value: todayStudyMins > 0 ? `${todayStudyMins}m` : '—' },
+            ];
+          })().map((s, i) => (
             <motion.div key={s.label} {...stagger(i + 2)} className="neu-raised p-4 flex flex-col gap-1.5">
               <s.icon className={`w-4 h-4 ${s.color}`} />
               <p className="text-xl font-black text-foreground leading-none">{s.value}</p>
@@ -430,11 +422,8 @@ export default function Dashboard({
           </div>
         </div>
 
-        {/* ── ACTIVITY + FOCUS ──────────────────────────────────── */}
-        <div className={cn('grid gap-4', isConstrained ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2')}>
-          <motion.div {...stagger(11)} id="tutorial-activities"><PastActivitiesCard user={user} /></motion.div>
-          <motion.div {...stagger(12)} id="tutorial-focus"><PlacesToConcentrateCard user={user} /></motion.div>
-        </div>
+        {/* ── ACTIVITY ──────────────────────────────────────────── */}
+        <motion.div {...stagger(11)} id="tutorial-activities"><PastActivitiesCard user={user} /></motion.div>
 
         {/* ── TASKS ─────────────────────────────────────────────── */}
         <motion.div {...stagger(13)} id="tutorial-todo">

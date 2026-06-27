@@ -164,7 +164,7 @@
     box-shadow:
       var(--neu-dist) var(--neu-dist) var(--neu-blur) hsl(var(--neu-shadow)),
       calc(var(--neu-dist) * -1) calc(var(--neu-dist) * -1) var(--neu-blur) hsl(var(--neu-light)) !important;
-    transform: translateZ(0);
+    will-change: transform;
   }
   .neu-inset {
     background-color: hsl(var(--neu-bg)) !important;
@@ -172,7 +172,7 @@
     box-shadow:
       inset var(--neu-dist) var(--neu-dist) var(--neu-blur) hsl(var(--neu-shadow)),
       inset calc(var(--neu-dist) * -1) calc(var(--neu-dist) * -1) var(--neu-blur) hsl(var(--neu-light)) !important;
-    transform: translateZ(0);
+    will-change: transform;
   }
   .neu-pressable {
     transition: box-shadow 0.2s ease, transform 0.1s ease;
@@ -309,6 +309,85 @@
 @keyframes mentor-marquee {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
+}
+
+/* ── Skeuomorphic on/off toggle (Pomodoro "Zen / Atmosphere") ──────────── */
+.zen-toggle-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  border-radius: .5em;
+  padding: .125em;
+  background-image: linear-gradient(to bottom, #d5d5d5, #e8e8e8);
+  box-shadow: 0 1px 1px rgb(255 255 255 / .6);
+  font-size: 15px;
+}
+.zen-toggle-checkbox {
+  appearance: none;
+  position: absolute;
+  z-index: 1;
+  border-radius: inherit;
+  width: 100%;
+  height: 100%;
+  font: inherit;
+  opacity: 0;
+  cursor: pointer;
+}
+.zen-toggle-container {
+  display: flex;
+  align-items: center;
+  position: relative;
+  border-radius: .375em;
+  width: 3em;
+  height: 1.5em;
+  background-color: #e8e8e8;
+  box-shadow: inset 0 0 .0625em .125em rgb(255 255 255 / .2), inset 0 .0625em .125em rgb(0 0 0 / .4);
+  transition: background-color .4s linear;
+}
+.zen-toggle-checkbox:checked + .zen-toggle-container {
+  background-color: #f3b519;
+}
+.zen-toggle-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  left: .0625em;
+  border-radius: .3125em;
+  width: 1.375em;
+  height: 1.375em;
+  background-color: #e8e8e8;
+  box-shadow: inset 0 -.0625em .0625em .125em rgb(0 0 0 / .1), inset 0 -.125em .0625em rgb(0 0 0 / .2), inset 0 .1875em .0625em rgb(255 255 255 / .3), 0 .125em .125em rgb(0 0 0 / .5);
+  transition: left .4s;
+}
+.zen-toggle-checkbox:checked + .zen-toggle-container > .zen-toggle-button {
+  left: 1.5625em;
+}
+.zen-toggle-button-circles-container {
+  display: grid;
+  grid-template-columns: repeat(3, min-content);
+  gap: .125em;
+  position: absolute;
+  margin: 0 auto;
+}
+.zen-toggle-button-circle {
+  border-radius: 50%;
+  width: .125em;
+  height: .125em;
+  background-image: radial-gradient(circle at 50% 0, #f5f5f5, #c4c4c4);
+}
+
+/* ── Shared chat canvas — WhatsApp-inspired doodle wallpaper, recoloured
+   for Origin. Apply `.chat-canvas` to any chat message scroll container. ─── */
+.chat-canvas {
+  background-color: hsl(var(--muted) / 0.35);
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22340%22%20height%3D%22300%22%20viewBox%3D%220%200%20340%20300%22%20fill%3D%22none%22%3E%3Cg%20fill%3D%22%232bb1ff%22%20fill-opacity%3D%220.08%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-weight%3D%22700%22%3E%3Ctext%20x%3D%2216%22%20y%3D%2246%22%20font-size%3D%2230%22%3EJEE%3C%2Ftext%3E%3Ctext%20x%3D%22158%22%20y%3D%2240%22%20font-size%3D%2226%22%3ENEET%3C%2Ftext%3E%3Ctext%20x%3D%22262%22%20y%3D%2264%22%20font-size%3D%2246%22%3E%3F%3C%2Ftext%3E%3Ctext%20x%3D%2228%22%20y%3D%22150%22%20font-size%3D%2224%22%3EDoubts%3C%2Ftext%3E%3Ctext%20x%3D%22150%22%20y%3D%22182%22%20font-size%3D%2224%22%3EAnswers%3C%2Ftext%3E%3Ctext%20x%3D%2240%22%20y%3D%22252%22%20font-size%3D%2220%22%3EWhy%3F%3C%2Ftext%3E%3Ctext%20x%3D%22206%22%20y%3D%22250%22%20font-size%3D%2220%22%3EE%3Dmc2%3C%2Ftext%3E%3Ctext%20x%3D%22258%22%20y%3D%22150%22%20font-size%3D%2219%22%3EH2O%3C%2Ftext%3E%3Ctext%20x%3D%22120%22%20y%3D%22290%22%20font-size%3D%2218%22%3EFocus%3C%2Ftext%3E%3C%2Fg%3E%3Cg%20stroke%3D%22%232bb1ff%22%20stroke-opacity%3D%220.08%22%20stroke-width%3D%222%22%3E%3Ccircle%20cx%3D%22112%22%20cy%3D%2296%22%20r%3D%2211%22%2F%3E%3Cellipse%20cx%3D%22112%22%20cy%3D%2296%22%20rx%3D%2220%22%20ry%3D%228%22%2F%3E%3Cellipse%20cx%3D%22112%22%20cy%3D%2296%22%20rx%3D%228%22%20ry%3D%2220%22%2F%3E%3Cpath%20d%3D%22M276%20104a13%2013%200%201%200%200.1%200%22%2F%3E%3Cpath%20d%3D%22M270%20122h12M271%20128h10%22%2F%3E%3Cpath%20d%3D%22M30%2096v14M23%20103h14%22%2F%3E%3Cpath%20d%3D%22M312%20206v12M306%20212h12%22%2F%3E%3Cpath%20d%3D%22M150%2096q9-12%2018%200t18%200%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E");
+  background-repeat: repeat;
+}
+.dark .chat-canvas {
+  background-color: #070b14;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22340%22%20height%3D%22300%22%20viewBox%3D%220%200%20340%20300%22%20fill%3D%22none%22%3E%3Cg%20fill%3D%22%232bb1ff%22%20fill-opacity%3D%220.12%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-weight%3D%22700%22%3E%3Ctext%20x%3D%2216%22%20y%3D%2246%22%20font-size%3D%2230%22%3EJEE%3C%2Ftext%3E%3Ctext%20x%3D%22158%22%20y%3D%2240%22%20font-size%3D%2226%22%3ENEET%3C%2Ftext%3E%3Ctext%20x%3D%22262%22%20y%3D%2264%22%20font-size%3D%2246%22%3E%3F%3C%2Ftext%3E%3Ctext%20x%3D%2228%22%20y%3D%22150%22%20font-size%3D%2224%22%3EDoubts%3C%2Ftext%3E%3Ctext%20x%3D%22150%22%20y%3D%22182%22%20font-size%3D%2224%22%3EAnswers%3C%2Ftext%3E%3Ctext%20x%3D%2240%22%20y%3D%22252%22%20font-size%3D%2220%22%3EWhy%3F%3C%2Ftext%3E%3Ctext%20x%3D%22206%22%20y%3D%22250%22%20font-size%3D%2220%22%3EE%3Dmc2%3C%2Ftext%3E%3Ctext%20x%3D%22258%22%20y%3D%22150%22%20font-size%3D%2219%22%3EH2O%3C%2Ftext%3E%3Ctext%20x%3D%22120%22%20y%3D%22290%22%20font-size%3D%2218%22%3EFocus%3C%2Ftext%3E%3C%2Fg%3E%3Cg%20stroke%3D%22%232bb1ff%22%20stroke-opacity%3D%220.12%22%20stroke-width%3D%222%22%3E%3Ccircle%20cx%3D%22112%22%20cy%3D%2296%22%20r%3D%2211%22%2F%3E%3Cellipse%20cx%3D%22112%22%20cy%3D%2296%22%20rx%3D%2220%22%20ry%3D%228%22%2F%3E%3Cellipse%20cx%3D%22112%22%20cy%3D%2296%22%20rx%3D%228%22%20ry%3D%2220%22%2F%3E%3Cpath%20d%3D%22M276%20104a13%2013%200%201%200%200.1%200%22%2F%3E%3Cpath%20d%3D%22M270%20122h12M271%20128h10%22%2F%3E%3Cpath%20d%3D%22M30%2096v14M23%20103h14%22%2F%3E%3Cpath%20d%3D%22M312%20206v12M306%20212h12%22%2F%3E%3Cpath%20d%3D%22M150%2096q9-12%2018%200t18%200%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E");
 }
 @media (prefers-reduced-motion: reduce) {
   .mentor-marquee-track { animation: none; }
