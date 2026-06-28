@@ -20,12 +20,14 @@ interface DashboardClientProps {
     recentLogs: { points: number; type: string; description: string; timestamp: string }[];
   } | null;
   initialChallenge: DashboardChallengePreview | null;
+  initialRegStatus: { count: number; limit: number; seatsLeft: number } | null;
 }
 
 export default function DashboardClient({
   initialTasks,
   initialPointsData,
   initialChallenge,
+  initialRegStatus,
 }: DashboardClientProps) {
   const { user, tasks, addTask, editTask, toggleTask, removeTask, primeTasks } = useAuth();
   const router = useRouter();
@@ -77,6 +79,7 @@ export default function DashboardClient({
       onRemoveTask={removeTask}
       initialPointsData={initialPointsData}
       initialChallenge={initialChallenge}
+      initialRegStatus={initialRegStatus}
     />
   );
 }

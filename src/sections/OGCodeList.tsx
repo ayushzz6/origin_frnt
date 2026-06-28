@@ -8,7 +8,7 @@ import {
     CheckCircle2, Search,
     Trophy, Zap, Flame, Brain, Circle,
     TrendingUp, Atom, Beaker, Calculator, Leaf,
-    ChevronRight, Target, Shuffle, ArrowRight, X, Info, Gauge
+    ChevronRight, Target, Shuffle, ArrowRight, X, Info
 } from 'lucide-react';
 import { apiCall } from '@/lib/api';
 import type { PracticeQuestion, PracticeQuestionPage, SubjectRank, User } from '@/types';
@@ -594,7 +594,7 @@ export default function OGCodeList({
             selectedChapters.length ? `${selectedChapters.length} chapter${selectedChapters.length > 1 ? 's' : ''}` : null,
             searchQuery.trim() ? `“${searchQuery.trim()}”` : null,
         ].filter(Boolean).join(' · ') || 'All questions';
-        saveOgcodeNavQueue({ ids: filteredQuestions.map(q => String(q.id)), label });
+        saveOgcodeNavQueue({ ids: filteredQuestions.map(q => String(q.id)), label, filterParams: searchParams.toString() || null });
         // filteredIdsKey captures order+membership; other deps feed the label.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filteredIdsKey, activeSubject, activeDifficulty, activeStatus, selectedChapters, searchQuery]);
@@ -614,7 +614,7 @@ export default function OGCodeList({
             <div className="max-w-[1400px] mx-auto px-3 sm:px-6 lg:px-8 pt-6 space-y-5">
 
                 {/* ── Header ── */}
-                <div className="flex flex-col md:flex-row md:items-start justify-between gap-5">
+                <div className="sticky top-0 z-[200] -mx-3 sm:-mx-6 lg:-mx-8 px-3 sm:px-6 lg:px-8 py-4 neu-surface border-b border-border/20 shadow-sm flex flex-col md:flex-row md:items-start justify-between gap-5">
                     <motion.div
                         initial={{ opacity: 0, y: -16 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -1045,16 +1045,17 @@ export default function OGCodeList({
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.94, y: 18 }}
                             transition={{ type: 'spring', stiffness: 260, damping: 26 }}
-                            className="relative z-10 w-full max-w-lg max-h-[85vh] overflow-y-auto custom-scrollbar neu-surface rounded-2xl border border-border/40 p-6 shadow-2xl"
+                            className="relative z-10 w-full max-w-md max-h-[85vh] overflow-y-auto custom-scrollbar neu-surface rounded-2xl border border-border/40 p-6 shadow-2xl"
                         >
-                            <div className="flex items-start justify-between gap-4 mb-4">
+                            {/* Header */}
+                            <div className="flex items-start justify-between gap-4 mb-5">
                                 <div className="flex items-center gap-3">
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                                        <Gauge className="h-5 w-5" />
+                                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 p-1">
+                                        <img src="/ori2d/ori-curious.png" alt="" draggable={false} className="h-full w-full object-contain select-none" />
                                     </div>
                                     <div>
-                                        <h2 className="text-lg font-black tracking-tight text-foreground">How your OGCODE score works</h2>
-                                        <p className="text-xs text-muted-foreground">Every question you attempt is scored on <span className="font-bold text-foreground">accuracy × speed</span>.</p>
+                                        <h2 className="text-lg font-black tracking-tight text-foreground leading-tight">How points are scored</h2>
+                                        <p className="text-xs text-muted-foreground">Two things decide your score: how hard, and how fast.</p>
                                     </div>
                                 </div>
                                 <button
@@ -1067,65 +1068,95 @@ export default function OGCodeList({
                                 </button>
                             </div>
 
-                            <div className="space-y-4 text-sm text-foreground/90">
-                                <div>
-                                    <p className="font-bold text-foreground mb-2 flex items-center gap-2"><Target className="h-4 w-4 text-primary" /> 1 · Base points by difficulty</p>
-                                    <div className="grid grid-cols-4 gap-2">
-                                        {[
-                                            { label: 'Easy', pts: 10, cls: 'text-emerald-500' },
-                                            { label: 'Medium', pts: 25, cls: 'text-amber-500' },
-                                            { label: 'Hard', pts: 50, cls: 'text-rose-500' },
-                                            { label: 'Insane', pts: 100, cls: 'text-indigo-500' },
-                                        ].map((d) => (
-                                            <div key={d.label} className="neu-inset rounded-xl px-2 py-2.5 text-center">
-                                                <div className={cn('text-lg font-black leading-none', d.cls)}>{d.pts}</div>
-                                                <div className="mt-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{d.label}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <p className="font-bold text-foreground mb-2 flex items-center gap-2"><Zap className="h-4 w-4 text-primary" /> 2 · Speed multiplier (0.55× – 1.35×)</p>
-                                    <p className="text-xs text-muted-foreground mb-2">
-                                        Each difficulty has a target time (Easy 45s · Medium 90s · Hard 180s · Insane 300s). Beat it and you earn a bonus; take much longer and the multiplier drops.
-                                    </p>
-                                    <div className="space-y-1.5">
-                                        {[
-                                            { band: 'Blazing', desc: '≤ half the target time', mult: '1.35×', cls: 'text-emerald-500' },
-                                            { band: 'Fast', desc: 'comfortably under target', mult: '~1.1–1.35×', cls: 'text-emerald-400' },
-                                            { band: 'Steady', desc: 'around the target time', mult: '~0.9–1.0×', cls: 'text-amber-500' },
-                                            { band: 'Deliberate', desc: 'noticeably over target', mult: '~0.7–0.9×', cls: 'text-orange-500' },
-                                            { band: 'Slow', desc: 'over 1.75× the target', mult: '0.55×', cls: 'text-rose-500' },
-                                        ].map((s) => (
-                                            <div key={s.band} className="flex items-center justify-between gap-3 rounded-lg neu-inset px-3 py-1.5">
-                                                <div className="flex items-baseline gap-2">
-                                                    <span className={cn('text-xs font-black uppercase tracking-wide', s.cls)}>{s.band}</span>
-                                                    <span className="text-[11px] text-muted-foreground">{s.desc}</span>
-                                                </div>
-                                                <span className="text-xs font-bold text-foreground tabular-nums">{s.mult}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <p className="font-bold text-foreground mb-2 flex items-center gap-2"><Trophy className="h-4 w-4 text-primary" /> 3 · Your score</p>
-                                    <div className="rounded-xl neu-inset px-4 py-3 space-y-2">
-                                        <p className="text-center text-sm font-bold text-foreground">
-                                            Score = round(<span className="text-primary">base points</span> × <span className="text-primary">speed multiplier</span>) + 5
-                                        </p>
-                                        <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
-                                            <li>A <span className="font-bold text-foreground">correct</span> answer earns the score above (minimum 5).</li>
-                                            <li>A <span className="font-bold text-foreground">wrong</span> answer scores 0 — but you can keep retrying.</li>
-                                            <li>Points count toward your total &amp; national rank only the <span className="font-bold text-foreground">first time</span> you solve a question correctly.</li>
-                                        </ul>
-                                    </div>
-                                </div>
-
-                                <p className="text-[11px] text-muted-foreground/80 italic">
-                                    Tip: solving harder questions quickly is the fastest way to climb the leaderboard.
+                            {/* The exact formula, up front */}
+                            <div className="neu-inset rounded-xl px-4 py-3.5 text-center mb-6">
+                                <p className="text-[15px] font-black text-foreground tabular-nums leading-tight flex items-center justify-center gap-1.5 flex-wrap">
+                                    <span className="text-amber-500">Base</span>
+                                    <span className="text-muted-foreground">×</span>
+                                    <span className="text-emerald-500">Speed</span>
+                                    <span className="text-muted-foreground">+ 5</span>
                                 </p>
+                                <p className="mt-1 text-[11px] text-muted-foreground">The base value, scaled by how fast you solve it, plus a 5-point floor.</p>
+                            </div>
+
+                            {/* Step 1 — Base value by difficulty */}
+                            <div className="mb-6">
+                                <p className="mb-2.5 flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+                                    <Target className="h-3.5 w-3.5 text-amber-500" /> 1 · The base value
+                                </p>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {[
+                                        { label: 'Easy', pts: 10, cls: 'text-emerald-500' },
+                                        { label: 'Medium', pts: 25, cls: 'text-amber-500' },
+                                        { label: 'Hard', pts: 50, cls: 'text-rose-500' },
+                                        { label: 'Insane', pts: 100, cls: 'text-indigo-500' },
+                                    ].map((d) => (
+                                        <div key={d.label} className="neu-inset rounded-xl px-2 py-2.5 text-center">
+                                            <div className={cn('text-lg font-black leading-none tabular-nums', d.cls)}>{d.pts}</div>
+                                            <div className="mt-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{d.label}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Step 2 — Speed multiplier */}
+                            <div className="mb-6">
+                                <p className="mb-2.5 flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+                                    <Zap className="h-3.5 w-3.5 text-emerald-500" /> 2 · The speed multiplier
+                                </p>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {[
+                                        { band: 'Fast', cond: '≤ ½ target time', mult: '1.35×', cls: 'text-emerald-500' },
+                                        { band: 'On time', cond: 'at target time', mult: '1.0×', cls: 'text-amber-500' },
+                                        { band: 'Slow', cond: '> 1.75× target', mult: '0.55×', cls: 'text-rose-500' },
+                                    ].map((s) => (
+                                        <div key={s.band} className="neu-inset rounded-xl px-2 py-2.5 text-center">
+                                            <div className={cn('text-base font-black leading-none tabular-nums', s.cls)}>{s.mult}</div>
+                                            <div className="mt-1 text-[10px] font-bold text-foreground">{s.band}</div>
+                                            <div className="text-[9px] text-muted-foreground leading-tight mt-0.5">{s.cond}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <p className="mt-2 text-[10px] text-muted-foreground/80 text-center">
+                                    Scales smoothly in between. Target time — Easy 45s · Medium 90s · Hard 180s · Insane 300s.
+                                </p>
+                            </div>
+
+                            {/* Worked example — the "aha" */}
+                            <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 p-3.5">
+                                <p className="mb-2.5 text-[11px] font-black uppercase tracking-widest text-primary">
+                                    See it: one <span className="text-rose-500">Hard</span> question (base 50)
+                                </p>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {[
+                                        { band: 'Fast', mult: '×1.35', pts: 73, cls: 'text-emerald-500' },
+                                        { band: 'On time', mult: '×1.0', pts: 55, cls: 'text-amber-500' },
+                                        { band: 'Slow', mult: '×0.55', pts: 33, cls: 'text-rose-500' },
+                                    ].map((e) => (
+                                        <div key={e.band} className="rounded-lg neu-surface border border-border/40 px-2 py-2.5 text-center">
+                                            <div className="text-[10px] font-bold text-muted-foreground">{e.band}</div>
+                                            <div className={cn('text-[10px] font-black tabular-nums mt-0.5', e.cls)}>{e.mult}</div>
+                                            <div className="mt-1 text-xl font-black text-foreground tabular-nums leading-none">{e.pts}</div>
+                                            <div className="text-[8px] font-bold uppercase tracking-wider text-muted-foreground">points</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* The rules that actually matter */}
+                            <div className="space-y-2 rounded-xl neu-inset px-4 py-3">
+                                {[
+                                    { good: true, text: 'A correct answer earns the points above — never less than 5.' },
+                                    { good: false, text: 'A wrong answer scores 0. Retry as many times as you like.' },
+                                    { good: true, text: 'It counts toward your rank only the first time you solve it.' },
+                                ].map((r, i) => (
+                                    <div key={i} className="flex items-start gap-2.5 text-xs text-foreground/90">
+                                        {r.good
+                                            ? <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-emerald-500" />
+                                            : <X className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-rose-500" />}
+                                        <span>{r.text}</span>
+                                    </div>
+                                ))}
                             </div>
                         </motion.div>
                     </motion.div>

@@ -10,11 +10,12 @@ import OriMascotStatic from '@/features/mascot/OriMascotStatic';
 
 const OriMascot = dynamic(() => import('@/features/mascot/OriMascot'), { ssr: false });
 
+// Kept short so each greeting fits on a single line inside the cloud.
 const GREET_MESSAGES = [
-  (name: string) => `Hey ${name}! 👋 I'm Ori — ask me anything`,
-  (name: string) => `Hi ${name}! Stuck? I've got you `,
-  (name: string) => `${name}, let's crack this together `,
-  (name: string) => `Need a hint, ${name}? I'm right here 💡`,
+  (name: string) => `Hey ${name}! Ask me anything 👋`,
+  (name: string) => `Stuck, ${name}? I've got you 💡`,
+  (name: string) => `Let's crack this, ${name}! ✨`,
+  (name: string) => `Need a hint, ${name}? 💡`,
 ];
 
 interface FloatingChatProps {
@@ -122,7 +123,7 @@ export default function FloatingChat({ onOpen, hideMainButton, userName }: Float
       {!hideMainButton && (
         <div ref={containerRef} className="fixed bottom-24 right-4 sm:bottom-28 sm:right-6 lg:bottom-6 lg:right-6 z-50 flex flex-col items-end gap-2">
 
-          {/* Speech bubble */}
+          {/* Glossy 3D cloud thought-bubble — the greeting sits inside the cloud on one line */}
           <AnimatePresence>
             {bubbleVisible && (
               <motion.div
@@ -130,32 +131,53 @@ export default function FloatingChat({ onOpen, hideMainButton, userName }: Float
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.8, y: 12 }}
                 transition={{ type: 'spring', stiffness: 280, damping: 20 }}
-                className="relative mr-12 w-[180px]"
+                className="relative mr-10 text-white dark:text-slate-100"
               >
-                {/* Cloud body */}
-                <div
-                  className="relative bg-white dark:bg-slate-800 px-4 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.14),0_2px_8px_rgba(99,102,241,0.10)] border border-white/80 dark:border-slate-700/60"
-                  style={{ borderRadius: '22px 22px 22px 6px' }}
-                >
-                  {/* Subtle gradient overlay for cloud depth */}
-                  <div
-                    className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/60 via-transparent to-primary/5 dark:from-slate-700/40"
-                    style={{ borderRadius: 'inherit' }}
-                  />
+                {/* Cloud shape, stretched to hug the one-line message behind it */}
+                <div className="relative px-7 py-4">
+                  <svg
+                    viewBox="0 0 300 130"
+                    preserveAspectRatio="none"
+                    className="pointer-events-none absolute inset-0 h-full w-full"
+                    aria-hidden
+                  >
+                    <defs>
+                      <filter id="ori-cloud-shadow" x="-20%" y="-20%" width="140%" height="150%">
+                        <feDropShadow dx="0" dy="5" stdDeviation="7" floodColor="rgba(15,23,42,0.18)" />
+                      </filter>
+                    </defs>
+                    <g filter="url(#ori-cloud-shadow)" fill="currentColor">
+                      <ellipse cx="150" cy="84" rx="138" ry="40" />
+                      <circle cx="58" cy="66" r="30" />
+                      <circle cx="116" cy="50" r="38" />
+                      <circle cx="184" cy="48" r="40" />
+                      <circle cx="244" cy="66" r="31" />
+                      <circle cx="30" cy="84" r="22" />
+                      <circle cx="272" cy="84" r="22" />
+                    </g>
+                    {/* top gloss highlight for the 3D sheen */}
+                    <ellipse cx="135" cy="46" rx="74" ry="15" fill="#ffffff" opacity="0.5" />
+                    {/* soft bottom contact shading for depth */}
+                    <ellipse cx="150" cy="112" rx="120" ry="12" fill="rgba(15,23,42,0.05)" />
+                  </svg>
+
                   <button
                     type="button"
                     onClick={() => setBubbleVisible(false)}
-                    className="absolute -right-1.5 -top-1.5 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-red-100 hover:text-red-400 dark:bg-slate-700 dark:text-slate-400 shadow-sm"
+                    className="absolute right-1 top-1 z-20 flex h-4 w-4 items-center justify-center rounded-full bg-slate-100 text-slate-400 shadow-sm hover:bg-red-100 hover:text-red-400 dark:bg-slate-700 dark:text-slate-300"
                     aria-label="Dismiss"
                   >
                     <X className="h-2.5 w-2.5" />
                   </button>
-                  <p className="relative z-10 text-[11px] font-semibold leading-snug text-slate-700 dark:text-slate-200">{bubbleText}</p>
+
+                  <p className="relative z-10 whitespace-nowrap text-center text-[12px] font-bold leading-none text-slate-700 dark:text-slate-800">
+                    {bubbleText}
+                  </p>
                 </div>
-                {/* Cloud tail pointing down-right toward mascot */}
-                <div
-                  className="absolute -bottom-[6px] right-3 h-3.5 w-3.5 rotate-45 bg-white dark:bg-slate-800 border-b border-r border-white/80 dark:border-slate-700/60 shadow-[2px_2px_4px_rgba(0,0,0,0.08)]"
-                />
+
+                {/* Thought-bubble trailing puffs toward the mascot (down-right) */}
+                <span className="absolute -bottom-1 right-6 h-3 w-3 rounded-full bg-current shadow-[0_2px_4px_rgba(15,23,42,0.15)]" />
+                <span className="absolute -bottom-3 right-3 h-2 w-2 rounded-full bg-current shadow-[0_2px_4px_rgba(15,23,42,0.15)]" />
               </motion.div>
             )}
           </AnimatePresence>

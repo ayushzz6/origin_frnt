@@ -15,6 +15,13 @@ export interface OgcodeNavQueue {
   ids: string[];
   /** Human-readable summary of the active filter (e.g. "Physics · Hard"). */
   label?: string | null;
+  /**
+   * URL search-param string that was active when the queue was built
+   * (e.g. "subject=phy&difficulty=easy"). Used by the workspace to:
+   * 1. Fetch more questions with the same filter on "Load More"
+   * 2. Return to the list with filters intact via the back button
+   */
+  filterParams?: string | null;
 }
 
 export function saveOgcodeNavQueue(queue: OgcodeNavQueue): void {
@@ -33,7 +40,7 @@ export function readOgcodeNavQueue(): OgcodeNavQueue | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as OgcodeNavQueue;
     if (parsed && Array.isArray(parsed.ids)) {
-      return { ids: parsed.ids.map(String), label: parsed.label ?? null };
+      return { ids: parsed.ids.map(String), label: parsed.label ?? null, filterParams: parsed.filterParams ?? null };
     }
   } catch {
     /* ignore malformed payloads */

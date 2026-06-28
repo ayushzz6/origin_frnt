@@ -157,6 +157,72 @@ export type UserStatsSnapshot = {
   };
 };
 
+// ── Per-store memoisation for the expensive global aggregations ──────────────
+// buildUserStatsSnapshot used to (a) `store.questions.find(...)` inside a
+// per-attempt loop — O(attempts × questions) — and (b) rebuild the global
+// solved-count ranking over EVERY user's practice attempts on every call, so
+// computing snapshots for N users was O(N × allAttempts). Both inputs only
+// change when the store is rewritten, and every write re-hydrates a *fresh*
+// store object (readStoreAsync(true)), so a WeakMap keyed on the store identity
+// is invalidated automatically on the next mutation. First call per store pays
+// the cost once; the rest reuse it.
+
+type GlobalRankCache = {
+  rankByUser: Map<string, number>;
+  solvedCountByUser: Map<string, number>;
+};
+
+const globalRankCache = new WeakMap<AppStore, GlobalRankCache>();
+const questionByIdCache = new WeakMap<AppStore, Map<string, AppStore["questions"][number]>>();
+
+function getQuestionById(store: AppStore): Map<string, AppStore["questions"][number]> {
+  let map = questionByIdCache.get(store);
+  if (!map) {
+    map = new Map();
+    // First-wins, matching the previous `.find` semantics for any duplicate ids.
+    for (const question of store.questions) {
+      if (!map.has(question.id)) map.set(question.id, question);
+    }
+    questionByIdCache.set(store, map);
+  }
+  return map;
+}
+
+function getGlobalSolvedRanking(store: AppStore): GlobalRankCache {
+  const cached = globalRankCache.get(store);
+  if (cached) return cached;
+
+  // Distinct correctly-solved questions per user. Insertion order follows the
+  // first correct attempt seen, preserving the original tie-break ordering.
+  const solvedSets = new Map<string, Set<string>>();
+  for (const attempt of store.practiceAttempts) {
+    if (!attempt.isCorrect) continue;
+    let set = solvedSets.get(attempt.userId);
+    if (!set) {
+      set = new Set();
+      solvedSets.set(attempt.userId, set);
+    }
+    set.add(attempt.questionId);
+  }
+
+  const solvedCountByUser = new Map<string, number>();
+  const ordered: { userId: string; count: number }[] = [];
+  for (const [userId, set] of solvedSets) {
+    solvedCountByUser.set(userId, set.size);
+    ordered.push({ userId, count: set.size });
+  }
+  // Stable sort (Array.prototype.sort is stable) keeps insertion order on ties,
+  // matching the previous Object.entries(...).sort(...).findIndex() ranking.
+  ordered.sort((left, right) => right.count - left.count);
+
+  const rankByUser = new Map<string, number>();
+  ordered.forEach((entry, index) => rankByUser.set(entry.userId, index + 1));
+
+  const result = { rankByUser, solvedCountByUser };
+  globalRankCache.set(store, result);
+  return result;
+}
+
 export function buildUserStatsSnapshot(store: AppStore, user: StoredUser): UserStatsSnapshot {
   const testsTaken = store.testResults.filter((result) => result.userId === user.id).length;
   const studyHours = Math.round(user.totalStudyTime / 60);
@@ -167,17 +233,25 @@ export function buildUserStatsSnapshot(store: AppStore, user: StoredUser): UserS
     subjectStats[subject.toLowerCase()] = { correct: 0, total: 0 };
   }
 
-  for (const attempt of store.practiceAttempts.filter((entry) => entry.userId === user.id)) {
-    const question = store.questions.find((entry) => entry.id === attempt.questionId);
-    if (!question) {
-      continue;
-    }
+  // Single pass over the user's attempts: feeds both subject accuracy and
+  // overall accuracy. Question lookup is O(1) via the memoised id→question map
+  // (was an O(questions) `.find` per attempt).
+  const questionById = getQuestionById(store);
+  let totalAttempts = 0;
+  let correctAttempts = 0;
+  for (const attempt of store.practiceAttempts) {
+    if (attempt.userId !== user.id) continue;
+
+    totalAttempts += 1;
+    if (attempt.isCorrect) correctAttempts += 1;
+
+    const question = questionById.get(attempt.questionId);
+    if (!question) continue;
 
     const subjectKey = question.subject.toLowerCase();
     if (!subjectStats[subjectKey]) {
       subjectStats[subjectKey] = { correct: 0, total: 0 };
     }
-
     subjectStats[subjectKey].total += 1;
     if (attempt.isCorrect) {
       subjectStats[subjectKey].correct += 1;
@@ -189,30 +263,14 @@ export function buildUserStatsSnapshot(store: AppStore, user: StoredUser): UserS
     accuracy: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
   }));
 
-  const userAttempts = store.practiceAttempts.filter((entry) => entry.userId === user.id);
   const overallAccuracy =
-    userAttempts.length > 0
-      ? Math.round((userAttempts.filter((entry) => entry.isCorrect).length / userAttempts.length) * 100)
-      : 0;
+    totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 0;
 
-  const userSolvedCounts: Record<string, Set<string>> = {};
-  for (const attempt of store.practiceAttempts) {
-    if (!attempt.isCorrect) {
-      continue;
-    }
-
-    if (!userSolvedCounts[attempt.userId]) {
-      userSolvedCounts[attempt.userId] = new Set();
-    }
-    userSolvedCounts[attempt.userId].add(attempt.questionId);
-  }
-
-  const mySolvedCount = userSolvedCounts[user.id]?.size ?? 0;
-  const sortedByRank = Object.entries(userSolvedCounts)
-    .map(([userId, questions]) => ({ userId, count: questions.size }))
-    .sort((left, right) => right.count - left.count);
-  const myRankIndex = sortedByRank.findIndex((entry) => entry.userId === user.id);
-  const globalRank = mySolvedCount > 0 ? myRankIndex + 1 : null;
+  // Global rank by distinct solved questions — computed once per store object
+  // and reused across users (was rebuilt over every user's attempts each call).
+  const { rankByUser, solvedCountByUser } = getGlobalSolvedRanking(store);
+  const mySolvedCount = solvedCountByUser.get(user.id) ?? 0;
+  const globalRank = mySolvedCount > 0 ? (rankByUser.get(user.id) ?? null) : null;
 
   const doubtCount = store.doubtSessions.filter((session) => session.userId === user.id).length;
   const hasPerfectScore = store.testResults.some(

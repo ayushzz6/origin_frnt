@@ -36,21 +36,18 @@ async function ResultContent({ params, searchParams }: ResultPageProps) {
   const user = await getServerUser();
   if (!user) redirect('/');
 
-  let initialHistory: TestResult[] = [];
-  let exactResult: TestResult | null = null;
-  try {
-    initialHistory = (await listTestResultsForRender(user.id, id)) as unknown as TestResult[];
-  } catch {
-    // Client leaf will do a final fallback fetch.
-  }
-
-  if (requestedResultId) {
-    try {
-      exactResult = (await getSingleResultForRender(user.id, requestedResultId)) as unknown as TestResult;
-    } catch {
-      exactResult = null;
-    }
-  }
+  // Both loaders are independent — fetch them concurrently rather than waiting
+  // for the history list before starting the single-result lookup.
+  const [initialHistory, exactResult] = await Promise.all([
+    listTestResultsForRender(user.id, id)
+      .then((rows) => rows as unknown as TestResult[])
+      .catch(() => [] as TestResult[]), // Client leaf will do a final fallback fetch.
+    requestedResultId
+      ? getSingleResultForRender(user.id, requestedResultId)
+          .then((row) => row as unknown as TestResult)
+          .catch(() => null)
+      : Promise.resolve<TestResult | null>(null),
+  ]);
 
   const history = exactResult
     ? [exactResult, ...initialHistory.filter((result) => result.id !== exactResult?.id)]

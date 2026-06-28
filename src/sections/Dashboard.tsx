@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Zap, ChevronLeft, ChevronRight, Flame, BookOpen, TrendingUp, Award } from 'lucide-react';
 
@@ -49,7 +50,15 @@ function EventsCarousel() {
           key={slide.id}
           className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${idx === current ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
         >
-          <img src={slide.image} alt={slide.title} className="w-full h-full object-cover" />
+          <Image
+            src={slide.image}
+            alt={slide.title}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 60vw, 760px"
+            className="object-cover"
+            priority={idx === 0}
+            loading={idx === 0 ? undefined : 'lazy'}
+          />
         </div>
       ))}
 
@@ -104,6 +113,7 @@ interface DashboardProps {
     recentLogs: { points: number; type: string; description: string; timestamp: string }[];
   } | null;
   initialChallenge?: DashboardChallengePreview | null;
+  initialRegStatus?: { count: number; limit: number; seatsLeft: number } | null;
 }
 
 import { useNotifications } from '@/context/NotificationContext';
@@ -122,6 +132,7 @@ export default function Dashboard({
   onRemoveTask,
   initialPointsData = null,
   initialChallenge = null,
+  initialRegStatus = null,
 }: DashboardProps) {
   const { addNotification } = useNotifications();
   const [pointsData, setPointsData] = useState<{
@@ -133,7 +144,7 @@ export default function Dashboard({
     recentLogs: { points: number; type: string; description: string; timestamp: string }[];
   } | null>(initialPointsData);
   
-  const [regStatus, setRegStatus] = useState<{ count: number; limit: number; seatsLeft: number } | null>(null);
+  const [regStatus, setRegStatus] = useState<{ count: number; limit: number; seatsLeft: number } | null>(initialRegStatus);
 
   // Live practice stats from the backend (solved count, streak, rank, accuracy).
   const [userStats, setUserStats] = useState<{
@@ -144,12 +155,14 @@ export default function Dashboard({
   } | null>(null);
 
   useEffect(() => {
+    // Server already seeded this on the dashboard page — skip the client fetch.
+    if (initialRegStatus) return;
     const fetchRegStatus = async () => {
       const status = await getRegistrationStatusAction();
       setRegStatus(status);
     };
     fetchRegStatus();
-  }, []);
+  }, [initialRegStatus]);
 
   const prevTierRef = useRef<string | null>(pointsData?.currentTier || null);
   const achievementsRef = useRef<Record<string, boolean>>({});
