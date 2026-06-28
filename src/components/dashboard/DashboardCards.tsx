@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Target, CheckCircle2, Plus, Trash2, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import dynamic from 'next/dynamic';
 import { apiCall } from '@/lib/api';
 import { useEffect } from 'react';
 import { useLayout } from '@/context/LayoutContext';
@@ -12,6 +12,12 @@ import { useHydratedNow } from '@/hooks/useHydratedNow';
 import { cn } from '@/lib/utils';
 
 import type { User, Task } from '@/types';
+
+// Lazy-loaded so recharts is fetched only when the Time-Spent donut renders.
+const ActivityDonut = dynamic(() => import('./ActivityDonut'), {
+  ssr: false,
+  loading: () => <div className="h-full w-full animate-pulse rounded-full bg-muted/40" />,
+});
 
 export interface DashboardChallengePreview {
     id: string | number;
@@ -233,14 +239,7 @@ export function PastActivitiesCard({ user }: { user: User }) {
                     <div className="flex items-center gap-5 sm:gap-6">
                         {/* Donut */}
                         <div className="relative w-[112px] h-[112px] shrink-0">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie data={chartData} cx="50%" cy="50%" innerRadius="64%" outerRadius="100%" paddingAngle={3} dataKey="value" strokeWidth={0}>
-                                        {chartData.map((d, i) => <Cell key={i} fill={d.color} />)}
-                                    </Pie>
-                                    <Tooltip formatter={(v) => [toHM(Number(v)), '']} contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 11 }} />
-                                </PieChart>
-                            </ResponsiveContainer>
+                            <ActivityDonut data={chartData} formatValue={toHM} />
                             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                                 <span className="text-base font-black text-foreground leading-none tabular-nums">{toHM(totalSecs)}</span>
                                 <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground mt-1">Total</span>

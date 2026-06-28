@@ -6,7 +6,10 @@ import {
   getPointsSummaryForRender,
   listTasksForRender,
 } from '@/server/render-loaders';
+import { getRegistrationStatus } from '@/server/users';
 import type { Task } from '@/types';
+
+type RegistrationStatus = { count: number; limit: number; seatsLeft: number };
 import DashboardClient from './_client';
 import DashboardLoading from './loading';
 
@@ -31,11 +34,13 @@ async function DashboardGate() {
   let initialTasks: Task[] = [];
   let initialPointsData: Awaited<ReturnType<typeof getPointsSummaryForRender>> | null = null;
   let initialChallenge: Awaited<ReturnType<typeof getChallengeOfTheDayForRender>> | null = null;
+  let initialRegStatus: RegistrationStatus | null = null;
 
-  const [tasksResult, pointsResult, challengeResult] = await Promise.allSettled([
+  const [tasksResult, pointsResult, challengeResult, regResult] = await Promise.allSettled([
     listTasksForRender(user.id),
     getPointsSummaryForRender(user.id),
     getChallengeOfTheDayForRender(user.id),
+    getRegistrationStatus(user.role),
   ]);
 
   if (tasksResult.status === 'fulfilled') {
@@ -47,12 +52,16 @@ async function DashboardGate() {
   if (challengeResult.status === 'fulfilled') {
     initialChallenge = challengeResult.value;
   }
+  if (regResult.status === 'fulfilled') {
+    initialRegStatus = regResult.value;
+  }
 
   return (
     <DashboardClient
       initialChallenge={initialChallenge}
       initialPointsData={initialPointsData}
       initialTasks={initialTasks}
+      initialRegStatus={initialRegStatus}
     />
   );
 }
