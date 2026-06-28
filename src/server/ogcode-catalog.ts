@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import type { DifficultyLevel, QuestionType, StoredAnswerSpec, StoredQuestion } from "@/server/store";
 
 import { getOgcodePostgresPool, isOgcodePostgresConfigured } from "@/server/postgres";
@@ -285,7 +286,7 @@ export function isOgcodeCatalogAvailable(): boolean {
   return isOgcodePostgresConfigured();
 }
 
-export async function listOgcodeCatalogQuestions(filters: CatalogFilters = {}): Promise<StoredQuestion[]> {
+async function _listOgcodeCatalogQuestions(filters: CatalogFilters = {}): Promise<StoredQuestion[]> {
   const pool = getOgcodePostgresPool();
   if (!pool) {
     return [];
@@ -328,6 +329,15 @@ export async function listOgcodeCatalogQuestions(filters: CatalogFilters = {}): 
 
   return result.rows.map(mapCatalogRow);
 }
+
+// Cache the full catalog for 5 minutes — this is a large read-heavy query and
+// the question bank changes infrequently. Revalidate via the "ogcode-catalog" tag
+// when questions are added/updated.
+export const listOgcodeCatalogQuestions = unstable_cache(
+  _listOgcodeCatalogQuestions,
+  ["ogcode-catalog-questions"],
+  { revalidate: 300, tags: ["ogcode-catalog"] },
+);
 
 export async function listOgcodeCatalogQuestionIds(filters: CatalogFilters = {}): Promise<string[]> {
   const pool = getOgcodePostgresPool();

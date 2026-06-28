@@ -1,11 +1,8 @@
 'use client';
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Card, CardContent } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
+import { Label } from '@/components/ui/label';
 import dynamic from 'next/dynamic';
 
 const OriMascot = dynamic(() => import('@/features/mascot/Ori2D'), { ssr: false });
@@ -69,16 +66,11 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
 
   const isStepValid = () => {
     switch (step) {
-      case 1:
-        return formData.class !== '';
-      case 2:
-        return formData.selectedCourse !== '';
-      case 3:
-        return formData.subjects.length > 0;
-      case 4:
-        return formData.referralSource !== '';
-      default:
-        return false;
+      case 1: return formData.class !== '';
+      case 2: return formData.selectedCourse !== '';
+      case 3: return formData.subjects.length > 0;
+      case 4: return formData.referralSource !== '';
+      default: return false;
     }
   };
 
@@ -89,23 +81,19 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
           <div className="space-y-6 animate-fade-in">
             <div className="text-center">
               <div className="flex justify-center mb-6">
-                <img
-                  src="/origin-new.jpg"
-                  alt="ORIGIN Student"
-                  className="h-16 w-auto"
-                />
+                <img src="/origin-new.jpg" alt="ORIGIN Student" className="h-16 w-auto" />
               </div>
               <div className="w-16 h-16 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
                 <GraduationCap className="w-8 h-8 text-primary" />
               </div>
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Which class are you in?</h2>
-              <p className="text-slate-600 dark:text-slate-400">This helps us personalize your learning experience</p>
+              <h2 className="text-2xl font-black text-foreground mb-2">Which class are you in?</h2>
+              <p className="text-sm text-muted-foreground">This helps us personalize your learning experience</p>
             </div>
 
             <RadioGroup
               value={formData.class}
               onValueChange={(value) => setFormData({ ...formData, class: value, isDropper: value === 'dropper' })}
-              className="grid grid-cols-2 gap-4"
+              className="grid grid-cols-2 gap-3"
             >
               {[
                 { value: '9', label: 'Class 9', desc: 'Foundation' },
@@ -115,17 +103,13 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
                 { value: 'dropper', label: 'Dropper', desc: 'One More Try' },
               ].map((option) => (
                 <div key={option.value}>
-                  <RadioGroupItem
-                    value={option.value}
-                    id={option.value}
-                    className="peer sr-only"
-                  />
+                  <RadioGroupItem value={option.value} id={`cls-${option.value}`} className="peer sr-only" />
                   <Label
-                    htmlFor={option.value}
-                    className="flex flex-col items-center p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 cursor-pointer transition-all hover:border-primary/50 dark:hover:border-primary/50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 dark:peer-data-[state=checked]:bg-primary/10"
+                    htmlFor={`cls-${option.value}`}
+                    className="flex flex-col items-center p-4 neu-raised rounded-xl cursor-pointer transition-all hover:-translate-y-0.5 peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary peer-data-[state=checked]:bg-primary/5"
                   >
-                    <span className="font-semibold text-slate-900 dark:text-white">{option.label}</span>
-                    <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 text-center">{option.desc}</span>
+                    <span className="font-black text-foreground">{option.label}</span>
+                    <span className="text-xs text-muted-foreground mt-1 text-center">{option.desc}</span>
                   </Label>
                 </div>
               ))}
@@ -140,8 +124,8 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
               <div className="w-16 h-16 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
                 <Target className="w-8 h-8 text-primary" />
               </div>
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Choose your course</h2>
-              <p className="text-slate-600 dark:text-slate-400">Select the exam you are preparing for</p>
+              <h2 className="text-2xl font-black text-foreground mb-2">Choose your course</h2>
+              <p className="text-sm text-muted-foreground">Select the exam you are preparing for</p>
             </div>
 
             <RadioGroup
@@ -155,20 +139,16 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
                 ...(['9', '10'].includes(formData.class) ? [{ value: 'Foundation', label: 'Foundation (9th/10th)', desc: 'Early Prep for JEE/NEET' }] : []),
               ].map((option) => (
                 <div key={option.value}>
-                  <RadioGroupItem
-                    value={option.value}
-                    id={option.value}
-                    className="peer sr-only"
-                  />
+                  <RadioGroupItem value={option.value} id={`course-${option.value}`} className="peer sr-only" />
                   <Label
-                    htmlFor={option.value}
-                    className="flex items-center p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 cursor-pointer transition-all hover:border-primary/50 dark:hover:border-primary/50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 dark:peer-data-[state=checked]:bg-primary/10"
+                    htmlFor={`course-${option.value}`}
+                    className="flex items-center p-4 neu-raised rounded-xl cursor-pointer transition-all hover:-translate-y-0.5 peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary peer-data-[state=checked]:bg-primary/5"
                   >
                     <div className="flex-1">
-                      <span className="font-semibold text-slate-900 dark:text-white block">{option.label}</span>
-                      <span className="text-sm text-slate-500 dark:text-slate-400">{option.desc}</span>
+                      <span className="font-black text-foreground block">{option.label}</span>
+                      <span className="text-sm text-muted-foreground">{option.desc}</span>
                     </div>
-                    <CheckCircle2 className="w-5 h-5 text-primary opacity-0 peer-data-[state=checked]:opacity-100" />
+                    <CheckCircle2 className="w-5 h-5 text-primary opacity-0 peer-data-[state=checked]:opacity-100 transition-opacity" />
                   </Label>
                 </div>
               ))}
@@ -183,8 +163,8 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
               <div className="w-16 h-16 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center mb-4 overflow-hidden p-2">
                 <BookOpen className="w-8 h-8 text-primary" />
               </div>
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Select your subjects</h2>
-              <p className="text-slate-600 dark:text-slate-400">We will tailor your experience based on these</p>
+              <h2 className="text-2xl font-black text-foreground mb-2">Select your subjects</h2>
+              <p className="text-sm text-muted-foreground">We will tailor your experience based on these</p>
             </div>
 
             <div className="space-y-3">
@@ -209,32 +189,26 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
               ).map((subject) => (
                 <div key={subject.value}>
                   <Checkbox
-                    id={subject.value}
+                    id={`subj-${subject.value}`}
                     checked={formData.subjects.includes(subject.value)}
                     onCheckedChange={(checked) => {
                       if (checked) {
-                        setFormData({
-                          ...formData,
-                          subjects: [...formData.subjects, subject.value],
-                        });
+                        setFormData({ ...formData, subjects: [...formData.subjects, subject.value] });
                       } else {
-                        setFormData({
-                          ...formData,
-                          subjects: formData.subjects.filter((s) => s !== subject.value),
-                        });
+                        setFormData({ ...formData, subjects: formData.subjects.filter((s) => s !== subject.value) });
                       }
                     }}
                     className="sr-only peer"
                   />
                   <Label
-                    htmlFor={subject.value}
-                    className="flex items-center p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 cursor-pointer transition-all hover:border-primary/50 dark:hover:border-primary/50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 dark:peer-data-[state=checked]:bg-primary/10"
+                    htmlFor={`subj-${subject.value}`}
+                    className="flex items-center p-4 neu-raised rounded-xl cursor-pointer transition-all hover:-translate-y-0.5 peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary peer-data-[state=checked]:bg-primary/5"
                   >
                     <div className="flex-1">
-                      <span className="font-semibold text-slate-900 dark:text-white block">{subject.label}</span>
-                      <span className="text-sm text-slate-500 dark:text-slate-400">{subject.desc}</span>
+                      <span className="font-black text-foreground block">{subject.label}</span>
+                      <span className="text-sm text-muted-foreground">{subject.desc}</span>
                     </div>
-                    <CheckCircle2 className="w-5 h-5 text-primary opacity-0 peer-data-[state=checked]:opacity-100" />
+                    <CheckCircle2 className="w-5 h-5 text-primary opacity-0 peer-data-[state=checked]:opacity-100 transition-opacity" />
                   </Label>
                 </div>
               ))}
@@ -249,14 +223,14 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
               <div className="w-16 h-16 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
                 <Sparkles className="w-8 h-8 text-primary" />
               </div>
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">How did you hear about ORIGIN?</h2>
-              <p className="text-slate-600 dark:text-slate-400">Help us understand our reach</p>
+              <h2 className="text-2xl font-black text-foreground mb-2">How did you hear about ORIGIN?</h2>
+              <p className="text-sm text-muted-foreground">Help us understand our reach</p>
             </div>
 
             <RadioGroup
               value={formData.referralSource}
               onValueChange={(value) => setFormData({ ...formData, referralSource: value })}
-              className="grid grid-cols-2 gap-4"
+              className="grid grid-cols-2 gap-3"
             >
               {[
                 { value: 'friends', label: 'Friends', icon: Users },
@@ -266,17 +240,13 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
                 { value: 'other', label: 'Other', icon: BookOpen },
               ].map((option) => (
                 <div key={option.value}>
-                  <RadioGroupItem
-                    value={option.value}
-                    id={option.value}
-                    className="peer sr-only"
-                  />
+                  <RadioGroupItem value={option.value} id={`ref-${option.value}`} className="peer sr-only" />
                   <Label
-                    htmlFor={option.value}
-                    className="flex flex-col items-center p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 cursor-pointer transition-all hover:border-primary/50 dark:hover:border-primary/50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 dark:peer-data-[state=checked]:bg-primary/10"
+                    htmlFor={`ref-${option.value}`}
+                    className="flex flex-col items-center p-4 neu-raised rounded-xl cursor-pointer transition-all hover:-translate-y-0.5 peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary peer-data-[state=checked]:bg-primary/5"
                   >
                     <option.icon className="w-6 h-6 text-primary mb-2" />
-                    <span className="font-medium text-slate-900 dark:text-white">{option.label}</span>
+                    <span className="font-bold text-foreground">{option.label}</span>
                   </Label>
                 </div>
               ))}
@@ -291,63 +261,62 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-3 sm:p-6 neu-surface text-foreground transition-colors duration-300">
-      {/* Background Decoration */}
-      <div className="absolute inset-0 -z-10 overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-72 h-72 bg-primary/5 dark:bg-primary/10 rounded-full blur-3xl" />
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary/5 dark:bg-primary/10 rounded-full blur-3xl" />
       </div>
 
-      <Card className="w-full max-w-lg neu-raised border-0 shadow-none">
-        <CardContent className="p-5 sm:p-8">
-          {/* Ori greeting */}
-          <div className="mb-6 flex justify-center">
-            <div className="h-20 w-20">
-              <OriMascot expression="curious" title="Origin AI" />
-            </div>
+      <div className="w-full max-w-lg neu-raised rounded-3xl p-5 sm:p-8">
+        {/* Ori greeting */}
+        <div className="mb-6 flex justify-center">
+          <div className="h-20 w-20">
+            <OriMascot expression="curious" title="Origin AI" />
           </div>
-          {/* Progress */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Step {step} of {totalSteps}</span>
-              <span className="text-sm font-medium text-primary">{Math.round(progress)}%</span>
-            </div>
-            <Progress value={progress} className="h-2 bg-slate-100 dark:bg-slate-800" />
+        </div>
+
+        {/* Progress */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold text-muted-foreground">Step {step} of {totalSteps}</span>
+            <span className="text-xs font-bold text-primary">{Math.round(progress)}%</span>
           </div>
+          <div className="neu-inset rounded-full h-2 overflow-hidden">
+            <div
+              className="h-full bg-primary rounded-full transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
 
-          {/* Step Content */}
-          {renderStep()}
+        {/* Step Content */}
+        {renderStep()}
 
-          {/* Navigation */}
-          <div className="flex gap-4 mt-8">
-            {step > 1 && (
-              <Button
-                variant="outline"
-                onClick={handleBack}
-                className="flex-1 h-12 rounded-xl border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 dark:text-slate-300"
-              >
-                Back
-              </Button>
-            )}
-            <Button
-              onClick={handleNext}
-              disabled={!isStepValid()}
-              className="flex-1 h-12 bg-primary hover:opacity-90 text-white rounded-xl font-medium disabled:opacity-50"
+        {/* Navigation */}
+        <div className="flex gap-3 mt-8">
+          {step > 1 && (
+            <button
+              type="button"
+              onClick={handleBack}
+              className="flex-1 h-12 neu-raised rounded-xl font-bold text-sm hover:-translate-y-0.5 transition-all"
             >
-              {step === totalSteps ? (
-                <>
-                  Complete Setup
-                  <Sparkles className="w-4 h-4 ml-2" />
-                </>
-              ) : (
-                <>
-                  Continue
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+              Back
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handleNext}
+            disabled={!isStepValid()}
+            className="flex-1 h-12 flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded-xl font-black text-sm shadow-[3px_3px_8px_hsl(var(--neu-shadow))] hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+          >
+            {step === totalSteps ? (
+              <>Complete Setup<Sparkles className="w-4 h-4" /></>
+            ) : (
+              <>Continue<ArrowRight className="w-4 h-4" /></>
+            )}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

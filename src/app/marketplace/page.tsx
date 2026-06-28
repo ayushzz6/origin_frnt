@@ -10,16 +10,6 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { listPublicInstitutesService } from "@/server/workspaces/marketplace-service";
 
 type Props = {
@@ -38,92 +28,97 @@ export default async function MarketplacePage({ searchParams }: Props) {
   });
 
   return (
-    <div className="container mx-auto space-y-6 py-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Marketplace</h1>
-        <p className="text-sm text-muted-foreground">
-          Browse verified institutes on ORIGIN. Pick a course offering to
-          enroll directly.
-        </p>
-      </div>
+    <div className="min-h-screen neu-surface text-foreground">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.24em] text-primary mb-1">Browse</p>
+          <h1 className="text-3xl font-black tracking-tight text-foreground">
+            Market<span className="text-primary">place</span>
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Browse verified institutes on ORIGIN. Pick a course offering to enroll directly.
+          </p>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Filter</CardTitle>
-        </CardHeader>
-        <CardContent>
+        {/* Filters */}
+        <div className="neu-raised rounded-2xl p-5">
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Filter</p>
           <form className="flex flex-wrap gap-3" method="get">
-            <input
-              name="subject"
-              placeholder="Subject (e.g. Physics)"
-              defaultValue={sp.subject ?? ""}
-              className="rounded-md border bg-background px-3 py-2 text-sm"
-            />
-            <input
-              name="city"
-              placeholder="City (e.g. Bengaluru)"
-              defaultValue={sp.city ?? ""}
-              className="rounded-md border bg-background px-3 py-2 text-sm"
-            />
-            <Button type="submit" size="sm">
+            <div className="neu-inset rounded-xl flex-1 min-w-[160px]">
+              <input
+                name="subject"
+                placeholder="Subject (e.g. Physics)"
+                defaultValue={sp.subject ?? ""}
+                className="w-full bg-transparent outline-none text-sm px-3.5 py-2.5 text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+            <div className="neu-inset rounded-xl flex-1 min-w-[160px]">
+              <input
+                name="city"
+                placeholder="City (e.g. Bengaluru)"
+                defaultValue={sp.city ?? ""}
+                className="w-full bg-transparent outline-none text-sm px-3.5 py-2.5 text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+            <button
+              type="submit"
+              className="bg-primary text-primary-foreground rounded-xl px-5 py-2.5 text-sm font-bold shadow-[3px_3px_8px_hsl(var(--neu-shadow))] hover:-translate-y-0.5 transition-all"
+            >
               Apply
-            </Button>
+            </button>
           </form>
-        </CardContent>
-      </Card>
+        </div>
 
-      {institutes.length === 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>No matching institutes</CardTitle>
-            <CardDescription>
-              Try removing some filters, or check back as more institutes
-              onboard.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {institutes.map((inst) => (
-            <Card key={inst.workspaceId}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <CardTitle>{inst.displayName}</CardTitle>
-                  {inst.verified ? (
-                    <Badge variant="default">Verified</Badge>
-                  ) : null}
+        {institutes.length === 0 ? (
+          <div className="neu-inset rounded-2xl p-10 text-center">
+            <p className="font-bold text-foreground">No matching institutes</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Try removing some filters, or check back as more institutes onboard.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {institutes.map((inst) => (
+              <div key={inst.workspaceId} className="neu-raised rounded-2xl p-5 flex flex-col gap-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h2 className="font-black text-foreground truncate">{inst.displayName}</h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {[inst.city, inst.state, inst.country].filter(Boolean).join(", ") || "Online"}
+                    </p>
+                  </div>
+                  {inst.verified && (
+                    <span className="flex-shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary">
+                      Verified
+                    </span>
+                  )}
                 </div>
-                <CardDescription>
-                  {[inst.city, inst.state, inst.country]
-                    .filter(Boolean)
-                    .join(", ") || "Online"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {inst.subjects.length > 0 ? (
-                  <div className="flex flex-wrap gap-1">
+
+                {inst.subjects.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
                     {inst.subjects.slice(0, 6).map((s) => (
-                      <Badge key={s} variant="outline">
+                      <span key={s} className="neu-inset rounded-full px-2.5 py-0.5 text-[10px] font-bold text-muted-foreground">
                         {s}
-                      </Badge>
+                      </span>
                     ))}
                   </div>
-                ) : null}
+                )}
+
                 <p className="text-xs text-muted-foreground">
                   {inst.studentCount} students · {inst.batchCount} batches
                 </p>
-              </CardContent>
-              <CardFooter>
-                <Button asChild className="w-full">
-                  <Link href={`/marketplace/institutes/${inst.workspaceId}`}>
-                    View profile
-                  </Link>
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      )}
+
+                <Link
+                  href={`/marketplace/institutes/${inst.workspaceId}`}
+                  className="mt-auto w-full block text-center bg-primary text-primary-foreground rounded-xl px-4 py-2.5 text-sm font-bold shadow-[3px_3px_8px_hsl(var(--neu-shadow))] hover:-translate-y-0.5 transition-all"
+                >
+                  View profile
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

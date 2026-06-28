@@ -1,11 +1,12 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getServerUser } from '@/lib/auth-server';
+import OriLoadingScreen from '@/components/ui/OriLoadingScreen';
 import PomodoroClient from './_client';
 
 export default function PomodoroPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+    <Suspense fallback={<OriLoadingScreen />}>
       <PomodoroGate />
     </Suspense>
   );

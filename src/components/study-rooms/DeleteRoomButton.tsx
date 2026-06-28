@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,7 +22,6 @@ type DeleteRoomButtonProps = {
   onDelete: () => Promise<void>;
   label?: string;
   iconOnly?: boolean;
-  size?: React.ComponentProps<typeof Button>['size'];
   className?: string;
 };
 
@@ -31,7 +30,6 @@ export function DeleteRoomButton({
   onDelete,
   label = 'Delete Room',
   iconOnly = false,
-  size,
   className,
 }: DeleteRoomButtonProps) {
   const [open, setOpen] = useState(false);
@@ -53,17 +51,19 @@ export function DeleteRoomButton({
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button
+        <button
           type="button"
-          variant={iconOnly ? 'ghost' : 'destructive'}
-          size={size ?? (iconOnly ? 'icon' : 'default')}
-          className={className}
           title={label}
           aria-label={iconOnly ? label : undefined}
+          className={cn(
+            'flex items-center justify-center rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors',
+            iconOnly ? 'h-8 w-8' : 'gap-2 px-3 py-2 text-sm font-bold',
+            className
+          )}
         >
           <Trash2 className="h-4 w-4" />
           {!iconOnly && label}
-        </Button>
+        </button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
@@ -76,7 +76,7 @@ export function DeleteRoomButton({
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
           <AlertDialogAction
-            className="bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:bg-destructive/60"
+            className="rounded-xl bg-destructive px-4 py-2 text-sm font-bold text-white hover:bg-destructive/90"
             disabled={isDeleting}
             onClick={(event) => {
               event.preventDefault();

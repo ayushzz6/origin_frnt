@@ -21,10 +21,10 @@ function Countdown({ startedAt }: { startedAt: string }) {
   const remaining = Math.max(0, Math.ceil((new Date(startedAt).getTime() - now) / 1000));
   if (remaining <= 0) return null;
   return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-950 text-white">
+    <div className="fixed inset-0 z-[300] flex items-center justify-center neu-surface text-foreground">
       <div className="text-center">
-        <p className="mb-4 text-xs font-black uppercase tracking-[0.3em] text-blue-300">Starting In</p>
-        <div className="text-8xl font-black tabular-nums">{remaining}</div>
+        <p className="mb-4 text-xs font-black uppercase tracking-[0.3em] text-primary">Starting In</p>
+        <div className="text-8xl font-black tabular-nums text-foreground">{remaining}</div>
       </div>
     </div>
   );

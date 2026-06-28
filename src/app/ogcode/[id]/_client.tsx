@@ -5,6 +5,7 @@ import OGCodeWorkspace from '@/sections/OGCodeWorkspace';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useTimeTracker } from '@/hooks/useTimeTracker';
+import { readOgcodeNavQueue } from '@/features/ogcode/nav-queue';
 import type { PracticeQuestion } from '@/types';
 
 interface Props {
@@ -23,7 +24,10 @@ export default function OGCodeClient({ questionId, initialQuestion }: Props) {
     <OGCodeWorkspace
       questionId={questionId}
       initialQuestion={initialQuestion}
-      onBack={() => router.push('/ogcode')}
+      onBack={() => {
+          const q = readOgcodeNavQueue();
+          router.push(q?.filterParams ? `/ogcode?${q.filterParams}` : '/ogcode');
+        }}
       user={user}
       onRefreshUser={refreshUser}
       setTimeMode={setTimeMode}

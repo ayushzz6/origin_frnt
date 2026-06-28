@@ -1,9 +1,9 @@
 'use client';
 
-import { BookOpenCheck } from 'lucide-react';
+import Link from 'next/link';
+import { BookOpenCheck, Clock, ArrowRight } from 'lucide-react';
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export type RoomDppSummary = {
   id: string;
@@ -15,28 +15,62 @@ export type RoomDppSummary = {
   sequence: number;
 };
 
+const SUBJECT_COLORS: Record<string, string> = {
+  Physics:     'text-primary bg-primary/10',
+  Chemistry:   'text-sky-500 bg-sky-500/10',
+  Mathematics: 'text-indigo-500 bg-indigo-500/10',
+  Biology:     'text-emerald-500 bg-emerald-500/10',
+};
+
 export function RoomDppPanel({ dpps }: { dpps: RoomDppSummary[] }) {
   return (
-    <section className="rounded-lg border border-primary/20 bg-card p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-      <div className="mb-4 flex items-center gap-2">
-        <BookOpenCheck className="h-4 w-4 text-blue-600" />
-        <h2 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">Your DPPs</h2>
+    <section className="neu-raised rounded-2xl p-5">
+      {/* Header */}
+      <div className="mb-4 flex items-center gap-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+          <BookOpenCheck className="h-4 w-4 text-primary" />
+        </div>
+        <h2 className="text-[10px] font-black uppercase tracking-[0.22em] text-muted-foreground">Your DPPs</h2>
       </div>
+
       {dpps.length === 0 ? (
-        <p className="text-sm text-slate-500">DPPs appear here after your room submission is analyzed.</p>
+        <div className="neu-inset rounded-xl p-5 text-center text-sm text-muted-foreground">
+          DPPs appear here after your room submission is analyzed.
+        </div>
       ) : (
         <div className="grid gap-3 md:grid-cols-3">
           {dpps.map((dpp) => (
-            <div key={dpp.id} className="rounded-lg border border-slate-100 p-4 dark:border-slate-800">
-              <div className="mb-3 flex items-center justify-between">
-                <Badge variant="secondary" className="rounded-md">DPP {dpp.sequence}</Badge>
-                <span className="text-xs font-bold text-slate-500">{dpp.duration_minutes}m</span>
+            <div key={dpp.id} className="neu-inset rounded-xl p-4 flex flex-col gap-2">
+              {/* Top row */}
+              <div className="flex items-center justify-between gap-2">
+                <span className={cn(
+                  'rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider',
+                  SUBJECT_COLORS[dpp.subject] ?? 'text-muted-foreground bg-muted'
+                )}>
+                  {dpp.subject}
+                </span>
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  {dpp.duration_minutes}m
+                </span>
               </div>
-              <h3 className="mb-2 line-clamp-2 text-sm font-black">{dpp.title}</h3>
-              <p className="mb-4 line-clamp-3 text-xs text-slate-500">{dpp.summary}</p>
-              <Button asChild variant="outline" size="sm" className="w-full">
-                <a href="/dpp">Open DPP</a>
-              </Button>
+
+              {/* Title */}
+              <p className="text-sm font-black text-foreground">{dpp.title}</p>
+
+              {/* Summary */}
+              <p className="text-xs text-muted-foreground line-clamp-2">{dpp.summary}</p>
+
+              {/* Footer */}
+              <div className="mt-auto pt-2 flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">{dpp.target_question_count} questions</span>
+                <Link
+                  href={`/dpp/${dpp.id}`}
+                  className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
+                >
+                  Start <ArrowRight className="h-3 w-3" />
+                </Link>
+              </div>
             </div>
           ))}
         </div>

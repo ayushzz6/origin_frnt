@@ -387,15 +387,15 @@ export default function Profile({
             </div>
 
             {/* Footer links */}
-            <div className="pt-2 text-center text-[9px] text-muted-foreground/40 space-y-1.5">
-              <p>© 2026 SUPERGOAT TECHNOLOGIES PVT. LTD.</p>
-              <div className="flex justify-center gap-2 flex-wrap">
+            <div className="pt-2 text-center text-[9px] text-muted-foreground/50 space-y-1.5">
+              <p className="font-black uppercase tracking-[0.2em]">© 2026 SUPERGOAT TECHNOLOGIES PVT. LTD.</p>
+              <div className="flex justify-center gap-3 flex-wrap">
                 {[
                   { href: '/terms-and-conditions', label: 'Terms' },
                   { href: '/privacy-policy',       label: 'Privacy' },
                   { href: '/faq',                  label: 'FAQ' },
                 ].map(({ href, label }) => (
-                  <a key={href} href={href} className="hover:text-foreground transition-colors underline underline-offset-2">{label}</a>
+                  <a key={href} href={href} className="hover:text-primary transition-colors font-bold underline-offset-2">{label}</a>
                 ))}
               </div>
             </div>

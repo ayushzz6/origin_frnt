@@ -79,7 +79,7 @@ export default function TermsAndConditionsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans relative overflow-x-hidden">
+    <div className="min-h-screen neu-surface text-foreground font-sans relative overflow-x-hidden">
       {/* Background Glows */}
       <div className="absolute inset-0 z-0 pointer-events-none opacity-30 dark:opacity-20">
         <div className="absolute top-[-10%] left-[-20%] w-[60%] h-[60%] bg-primary/10 rounded-full blur-[150px]" />
@@ -94,12 +94,12 @@ export default function TermsAndConditionsPage() {
             className="group flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-primary transition-all duration-300"
             id="back-home-btn"
           >
-            <div className="p-2 rounded-full bg-secondary/50 border border-border group-hover:scale-105 transition-transform">
+            <div className="p-2 neu-raised rounded-full group-hover:scale-105 transition-transform">
               <ArrowLeft className="w-4 h-4" />
             </div>
             Back to Home
           </Link>
-          <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase bg-secondary/50 border border-border px-3 py-1 rounded-full">
+          <span className="neu-raised rounded-full px-3 py-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
             TERMS
           </span>
         </div>
@@ -112,7 +112,7 @@ export default function TermsAndConditionsPage() {
           <p className="text-lg text-muted-foreground font-medium leading-relaxed mb-4">
             Please read these terms carefully before using O3 Origin.
           </p>
-          <div className="flex justify-center items-center gap-2 flex-wrap text-xs text-muted-foreground font-bold uppercase tracking-widest bg-secondary/35 border border-border/40 px-4 py-2 rounded-full w-max mx-auto">
+          <div className="flex justify-center items-center gap-2 flex-wrap text-xs text-muted-foreground font-bold uppercase tracking-widest neu-inset rounded-full px-4 py-2 w-max mx-auto">
             <span>SUPERGOAT TECHNOLOGIES PRIVATE LIMITED</span>
             <span className="text-border">•</span>
             <span>o3origin.com</span>
@@ -125,8 +125,7 @@ export default function TermsAndConditionsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
           {/* Left: Sticky Sidebar Index */}
           <aside className="lg:col-span-4 sticky top-28 hidden lg:block">
-            <div className="p-6 bg-card/60 backdrop-blur-xl rounded-3xl border border-border/50 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/50 to-primary opacity-30" />
+            <div className="neu-raised rounded-3xl p-6 relative overflow-hidden">
               <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-6">
                 Document Contents
               </h2>
@@ -140,8 +139,8 @@ export default function TermsAndConditionsPage() {
                       onClick={() => scrollToSection(section.id)}
                       className={`flex items-center gap-3 px-4 py-3 text-xs font-black uppercase tracking-wider rounded-xl text-left transition-all duration-300 ${
                         isActive
-                          ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-[1.01]'
-                          : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                          ? 'neu-raised text-primary'
+                          : 'rounded-xl hover:neu-raised transition-all text-muted-foreground hover:text-foreground'
                       }`}
                       id={`sidebar-link-${section.id}`}
                     >
@@ -156,8 +155,8 @@ export default function TermsAndConditionsPage() {
 
           {/* Right: Policy Content */}
           <article className="lg:col-span-8 space-y-12">
-            <div className="p-8 sm:p-12 bg-card/60 backdrop-blur-xl rounded-3xl border border-border/50 shadow-2xl space-y-12">
-              
+            <div className="neu-raised rounded-3xl p-8 sm:p-12 space-y-12">
+
               {/* 1. Acceptance of Terms */}
               <section id="acceptance" className="scroll-mt-36">
                 <div className="flex items-center gap-3 mb-6">
@@ -485,7 +484,7 @@ export default function TermsAndConditionsPage() {
                 </div>
                 <div className="text-muted-foreground leading-relaxed space-y-4 font-medium">
                   <p>For questions regarding these Terms, contact:</p>
-                  <div className="bg-secondary/40 border border-border p-6 rounded-2xl space-y-2 text-sm font-semibold">
+                  <div className="neu-inset rounded-2xl p-6 space-y-2 text-sm font-semibold">
                     <p className="text-foreground font-bold">SUPERGOAT TECHNOLOGIES PRIVATE LIMITED</p>
                     <p className="flex items-center gap-2">
                       <span className="text-muted-foreground">Email:</span>{' '}

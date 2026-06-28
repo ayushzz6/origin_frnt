@@ -205,7 +205,6 @@ export default async function ImportLandingPage({ params }: Props) {
                             <Button asChild size="sm" variant={job.status === "needs_review" ? "default" : "outline"} className="h-8 rounded-lg text-xs font-semibold">
                               <Link
                                 href={`/teacher/workspaces/${workspaceId}/question-bag/import/${job.id}`}
-                                prefetch={false}
                               >
                                 {job.status === "needs_review" ? "Review" : "View"}
                               </Link>

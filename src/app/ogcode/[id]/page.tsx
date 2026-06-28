@@ -2,12 +2,13 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getServerUser } from '@/lib/auth-server';
 import { getPracticeQuestionDetailForRender } from '@/server/render-loaders';
+import OriLoadingScreen from '@/components/ui/OriLoadingScreen';
 import type { PracticeQuestion } from '@/types';
 import OGCodeClient from './_client';
 
 export default function OGCodeWorkspacePage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+    <Suspense fallback={<OriLoadingScreen />}>
       <OGCodeContent params={params} />
     </Suspense>
   );

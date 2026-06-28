@@ -26,15 +26,20 @@ export type Ori2DExpression =
   | 'determined'
   | 'laptop'
   | 'winking'
-  | 'curious';
+  | 'curious'
+  | 'angry'
+  | 'physics'
+  | 'chemistry'
+  | 'maths'
+  | 'biology';
 
 const FILES: Record<Ori2DExpression, string> = {
   happy: '/ori2d/ori-happy.png',
   cheerful: '/ori2d/ori-cheerful.png',
-  thumbsup: '/ori2d/ori-thubmsup.png', // note: source filename typo
+  thumbsup: '/ori2d/ori-thubmsup.png',
   confused: '/ori2d/ori-confused.png',
   reading: '/ori2d/ori-reading.png',
-  excited: '/ori2d/ori-exited.png', // note: source filename typo
+  excited: '/ori2d/ori-exited.png',
   proud: '/ori2d/ori-proud.png',
   thinking: '/ori2d/ori-thinking.png',
   surprise: '/ori2d/ori-surprise.png',
@@ -42,6 +47,11 @@ const FILES: Record<Ori2DExpression, string> = {
   laptop: '/ori2d/ori-laptop.png',
   winking: '/ori2d/ori-winking.png',
   curious: '/ori2d/ori-curious.png',
+  angry: '/ori2d/ori-angry.png',
+  physics: '/ori2d/ori-physics.png',
+  chemistry: '/ori2d/ori-chemistry.png',
+  maths: '/ori2d/ori-maths.png',
+  biology: '/ori2d/ori-biology.png',
 };
 
 /** Default expression for each chat/interaction state. */

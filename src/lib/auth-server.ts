@@ -6,6 +6,7 @@
  * rendering actually needs profile data.
  */
 
+import { unstable_cache } from "next/cache";
 import { cookies } from "next/headers";
 import { cache } from "react";
 
@@ -31,6 +32,21 @@ export const getServerUser = cache(async function getServerUser(): Promise<Store
   return getAuthenticatedUser(await cookieBackedRequest());
 });
 
+// Cache the expensive store-read + entitlement computation per userId.
+// JWT verification still runs on every request (getServerUser above) — only
+// the store hydration + serialization is skipped on cache hits.
+const getCachedFrontendUser = unstable_cache(
+  async (userId: string): Promise<User | null> => {
+    const store = await readStoreAsync();
+    const payload = serializeUser(store, userId);
+    if (!payload) return null;
+    const enriched = await withEntitledSubjects(payload, userId);
+    return (enriched as unknown as User) ?? null;
+  },
+  ["auth:frontend-user"],
+  { revalidate: 10, tags: ["user-profile"] },
+);
+
 /**
  * Resolves the current request to a frontend-shape `User` suitable for
  * seeding `AuthProvider` in the root layout. Returns `null` when the user
@@ -39,10 +55,5 @@ export const getServerUser = cache(async function getServerUser(): Promise<Store
 export async function getServerFrontendUser(): Promise<User | null> {
   const stored = await getServerUser();
   if (!stored) return null;
-
-  const store = await readStoreAsync();
-  const payload = serializeUser(store, stored.id);
-  if (!payload) return null;
-  const enriched = await withEntitledSubjects(payload, stored.id);
-  return (enriched as unknown as User) ?? null;
+  return getCachedFrontendUser(stored.id);
 }

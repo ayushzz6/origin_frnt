@@ -297,7 +297,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const { text: typewriterText, isTyping } = useTypewriter();
-  const actualTheme = mounted ? resolvedTheme : (theme === 'system' ? 'dark' : theme);
+  const actualTheme = mounted ? resolvedTheme : (theme === 'system' ? 'light' : theme) ?? 'light';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [regStatus, setRegStatus] = useState<{ count: number; limit: number; seatsLeft: number } | null>(null);
   const counterRef = useRef<HTMLDivElement>(null);
@@ -970,23 +970,23 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         </section>
 
         {/* Footer */}
-        <footer className="py-10 relative z-10 border-t border-white/10 dark:border-black/20 bg-[hsl(var(--neu-bg))]">
+        <footer className="py-10 relative z-10 border-t border-border/20 neu-surface">
           <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center md:items-end justify-between gap-8">
             <div className="flex flex-col items-center md:items-start gap-2">
-              <span className="text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-[0.4em]">© 2026 SUPERGOAT TECHNOLOGIES PRIVATE LIMITED</span>
+              <span className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.4em]">© 2026 SUPERGOAT TECHNOLOGIES PRIVATE LIMITED</span>
               <div className="flex flex-wrap gap-2 sm:gap-4 text-xs text-muted-foreground mt-2">
-                <a href="/terms-and-conditions" className="hover:text-foreground hover:underline transition-colors">Terms & Conditions</a>
-                <span className="hidden sm:inline">•</span>
-                <a href="/privacy-policy" className="hover:text-foreground hover:underline transition-colors">Privacy Policy</a>
-                <span className="hidden sm:inline">•</span>
-                <a href="/childrens-policy" className="hover:text-foreground hover:underline transition-colors">Children's Safety Policy</a>
-                <span className="hidden sm:inline">•</span>
-                <a href="/faq" className="hover:text-foreground hover:underline transition-colors">FAQ</a>
+                <a href="/terms-and-conditions" className="hover:text-primary transition-colors font-medium">Terms & Conditions</a>
+                <span className="hidden sm:inline text-border">•</span>
+                <a href="/privacy-policy" className="hover:text-primary transition-colors font-medium">Privacy Policy</a>
+                <span className="hidden sm:inline text-border">•</span>
+                <a href="/childrens-policy" className="hover:text-primary transition-colors font-medium">Children's Safety Policy</a>
+                <span className="hidden sm:inline text-border">•</span>
+                <a href="/faq" className="hover:text-primary transition-colors font-medium">FAQ</a>
               </div>
               <img src="/origin-new.jpg" alt="ORIGIN" className="h-12 w-auto dark:brightness-110 mt-3" />
             </div>
             <div className="flex flex-col items-center md:items-end gap-4">
-              <span className="text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-[0.4em]">Connect With Us</span>
+              <span className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.4em]">Connect With Us</span>
               <div className="flex gap-4 sm:gap-5 items-center">
                 <a href="https://chat.whatsapp.com/BBwpKNeiCypGzeVMwsw9ns?mode=gi_t" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform"><img src="/images/SocialMedia/Whatsapp-Logo.png" alt="WhatsApp" className="h-8 sm:h-10 w-auto" /></a>
                 <a href="https://www.linkedin.com/in/o3-origin-ba73233a8/" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform"><img src="/images/SocialMedia/LinkedIn.png" alt="LinkedIn" className="h-8 sm:h-10 w-auto" /></a>
