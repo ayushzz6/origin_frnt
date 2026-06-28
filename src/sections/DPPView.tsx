@@ -29,6 +29,17 @@ const DPP_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
   timeZone: 'UTC',
 });
 
+const DPP_SUBJECT_ORI: Record<string, string> = {
+  phy:     '/ori2d/ori-physics.png',
+  physics: '/ori2d/ori-physics.png',
+  chem:     '/ori2d/ori-chemistry.png',
+  chemistry: '/ori2d/ori-chemistry.png',
+  math:     '/ori2d/ori-maths.png',
+  mathematics: '/ori2d/ori-maths.png',
+  bio:      '/ori2d/ori-biology.png',
+  biology:  '/ori2d/ori-biology.png',
+};
+
 interface DPPViewProps {
   onBack: () => void;
   user: User;
@@ -378,7 +389,7 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
             <div className="flex items-center gap-2 sm:gap-4 truncate">
               <button
                 onClick={() => (selectedDppId ? setSelectedDppId(null) : onBack())}
-                className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                className="p-2 rounded-xl hover:bg-primary/5 transition-colors"
                 aria-label={selectedDppId ? 'Back to DPP list' : 'Back to dashboard'}
               >
                 <ChevronLeft className="w-5 h-5 text-slate-600" />
@@ -472,8 +483,8 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
               </div>
 
               <div className="space-y-4 max-w-2xl mx-auto text-left">
-                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
-                  <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Recommendations</h3>
+                <div className="rounded-2xl neu-inset p-4">
+                  <h3 className="font-semibold text-foreground mb-2">Recommendations</h3>
                   <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
                     {(submissionResult?.recommendations ?? []).map((item, index) => (
                       <li key={`${item}-${index}`}>• {item}</li>
@@ -536,13 +547,13 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
                             className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
                               showSolution
                                 ? index === getCorrectOption(currentQuestionIndex)
-                                  ? 'border-primary bg-primary/5 dark:bg-primary/10'
+                                  ? 'border-primary bg-primary/5'
                                   : selectedOption === index
-                                    ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                                    : 'border-slate-200 dark:border-slate-700 opacity-50'
+                                    ? 'border-red-500 bg-red-500/10'
+                                    : 'border-border/40 opacity-50'
                                 : selectedOption === index
-                                  ? 'border-primary bg-primary/5 dark:bg-primary/10'
-                                  : 'border-slate-200 dark:border-slate-700 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                  ? 'border-primary bg-primary/5'
+                                  : 'border-border/40 hover:border-primary/50 hover:bg-primary/5'
                             }`}
                           >
                             <div className="flex items-center gap-4">
@@ -553,10 +564,10 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
                                       ? 'bg-primary text-white'
                                       : selectedOption === index
                                         ? 'bg-red-500 text-white'
-                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                        : 'neu-inset text-muted-foreground'
                                     : selectedOption === index
                                       ? 'bg-primary text-white'
-                                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                      : 'neu-inset text-muted-foreground'
                                 }`}
                               >
                                 {showSolution && index === getCorrectOption(currentQuestionIndex) ? (
@@ -652,7 +663,7 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
                             ? Boolean(checkResults[index]?.isCorrect ?? checkResults[index]?.is_correct)
                               ? 'bg-primary text-white'
                               : 'bg-red-500 text-white'
-                            : 'bg-slate-100 text-slate-400'
+                            : 'neu-inset text-muted-foreground'
                         }`}
                       >
                         {index + 1}
@@ -756,6 +767,14 @@ function DppSelectionGrid({
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
+                        {DPP_SUBJECT_ORI[dpp.subject] && (
+                          <img
+                            src={DPP_SUBJECT_ORI[dpp.subject]}
+                            alt={dpp.subject}
+                            draggable={false}
+                            className="w-8 h-8 object-contain select-none flex-shrink-0"
+                          />
+                        )}
                         <Badge variant="secondary" className="capitalize">
                           {dpp.subject}
                         </Badge>

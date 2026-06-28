@@ -4,11 +4,12 @@ import { redirect } from 'next/navigation';
 import { getServerFrontendUser } from '@/lib/auth-server';
 import { shouldRedirectFreeStudent } from '@/server/entitlements';
 import { listRoomsForUser, type RoomSummary } from '@/server/study-rooms';
+import OriLoadingScreen from '@/components/ui/OriLoadingScreen';
 import StudyRoomsClient from './_client';
 
 export default function StudyRoomsPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Loading study rooms...</div>}>
+    <Suspense fallback={<OriLoadingScreen />}>
       <StudyRoomsGate />
     </Suspense>
   );

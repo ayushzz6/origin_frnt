@@ -17,6 +17,20 @@ import type { PracticeQuestion, User } from '@/types';
 import { submitOgcodeAnswerAction } from '@/server/actions/ogcode-actions';
 import { toast } from 'sonner';
 
+const SUBJECT_META: Record<string, { label: string; emoji: string; param: string }> = {
+    phy:  { label: 'Physics',     emoji: '⚛️', param: 'subject=phy'  },
+    chem: { label: 'Chemistry',   emoji: '🧪', param: 'subject=chem' },
+    math: { label: 'Mathematics', emoji: '📐', param: 'subject=math' },
+    bio:  { label: 'Biology',     emoji: '🌿', param: 'subject=bio'  },
+};
+
+const SUBJECT_ORI_MAP: Record<string, string> = {
+    phy:  '/ori2d/ori-physics.png',
+    chem: '/ori2d/ori-chemistry.png',
+    math: '/ori2d/ori-maths.png',
+    bio:  '/ori2d/ori-biology.png',
+};
+
 interface OGCodeWorkspaceProps {
     questionId: string | number;
     onBack: () => void;
@@ -357,30 +371,84 @@ export default function OGCodeWorkspace({ questionId, onBack, onRefreshUser, set
     }, [router]);
 
     const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+    const switchToSubject = useCallback(async (subjectKey: string) => {
+        const meta = SUBJECT_META[subjectKey];
+        if (!meta) return;
+        try {
+            const data = await apiCall(`/assessments/ogcode/questions/?${meta.param}`) as unknown;
+            const items = Array.isArray(data) ? data : [];
+            const ids = items.map((q: { id: unknown }) => String(q.id)).filter(Boolean);
+            if (ids.length === 0) { toast.error(`No ${meta.label} questions found`); return; }
+            const queue: OgcodeNavQueue = { ids, label: meta.label, filterParams: meta.param };
+            saveOgcodeNavQueue(queue);
+            setNavQueue(queue);
+            router.push(`/ogcode/${ids[0]}`);
+        } catch {
+            toast.error(`Failed to load ${meta.label} questions`);
+        }
+    }, [router]);
+
     const loadMoreQuestions = useCallback(async () => {
         setIsLoadingMore(true);
         try {
-            const data = await apiCall('/assessments/ogcode/questions/') as unknown;
+            // Re-fetch with the same filter the user had on the list page (if any)
+            const qs = navQueue?.filterParams ? `?${navQueue.filterParams}` : '';
+            const data = await apiCall(`/assessments/ogcode/questions/${qs}`) as unknown;
             const items = Array.isArray(data) ? data : [];
             const incoming = items.map((q: { id: unknown }) => String(q.id)).filter(Boolean);
             const existingSet = new Set(navQueue?.ids ?? []);
             const fresh = incoming.filter(id => !existingSet.has(id));
             if (fresh.length > 0) {
                 const merged = [...(navQueue?.ids ?? []), ...fresh];
-                const queue: OgcodeNavQueue = { ids: merged, label: navQueue?.label ?? 'All Questions' };
+                const queue: OgcodeNavQueue = { ids: merged, label: navQueue?.label ?? 'All Questions', filterParams: navQueue?.filterParams };
                 saveOgcodeNavQueue(queue);
                 setNavQueue(queue);
-                // Navigate to first new question
                 router.push(`/ogcode/${fresh[0]}`);
             } else {
-                toast.info('All questions loaded — you\'ve reached the end!');
+                // Determine current subject from filter params
+                const currentSubjectKey = navQueue?.filterParams
+                    ? new URLSearchParams(navQueue.filterParams).get('subject') ?? ''
+                    : '';
+                const currentLabel = SUBJECT_META[currentSubjectKey]?.label ?? (navQueue?.label ?? 'this topic');
+                // Pick 2 random other subjects
+                const suggestions = Object.keys(SUBJECT_META)
+                    .filter(k => k !== currentSubjectKey)
+                    .sort(() => 0.5 - Math.random())
+                    .slice(0, 2);
+
+                toast.custom((toastId) => (
+                    <div className="w-full max-w-sm rounded-2xl border border-border/40 bg-background p-4 shadow-xl">
+                        <p className="text-sm font-semibold text-foreground">
+                            🚧 More {currentLabel} questions coming soon!
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            We&apos;re working hard on adding more. How about practising:
+                        </p>
+                        <div className="mt-3 flex gap-2">
+                            {suggestions.map(key => {
+                                const m = SUBJECT_META[key];
+                                return (
+                                    <button
+                                        key={key}
+                                        type="button"
+                                        onClick={() => { toast.dismiss(toastId); switchToSubject(key); }}
+                                        className="flex items-center gap-1.5 rounded-xl neu-raised px-3 py-1.5 text-xs font-bold text-foreground transition-all hover:-translate-y-0.5"
+                                    >
+                                        <span>{m.emoji}</span> {m.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                ), { duration: 12000 });
             }
         } catch {
             toast.error('Failed to load more questions');
         } finally {
             setIsLoadingMore(false);
         }
-    }, [navQueue, router]);
+    }, [navQueue, router, switchToSubject]);
 
     // 1. SAFE TAGS: Prevents the ".map is not a function" crash
     const safeTags = useMemo(() => {
@@ -621,6 +689,15 @@ export default function OGCodeWorkspace({ questionId, onBack, onRefreshUser, set
                     {/* Question Content */}
                     <div id="tutorial-ogcode-content" className="space-y-4">
                         <div className="flex items-center justify-end gap-2">
+                            {/* Subject Ori avatar */}
+                            {question.subject && SUBJECT_ORI_MAP[question.subject] && (
+                                <img
+                                    src={SUBJECT_ORI_MAP[question.subject]}
+                                    alt={question.subject}
+                                    draggable={false}
+                                    className="w-8 h-8 object-contain select-none"
+                                />
+                            )}
                             <span className="text-[10px] font-bold text-primary px-2 py-1 bg-primary/10 rounded uppercase tracking-wider">
                                 {question.subject}
                             </span>

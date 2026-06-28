@@ -2,12 +2,13 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getServerUser } from '@/lib/auth-server';
 import { listTasksForRender } from '@/server/render-loaders';
+import OriLoadingScreen from '@/components/ui/OriLoadingScreen';
 import type { Task } from '@/types';
 import TasksClient from './_client';
 
 export default function TasksPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+    <Suspense fallback={<OriLoadingScreen />}>
       <TasksGate />
     </Suspense>
   );

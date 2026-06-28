@@ -64,7 +64,7 @@ export const NotificationBell: React.FC = () => {
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
             className={cn(
-              "absolute w-80 sm:w-96 bg-card dark:bg-zinc-950 border border-primary/20 dark:border-zinc-800 rounded-2xl shadow-xl overflow-hidden z-[100] backdrop-blur-xl bg-opacity-80 dark:bg-opacity-80",
+              "absolute w-80 sm:w-96 bg-white dark:bg-zinc-950 border border-primary/20 dark:border-zinc-800 rounded-2xl shadow-xl overflow-hidden z-[100]",
               dropdownPos === 'right'
                 ? "left-full ml-2 top-0"
                 : "right-0 mt-2"

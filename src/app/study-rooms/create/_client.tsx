@@ -1,13 +1,12 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { UsersRound } from 'lucide-react';
+import { UsersRound, ArrowLeft, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { apiCall } from '@/lib/api';
 
 export default function CreateStudyRoomClient() {
@@ -31,25 +30,61 @@ export default function CreateStudyRoomClient() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-8 text-foreground">
-      <section className="w-full max-w-lg rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-600 text-white">
-            <UsersRound className="h-5 w-5" />
+    <main className="min-h-screen neu-surface flex items-center justify-center px-4 py-8 text-foreground font-sans">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="w-full max-w-md"
+      >
+        <Link
+          href="/study-rooms"
+          className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to rooms
+        </Link>
+
+        <div className="neu-raised rounded-3xl p-8">
+          {/* Header */}
+          <div className="mb-7 flex items-center gap-4">
+            <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-primary/10">
+              <UsersRound className="h-7 w-7 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-xl font-black">Create Study Room</h1>
+              <p className="text-sm text-muted-foreground">Set a name and invite friends from the lobby.</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-black">Create Study Room</h1>
-            <p className="text-sm text-slate-500">Set a room name and invite friends from the lobby.</p>
+
+          {/* Room name input */}
+          <div className="mb-6 space-y-2">
+            <label htmlFor="room-name" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+              Room Name
+            </label>
+            <div className="neu-inset rounded-xl px-4 py-3">
+              <input
+                id="room-name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                maxLength={120}
+                className="w-full bg-transparent outline-none text-sm font-medium placeholder:text-muted-foreground/50"
+              />
+            </div>
           </div>
+
+          {/* Create button */}
+          <button
+            type="button"
+            disabled={isCreating || name.trim().length < 2}
+            onClick={createRoom}
+            className="w-full bg-primary text-primary-foreground rounded-xl px-6 py-3.5 font-black text-sm flex items-center justify-center gap-2 shadow-[3px_3px_8px_hsl(var(--neu-shadow))] transition-transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            <Sparkles className="h-4 w-4" />
+            {isCreating ? 'Creating…' : 'Create Room'}
+          </button>
         </div>
-        <div className="grid gap-2">
-          <Label htmlFor="room-name">Room Name</Label>
-          <Input id="room-name" value={name} onChange={(event) => setName(event.target.value)} maxLength={120} />
-        </div>
-        <Button className="mt-6 w-full" disabled={isCreating || name.trim().length < 2} onClick={createRoom}>
-          {isCreating ? 'Creating...' : 'Create Room'}
-        </Button>
-      </section>
+      </motion.div>
     </main>
   );
 }

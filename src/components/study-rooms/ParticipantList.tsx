@@ -1,11 +1,9 @@
 'use client';
 
-import { Crown, Shield, UserMinus } from 'lucide-react';
+import { Crown, Shield, UserMinus, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { formatStudyRoomTime } from '@/lib/study-rooms/date-format';
 import type { ParticipantSummary } from '@/lib/study-rooms/events';
 
@@ -34,57 +32,81 @@ export function ParticipantList({
   };
 
   return (
-    <section className="rounded-lg border border-primary/20 bg-card p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+    <section className="neu-raised rounded-2xl p-5">
+      {/* Header */}
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">Participants</h2>
-        <Badge variant="secondary" className="rounded-md">{activeParticipants.length}/100</Badge>
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+            <Users className="h-4 w-4 text-primary" />
+          </div>
+          <h2 className="text-[10px] font-black uppercase tracking-[0.22em] text-muted-foreground">Participants</h2>
+        </div>
+        <span className="rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary">
+          {activeParticipants.length}/100
+        </span>
       </div>
 
-      <div className="space-y-3">
+      {/* List */}
+      <div className="space-y-2.5">
         {activeParticipants.map((participant) => {
           const isSelf = participant.user_id === currentUserId;
           const participantIsAdmin = participant.role === 'admin';
+          const initials = participant.display_name.slice(0, 2).toUpperCase();
           return (
-            <div key={participant.user_id} className="flex items-center gap-3 rounded-lg border border-slate-100 p-3 dark:border-slate-800">
-              <Avatar className="h-10 w-10">
-                <AvatarFallback className="bg-blue-600 text-sm font-black text-white">
-                  {participant.display_name.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
+            <div
+              key={participant.user_id}
+              className={cn(
+                'neu-inset rounded-xl p-3 flex items-center gap-3',
+                isSelf && 'ring-1 ring-primary/20'
+              )}
+            >
+              {/* Avatar */}
+              <div className={cn(
+                'h-10 w-10 flex-shrink-0 rounded-xl flex items-center justify-center text-sm font-black',
+                participantIsAdmin ? 'bg-amber-500/20 text-amber-600' : 'bg-primary/10 text-primary'
+              )}>
+                {initials}
+              </div>
+
+              {/* Info */}
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-1.5">
                   <p className="truncate text-sm font-bold">{participant.display_name}</p>
-                  {isSelf && <Badge className="h-5 rounded-md px-1.5 text-[10px]">You</Badge>}
+                  {isSelf && (
+                    <span className="rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary">
+                      You
+                    </span>
+                  )}
                   {participantIsAdmin && (
-                    <Badge variant="secondary" className="h-5 rounded-md px-1.5 text-[10px]">
-                      <Crown className="mr-1 h-3 w-3 text-amber-500" />
-                      Admin
-                    </Badge>
+                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600">
+                      <Crown className="h-2.5 w-2.5" /> Admin
+                    </span>
                   )}
                 </div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   Joined {formatStudyRoomTime(participant.joined_at)}
                 </p>
               </div>
 
+              {/* Admin actions */}
               {isAdmin && !isSelf && (
                 <div className="flex items-center gap-1">
-                  <Button
-                    size="icon"
-                    variant="ghost"
+                  <button
+                    type="button"
                     title="Transfer admin"
                     onClick={() => run(() => onTransferAdmin(participant.user_id), 'Admin transferred.')}
+                    className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                   >
                     <Shield className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
+                  </button>
+                  <button
+                    type="button"
                     title="Kick participant"
                     onClick={() => run(() => onKick(participant.user_id), 'Participant removed.')}
+                    className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                   >
-                    <UserMinus className="h-4 w-4 text-red-500" />
-                  </Button>
+                    <UserMinus className="h-4 w-4" />
+                  </button>
                 </div>
               )}
             </div>

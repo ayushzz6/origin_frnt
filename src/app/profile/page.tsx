@@ -3,11 +3,12 @@ import { redirect } from 'next/navigation';
 import { getServerUser } from '@/lib/auth-server';
 import { getProfileStatsForRender } from '@/server/render-loaders';
 import { isFeatureEnabled } from '@/lib/feature-flags';
+import OriLoadingScreen from '@/components/ui/OriLoadingScreen';
 import ProfileClient from './_client';
 
 export default function ProfilePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+    <Suspense fallback={<OriLoadingScreen />}>
       <ProfileGate />
     </Suspense>
   );

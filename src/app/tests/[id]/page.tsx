@@ -2,12 +2,13 @@ import { Suspense } from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { getServerUser } from '@/lib/auth-server';
 import { getTestDetailForRender } from '@/server/render-loaders';
+import OriLoadingScreen from '@/components/ui/OriLoadingScreen';
 import type { Test } from '@/types';
 import TestClient from './_client';
 
 export default function TestPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading Test...</div>}>
+    <Suspense fallback={<OriLoadingScreen />}>
       <TestContent params={params} />
     </Suspense>
   );

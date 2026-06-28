@@ -268,7 +268,7 @@ export default function StudyCorner({ catalog }: StudyCornerProps) {
             <div className="relative shrink-0 w-12 h-16 bg-card rounded-md shadow-xl rotate-3 group-hover:rotate-6 transition-transform overflow-hidden flex flex-col p-2 gap-1.5 ring-2 ring-primary/20 group-hover:ring-primary/40">
                 <div className="absolute top-0 left-0 w-full h-1 bg-primary/20"></div>
                 {[...Array(5)].map((_, i) => (
-                    <div key={i} className={`h-0.5 bg-slate-200 rounded-full ${i % 2 === 0 ? 'w-full' : 'w-3/4'}`}></div>
+                    <div key={i} className={`h-0.5 bg-border rounded-full ${i % 2 === 0 ? 'w-full' : 'w-3/4'}`}></div>
                 ))}
                 <div className="mt-auto text-[7px] font-black text-primary tracking-tighter self-end opacity-40">ORIGIN</div>
             </div>
@@ -313,8 +313,8 @@ export default function StudyCorner({ catalog }: StudyCornerProps) {
     );
 
     const renderBookCard = (book: Book, inLibrary: boolean = false) => (
-        <Card key={book.id} className="group flex flex-col overflow-hidden border border-primary/20 dark:border-slate-800 shadow-sm bg-card dark:bg-[#0B1120] hover:shadow-2xl hover:shadow-primary/10 transition-all duration-500 hover:-translate-y-1 rounded-2xl">
-            <div className="relative aspect-[3/4] overflow-hidden bg-slate-100 dark:bg-slate-800">
+        <Card key={book.id} className="group flex flex-col overflow-hidden neu-raised hover:shadow-2xl hover:shadow-primary/10 transition-all duration-500 hover:-translate-y-1 rounded-2xl">
+            <div className="relative aspect-[3/4] overflow-hidden neu-inset rounded-t-2xl">
                 <img
                     src={book.coverImage}
                     alt={book.title}
@@ -359,7 +359,7 @@ export default function StudyCorner({ catalog }: StudyCornerProps) {
                 <h3 className="font-bold text-slate-900 dark:text-white line-clamp-2 leading-snug mb-2 group-hover:text-primary transition-colors">
                     {book.title}
                 </h3>
-                <div className="mt-auto pt-4 flex items-center text-xs font-medium text-slate-500 dark:text-slate-500 gap-3 border-t border-slate-100 dark:border-slate-800/50">
+                <div className="mt-auto pt-4 flex items-center text-xs font-medium text-muted-foreground gap-3 border-t border-border/40">
                     <span className="flex items-center gap-1.5"><BookOpen className="w-3.5 h-3.5" />{book.chapters.length} Ch</span>
                     <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
                     <span>{book.chapters.reduce((acc, ch) => acc + ch.pages, 0)} Pgs</span>
@@ -821,7 +821,7 @@ export default function StudyCorner({ catalog }: StudyCornerProps) {
                                                     {book?.title || "Quick Reflection"}
                                                 </h5>
 
-                                                <div className="bg-slate-100 dark:bg-white/5 rounded-2xl p-6 mb-8 border border-slate-200 dark:border-white/5 group-hover:bg-slate-200 dark:group-hover:bg-white/10 transition-colors flex-1 shadow-inner ring-1 ring-slate-200 dark:ring-white/5">
+                                                <div className="neu-inset rounded-2xl p-6 mb-8 flex-1">
                                                     <p className="text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed italic line-clamp-5">
                                                         "{note.content}"
                                                     </p>
@@ -841,12 +841,12 @@ export default function StudyCorner({ catalog }: StudyCornerProps) {
                                 })}
 
                                 {aggregatedNotes.length === 0 && (
-                                    <div className="col-span-full py-32 text-center rounded-[3rem] border border-slate-200 dark:border-white/5 bg-white/40 dark:bg-[#030712]/40 backdrop-blur-3xl">
-                                        <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-8 border border-white/10 opacity-30">
-                                            <PenTool className="w-10 h-10 text-slate-400" />
+                                    <div className="col-span-full py-32 text-center rounded-[3rem] neu-inset">
+                                        <div className="w-20 h-20 neu-raised rounded-full flex items-center justify-center mx-auto mb-8 opacity-50">
+                                            <PenTool className="w-10 h-10 text-muted-foreground" />
                                         </div>
-                                        <p className="text-xs font-black text-slate-600 uppercase tracking-[0.4em]">Your knowledge vault is currently empty</p>
-                                        <p className="mt-4 text-slate-700 text-sm font-bold">Start reading NCERT books to capture your thoughts here.</p>
+                                        <p className="text-xs font-black text-muted-foreground uppercase tracking-[0.4em]">Your knowledge vault is currently empty</p>
+                                        <p className="mt-4 text-muted-foreground text-sm font-bold">Start reading NCERT books to capture your thoughts here.</p>
                                     </div>
                                 )}
                             </div>

@@ -6,9 +6,6 @@ import { useRouter } from 'next/navigation';
 import { Crown, Medal, Award, ArrowLeft, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DeleteRoomButton } from '@/components/study-rooms/DeleteRoomButton';
 import { RoomDppPanel, type RoomDppSummary } from '@/components/study-rooms/RoomDppPanel';
 import { apiCall } from '@/lib/api';
@@ -20,7 +17,7 @@ function RankIcon({ rank }: { rank: number }) {
   if (rank === 1) return <Crown className="h-5 w-5 text-amber-500" />;
   if (rank === 2) return <Medal className="h-5 w-5 text-slate-400" />;
   if (rank === 3) return <Award className="h-5 w-5 text-orange-500" />;
-  return <span className="flex h-5 w-5 items-center justify-center text-sm font-black text-slate-500">{rank}</span>;
+  return <span className="flex h-5 w-5 items-center justify-center text-sm font-black text-muted-foreground">{rank}</span>;
 }
 
 export default function RoomLeaderboardClient({
@@ -81,59 +78,85 @@ export default function RoomLeaderboardClient({
   };
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8 text-foreground">
+    <main className="min-h-screen neu-surface px-4 py-8 text-foreground">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
         <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
-            <Button asChild variant="ghost" size="sm" className="mb-3">
-              <Link href="/study-rooms"><ArrowLeft className="h-4 w-4" /> Rooms</Link>
-            </Button>
+            <Link
+              href="/study-rooms"
+              className="mb-3 flex w-fit items-center gap-1.5 text-sm font-bold text-muted-foreground hover:text-primary transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" /> Rooms
+            </Link>
             <h1 className="text-3xl font-black tracking-tight">{room.name} Leaderboard</h1>
-            <p className="mt-2 text-sm text-slate-500">Ranked by score, then completion time.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Ranked by score, then completion time.</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <Badge className="w-fit rounded-md">{room.status.replace('_', ' ')}</Badge>
+            <span className="w-fit rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary">
+              {room.status.replace('_', ' ')}
+            </span>
             {isAdmin && <DeleteRoomButton roomName={room.name} onDelete={deleteRoom} />}
           </div>
         </header>
 
-        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+        <section className="neu-raised rounded-2xl p-5">
           <div className="space-y-3">
             {leaderboard.map((entry) => (
               <div
                 key={entry.user_id}
                 className={cn(
-                  'flex items-center gap-4 rounded-lg border p-4',
-                  entry.is_me ? 'border-blue-300 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/30' : 'border-slate-100 dark:border-slate-800',
+                  'flex items-center gap-4 rounded-xl p-4',
+                  entry.rank <= 3 ? 'neu-raised' : 'neu-inset',
+                  entry.is_me && 'ring-2 ring-primary/30',
                 )}
               >
-                <div className="w-8"><RankIcon rank={entry.rank} /></div>
-                <Avatar className="h-11 w-11">
-                  <AvatarFallback className="bg-blue-600 font-black text-white">
-                    {entry.display_name.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="w-8 flex items-center justify-center">
+                  <RankIcon rank={entry.rank} />
+                </div>
+
+                {/* Avatar */}
+                <div className={cn(
+                  'h-11 w-11 rounded-xl flex items-center justify-center text-sm font-black flex-shrink-0',
+                  entry.rank === 1 ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' :
+                  entry.rank === 2 ? 'bg-slate-400/20 text-slate-500' :
+                  entry.rank === 3 ? 'bg-orange-500/20 text-orange-600 dark:text-orange-400' :
+                  'bg-primary/10 text-primary',
+                )}>
+                  {entry.display_name.charAt(0).toUpperCase()}
+                </div>
+
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <p className="truncate font-black">{entry.display_name}</p>
-                    {entry.is_me && <Badge className="h-5 rounded-md px-1.5 text-[10px]">You</Badge>}
-                    {entry.auto_submitted && <Badge variant="secondary" className="h-5 rounded-md px-1.5 text-[10px]">Auto</Badge>}
+                    {entry.is_me && (
+                      <span className="rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary">
+                        You
+                      </span>
+                    )}
+                    {entry.auto_submitted && (
+                      <span className="rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-muted text-muted-foreground">
+                        Auto
+                      </span>
+                    )}
                   </div>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     {entry.finished_at ? `Finished in ${entry.time_taken_seconds ?? 0}s` : 'Still in progress'}
                   </p>
                 </div>
+
                 <div className="text-right">
-                  <p className="text-2xl font-black text-blue-600">{entry.score ?? 0}</p>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Score</p>
+                  <p className="text-2xl font-black text-primary">{entry.score ?? 0}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Score</p>
                 </div>
+
                 {entry.is_me && room.custom_test_id && entry.test_result_id && (
-                  <Button asChild variant="outline" size="sm">
-                    <Link href={`/tests/${room.custom_test_id}/result?result=${encodeURIComponent(entry.test_result_id)}`}>
-                      <BarChart3 className="h-4 w-4" />
-                      Analysis
-                    </Link>
-                  </Button>
+                  <Link
+                    href={`/tests/${room.custom_test_id}/result?result=${encodeURIComponent(entry.test_result_id)}`}
+                    className="flex items-center gap-1.5 neu-raised rounded-xl px-3 py-2 text-xs font-bold text-foreground hover:-translate-y-0.5 transition-all"
+                  >
+                    <BarChart3 className="h-3.5 w-3.5" />
+                    Analysis
+                  </Link>
                 )}
               </div>
             ))}

@@ -594,7 +594,7 @@ export default function OGCodeList({
             selectedChapters.length ? `${selectedChapters.length} chapter${selectedChapters.length > 1 ? 's' : ''}` : null,
             searchQuery.trim() ? `“${searchQuery.trim()}”` : null,
         ].filter(Boolean).join(' · ') || 'All questions';
-        saveOgcodeNavQueue({ ids: filteredQuestions.map(q => String(q.id)), label });
+        saveOgcodeNavQueue({ ids: filteredQuestions.map(q => String(q.id)), label, filterParams: searchParams.toString() || null });
         // filteredIdsKey captures order+membership; other deps feed the label.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filteredIdsKey, activeSubject, activeDifficulty, activeStatus, selectedChapters, searchQuery]);
@@ -614,7 +614,7 @@ export default function OGCodeList({
             <div className="max-w-[1400px] mx-auto px-3 sm:px-6 lg:px-8 pt-6 space-y-5">
 
                 {/* ── Header ── */}
-                <div className="flex flex-col md:flex-row md:items-start justify-between gap-5">
+                <div className="sticky top-0 z-[200] -mx-3 sm:-mx-6 lg:-mx-8 px-3 sm:px-6 lg:px-8 py-4 neu-surface border-b border-border/20 shadow-sm flex flex-col md:flex-row md:items-start justify-between gap-5">
                     <motion.div
                         initial={{ opacity: 0, y: -16 }}
                         animate={{ opacity: 1, y: 0 }}

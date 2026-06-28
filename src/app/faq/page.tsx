@@ -163,7 +163,7 @@ export default function FAQPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans relative overflow-x-hidden selection:bg-primary/20 selection:text-primary">
+    <div className="min-h-screen neu-surface text-foreground font-sans relative overflow-x-hidden selection:bg-primary/20 selection:text-primary">
       {/* Background Glows */}
       <div className="absolute inset-0 z-0 pointer-events-none opacity-30 dark:opacity-20">
         <div className="absolute top-[-10%] right-[-20%] w-[60%] h-[60%] bg-primary/10 rounded-full blur-[150px]" />
@@ -178,12 +178,12 @@ export default function FAQPage() {
             className="group flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-primary transition-all duration-300"
             id="back-home-btn"
           >
-            <div className="p-2 rounded-full bg-secondary/50 border border-border group-hover:scale-105 transition-transform">
+            <div className="p-2 neu-raised rounded-full group-hover:scale-105 transition-transform">
               <ArrowLeft className="w-4 h-4" />
             </div>
             Back to Home
           </Link>
-          <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase bg-secondary/50 border border-border px-3 py-1 rounded-full">
+          <span className="neu-raised rounded-full px-3 py-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
             FAQ Blueprints
           </span>
         </div>
@@ -198,14 +198,14 @@ export default function FAQPage() {
           </p>
 
           {/* Search bar */}
-          <div className="relative max-w-2xl mx-auto">
-            <Search className="absolute left-4.5 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
+          <div className="relative max-w-2xl mx-auto neu-inset rounded-2xl flex items-center px-4">
+            <Search className="text-muted-foreground w-5 h-5 shrink-0" />
             <input
               type="text"
               placeholder="Search policies, payments, AI doubt solvers..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-13 pr-6 py-4.5 bg-card/60 backdrop-blur-xl border border-border/60 rounded-2xl shadow-xl outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-sm font-semibold transition-all"
+              className="w-full pl-3 pr-2 py-4 bg-transparent outline-none text-sm font-semibold"
               id="faq-search-input"
             />
           </div>
@@ -223,10 +223,10 @@ export default function FAQPage() {
                   setSelectedCategory(cat.id);
                   setExpandedIndex(null);
                 }}
-                className={`flex items-center gap-2 px-5 py-3 rounded-full text-xs font-black uppercase tracking-wider border transition-all duration-300 ${
+                className={`flex items-center gap-2 px-5 py-3 rounded-full text-xs font-black uppercase tracking-wider transition-all duration-300 ${
                   isSelected
-                    ? 'bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/10'
-                    : 'bg-card/40 border-border/40 text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                    ? 'neu-raised text-primary'
+                    : 'text-muted-foreground hover:neu-raised hover:text-foreground'
                 }`}
                 id={`faq-tab-${cat.id}`}
               >
@@ -245,8 +245,8 @@ export default function FAQPage() {
               return (
                 <div
                   key={index}
-                  className={`bg-card/60 backdrop-blur-xl border rounded-2xl transition-all duration-300 ${
-                    isExpanded ? 'border-primary/40 shadow-xl' : 'border-border/40 shadow-md hover:border-border/80'
+                  className={`neu-raised rounded-2xl transition-all duration-300 ${
+                    isExpanded ? 'ring-1 ring-primary/20' : ''
                   }`}
                 >
                   <button
@@ -258,8 +258,8 @@ export default function FAQPage() {
                       {faq.question}
                     </span>
                     <div
-                      className={`p-1.5 rounded-lg bg-secondary/50 border border-border/40 transition-transform duration-300 shrink-0 ${
-                        isExpanded ? 'rotate-180 bg-primary/10 border-primary/20 text-primary' : 'text-muted-foreground'
+                      className={`p-1.5 rounded-lg transition-transform duration-300 shrink-0 ${
+                        isExpanded ? 'rotate-180 text-primary' : 'text-muted-foreground'
                       }`}
                     >
                       <ChevronDown className="w-4 h-4" />
@@ -270,7 +270,7 @@ export default function FAQPage() {
                       isExpanded ? 'max-h-[500px] border-t border-border/20' : 'max-h-0'
                     }`}
                   >
-                    <div className="px-6 py-5 text-muted-foreground font-medium leading-relaxed text-sm sm:text-base bg-secondary/[0.15]">
+                    <div className="px-6 py-5 text-muted-foreground font-medium leading-relaxed text-sm sm:text-base neu-inset rounded-b-2xl">
                       {faq.answer}
                     </div>
                   </div>
@@ -278,7 +278,7 @@ export default function FAQPage() {
               );
             })
           ) : (
-            <div className="text-center py-16 bg-card/35 backdrop-blur-xl border border-border/40 rounded-3xl">
+            <div className="text-center py-16 neu-raised rounded-3xl">
               <HelpCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4 stroke-1 animate-pulse" />
               <p className="text-lg font-bold text-muted-foreground">No questions found matching "{searchQuery}"</p>
               <button
