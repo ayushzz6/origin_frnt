@@ -154,6 +154,7 @@ export async function ensureDocumentImportSchema(): Promise<void> {
             subject TEXT,
             chapter TEXT,
             concept TEXT,
+            difficulty TEXT NOT NULL DEFAULT 'medium',
             question_text TEXT,
             options JSONB,
             correct_option INTEGER,
@@ -172,6 +173,10 @@ export async function ensureDocumentImportSchema(): Promise<void> {
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
           );
+
+          -- Backfill for DBs created before the AI-classified difficulty column.
+          ALTER TABLE import.import_job_questions
+            ADD COLUMN IF NOT EXISTS difficulty TEXT NOT NULL DEFAULT 'medium';
 
           CREATE INDEX IF NOT EXISTS idx_import_questions_job_status
             ON import.import_job_questions(job_id, status, question_number);

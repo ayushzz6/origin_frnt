@@ -74,6 +74,7 @@ function rowToQuestion(row: Record<string, unknown>): ImportJobQuestion {
     questionType: (row.question_type as string | null) ?? null,
     subject: (row.subject as string | null) ?? null, chapter: (row.chapter as string | null) ?? null,
     concept: (row.concept as string | null) ?? null,
+    difficulty: (row.difficulty as string | null) ?? null,
     questionText: (row.question_text as string | null) ?? null,
     options: (row.options as Record<string, unknown> | null) ?? null,
     correctOption: (row.correct_option as number | null) ?? null,

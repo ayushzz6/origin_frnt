@@ -94,6 +94,10 @@ import {
 } from "@/server/workspaces/tests-store";
 import { getContentQuestionStoredMap } from "@/server/workspaces/test-question-resolver";
 import {
+  listStudentInstituteEnrollments,
+  studentHasActiveEnrollment,
+} from "@/server/workspaces/enrollments";
+import {
   getOptionDisplayOrder,
   presentOptions,
   verifyOptionPresentationToken,
@@ -2068,6 +2072,8 @@ function serializePersistedDppPlanWithLookup(
     questions,
     generatedFrom: plan.generatedFrom,
     generated_from: plan.generatedFrom,
+    provenanceNote: plan.provenanceNote,
+    provenance_note: plan.provenanceNote,
     createdAt: plan.createdAt,
     created_at: plan.createdAt,
     completed: plan.completed,
@@ -3357,18 +3363,37 @@ export async function listGeneratedDpps(store: AppStore, user: StoredUser) {
     return [];
   }
 
+  // Multi-tenancy: a DPP that drew on a workspace's Question Bag (workspace_id
+  // set) is only visible to a student with an active/unassigned enrollment in
+  // that workspace — one teacher's bag never leaks to another teacher's student.
+  let visiblePlans = plans;
+  if (plans.some((plan) => plan.workspaceId)) {
+    const enrollments = await listStudentInstituteEnrollments(user.id);
+    const allowedWorkspaceIds = new Set(
+      enrollments
+        .filter((e) => e.status === "active" || e.status === "unassigned")
+        .map((e) => e.workspaceId),
+    );
+    visiblePlans = plans.filter(
+      (plan) => !plan.workspaceId || allowedWorkspaceIds.has(plan.workspaceId),
+    );
+  }
+  if (visiblePlans.length === 0) {
+    return [];
+  }
+
   const [latestAttemptMap, questionLookup] = await Promise.all([
     listLatestDppAttemptsForPlans(
       user.id,
-      plans.map((plan) => plan.id),
+      visiblePlans.map((plan) => plan.id),
     ),
     buildQuestionLookup(
       store,
-      plans.flatMap((plan) => plan.questionIds),
+      visiblePlans.flatMap((plan) => plan.questionIds),
     ),
   ]);
 
-  const serialized = plans.map((plan) =>
+  const serialized = visiblePlans.map((plan) =>
     serializePersistedDppPlanWithLookup(
       store,
       user.id,
@@ -3393,6 +3418,11 @@ export async function getGeneratedDppDetail(store: AppStore, user: StoredUser, d
   const plan = await getDppPlanDetail(user.id, dppId);
   if (!plan) {
     throw new Error(`DPP ${dppId} was not found.`);
+  }
+  // Tenancy: bag-sourced DPPs are gated to students still enrolled in the
+  // issuing workspace.
+  if (plan.workspaceId && !(await studentHasActiveEnrollment(plan.workspaceId, user.id))) {
+    throwEntitlementForbidden("This DPP is only available to students enrolled with the issuing institute.");
   }
   const gate = await getStudentGate(user.id, user.role);
   if (gate.enforced && !subjectVisibleUnderGate(plan.subject, gate)) {

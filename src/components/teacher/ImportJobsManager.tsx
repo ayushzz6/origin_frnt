@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -52,6 +52,7 @@ export function ImportJobsManager({ workspaceId, initialJobs, defaultJobId }: Pr
   const [questions, setQuestions] = useState<ImportJobQuestion[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [showFinishModal, setShowFinishModal] = useState(false);
 
   // Selected question in details edit view
   const [activeQuestion, setActiveQuestion] = useState<ImportJobQuestion | null>(null);
@@ -62,55 +63,14 @@ export function ImportJobsManager({ workspaceId, initialJobs, defaultJobId }: Pr
   const [editOptions, setEditOptions] = useState<string[]>([]);
   const [editCorrectOption, setEditCorrectOption] = useState<number>(0);
 
+  // Mirror the active question into a ref so the poller can decide whether to
+  // re-seed the editor without clobbering the teacher's in-progress edits.
+  const activeQuestionRef = useRef<ImportJobQuestion | null>(null);
   useEffect(() => {
-    const job = selectedJob;
-    if (!job) return;
-    const jobId = job.id;
-    let active = true;
+    activeQuestionRef.current = activeQuestion;
+  }, [activeQuestion]);
 
-    async function fetchQuestions() {
-      setLoadingQuestions(true);
-      const result = await apiJson<{
-        questions?: ImportJobQuestion[];
-        job?: { questionsPreview?: ImportJobQuestion[] };
-      }>(
-        `/api/teacher/workspaces/${workspaceId}/import-jobs/${jobId}?type=questions`,
-        { method: "GET" }
-      );
-      if (!active) return;
-
-      if (result.ok) {
-        const list =
-          result.data.questions ??
-          result.data.job?.questionsPreview ??
-          (Array.isArray(result.data) ? result.data : []);
-        if (list.length === 0) {
-          setQuestions([]);
-          setActiveQuestion(null);
-        } else {
-          setQuestions(list);
-          if (list.length > 0) {
-            setActiveQuestion(list[0]);
-            seedEditor(list[0]);
-          }
-        }
-      } else {
-        toast.error("Failed to load parsed questions.");
-      }
-      setLoadingQuestions(false);
-    }
-
-    void fetchQuestions();
-    return () => {
-      active = false;
-    };
-  }, [selectedJob?.id, workspaceId]);
-
-  const selectJob = (job: DocumentImportJob) => {
-    setSelectedJob(job);
-  };
-
-  const seedEditor = (q: ImportJobQuestion) => {
+  const seedEditor = useCallback((q: ImportJobQuestion) => {
     setEditStem(q.questionText || "");
     setEditAnswer(q.answerText || "");
     if (q.options) {
@@ -122,6 +82,93 @@ export function ImportJobsManager({ workspaceId, initialJobs, defaultJobId }: Pr
       setEditOptions([]);
     }
     setEditCorrectOption(q.correctOption ?? 0);
+  }, []);
+
+  const loadQuestions = useCallback(
+    async (jobId: string) => {
+      setLoadingQuestions(true);
+      const result = await apiJson<{
+        questions?: ImportJobQuestion[];
+        job?: { questionsPreview?: ImportJobQuestion[] };
+      }>(
+        `/api/teacher/workspaces/${workspaceId}/import-jobs/${jobId}?type=questions`,
+        { method: "GET" }
+      );
+      if (result.ok) {
+        const list =
+          result.data.questions ??
+          result.data.job?.questionsPreview ??
+          (Array.isArray(result.data) ? result.data : []);
+        setQuestions(list);
+        const current = activeQuestionRef.current;
+        const stillThere = current ? list.find((q) => q.id === current.id) : undefined;
+        if (stillThere) {
+          // Same question still present — refresh its stored copy but DON'T
+          // re-seed the editor (would wipe unsaved edits).
+          setActiveQuestion(stillThere);
+        } else {
+          const first = list[0] ?? null;
+          setActiveQuestion(first);
+          if (first) seedEditor(first);
+        }
+      } else {
+        toast.error("Failed to load parsed questions.");
+      }
+      setLoadingQuestions(false);
+    },
+    [workspaceId, seedEditor],
+  );
+
+  // Load parsed questions whenever a different job is opened.
+  useEffect(() => {
+    const job = selectedJob;
+    if (!job) return;
+    void loadQuestions(job.id);
+  }, [selectedJob?.id, loadQuestions]);
+
+  // While a job is still running, poll its status so the progress stepper
+  // animates Queued → Extracting → Reviewing without a manual refresh, and
+  // auto-load the questions the moment it reaches review.
+  useEffect(() => {
+    const job = selectedJob;
+    if (!job) return;
+    const isTerminal = (s: string) =>
+      ["needs_review", "succeeded", "failed", "cancelled"].includes(s);
+    if (isTerminal(job.status)) return;
+
+    let active = true;
+    const interval = setInterval(async () => {
+      const result = await apiJson<{ job?: DocumentImportJob }>(
+        `/api/teacher/workspaces/${workspaceId}/import-jobs/${job.id}`,
+        { method: "GET" },
+      );
+      if (!active) return;
+      const updated = result.ok ? result.data.job : null;
+      if (!updated) return;
+      setSelectedJob((prev) => (prev && prev.id === updated.id ? updated : prev));
+      setJobs((prev) => prev.map((j) => (j.id === updated.id ? updated : j)));
+      if (isTerminal(updated.status)) {
+        clearInterval(interval);
+        if (updated.status === "needs_review" || updated.status === "succeeded") {
+          void loadQuestions(updated.id);
+        }
+      }
+    }, 3000);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [selectedJob?.id, selectedJob?.status, workspaceId, loadQuestions]);
+
+  // Keep the active question tab scrolled into view in the horizontal strip.
+  const activeTabRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    activeTabRef.current?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [activeQuestion?.id]);
+
+  const selectJob = (job: DocumentImportJob) => {
+    setSelectedJob(job);
   };
 
   const selectQuestion = (q: ImportJobQuestion) => {
@@ -141,33 +188,20 @@ export function ImportJobsManager({ workspaceId, initialJobs, defaultJobId }: Pr
   async function handleApproveQuestion(questionId: string) {
     if (!selectedJob) return;
     startTransition(async () => {
-      // POST to reconcile/approve question
+      // The route reads `action` from the query string; the body carries the
+      // accept/reject decision (reviewQuestionSchema) + questionId.
       const result = await apiJson(
-        `/api/teacher/workspaces/${workspaceId}/import-jobs/${selectedJob.id}`,
+        `/api/teacher/workspaces/${workspaceId}/import-jobs/${selectedJob.id}?action=review-question`,
         {
           method: "POST",
-          json: {
-            action: "approve_single",
-            questionId,
-            questionText: editStem,
-            options: editOptions.length > 0 ? {
-              a: editOptions[0],
-              b: editOptions[1],
-              c: editOptions[2],
-              d: editOptions[3],
-            } : null,
-            correctOption: editCorrectOption,
-            answerText: editAnswer || null
-          }
+          json: { action: "accept", questionId },
         }
       );
 
       if (result.ok) {
-        toast.success("Question approved & added to Question Bag!");
-        // Update local state status
+        toast.success("Question accepted.");
         setQuestions(prev => prev.map(q => q.id === questionId ? { ...q, status: "accepted" as const } : q));
-        setActiveQuestion(prev => prev ? { ...prev, status: "accepted" as const } : null);
-        router.refresh();
+        setActiveQuestion(prev => prev && prev.id === questionId ? { ...prev, status: "accepted" as const } : prev);
       } else {
         toast.error(result.detail || "Failed to approve question");
       }
@@ -177,30 +211,55 @@ export function ImportJobsManager({ workspaceId, initialJobs, defaultJobId }: Pr
   async function handleBulkApprove() {
     if (!selectedJob) return;
     startTransition(async () => {
-      const pendingIds = questions.filter(q => q.status !== "accepted").map(q => q.id);
+      // Pending = not yet accepted/published and not rejected (reject curates out).
+      const pendingIds = questions
+        .filter(q => q.status === "draft" || q.status === "review_required")
+        .map(q => q.id);
       if (pendingIds.length === 0) {
-        toast.info("All questions are already approved.");
+        toast.info("All questions are already in the Question Bag.");
+        setShowFinishModal(false);
         return;
       }
 
-      const result = await apiJson(
-        `/api/teacher/workspaces/[workspaceId]/question-bag/import`, // simulated mapping
+      const result = await apiJson<{ acceptedCount?: number }>(
+        `/api/teacher/workspaces/${workspaceId}/import-jobs/${selectedJob.id}?action=bulk-accept`,
         {
           method: "POST",
-          json: {
-            action: "approve_bulk",
-            jobId: selectedJob.id,
-            questionIds: pendingIds
-          }
+          json: { questionIds: pendingIds },
         }
       );
 
-      toast.success(`Successfully approved ${pendingIds.length} questions in bulk!`);
-      setQuestions(prev => prev.map(q => ({ ...q, status: "accepted" as const })));
-      if (activeQuestion) {
-        setActiveQuestion({ ...activeQuestion, status: "accepted" as const });
+      if (result.ok) {
+        const count = result.data?.acceptedCount ?? pendingIds.length;
+        toast.success(`Added ${count} question${count === 1 ? "" : "s"} to the Question Bag.`);
+        setQuestions(prev => prev.map(q => pendingIds.includes(q.id) ? { ...q, status: "accepted" as const } : q));
+        setActiveQuestion(prev => prev && pendingIds.includes(prev.id) ? { ...prev, status: "accepted" as const } : prev);
+        setShowFinishModal(false);
+        router.refresh();
+      } else {
+        toast.error(result.detail || "Failed to add questions to the Question Bag.");
       }
-      router.refresh();
+    });
+  }
+
+  async function handleCreateTest() {
+    if (!selectedJob) return;
+    startTransition(async () => {
+      const result = await apiJson<{ testId?: string; questionCount?: number }>(
+        `/api/teacher/workspaces/${workspaceId}/import-jobs/${selectedJob.id}?action=create-test`,
+        { method: "POST", json: {} }
+      );
+      if (!result.ok) {
+        toast.error(result.detail || "Failed to create a test from these questions.");
+        return;
+      }
+      if (!result.data?.testId) {
+        toast.error("Failed to create a test from these questions.");
+        return;
+      }
+      setShowFinishModal(false);
+      toast.success(`Draft test created with ${result.data.questionCount ?? 0} questions — finish the setup.`);
+      router.push(`/teacher/workspaces/${workspaceId}/tests/${result.data.testId}/edit`);
     });
   }
 
@@ -287,25 +346,62 @@ export function ImportJobsManager({ workspaceId, initialJobs, defaultJobId }: Pr
                 </Button>
                 <div>
                   <h3 className="font-bold text-sm">{selectedJob.sourceFileName}</h3>
-                  {/* ImportProgressBar */}
-                  <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground font-semibold">
-                    <span className="text-primary uppercase">{selectedJob.status}</span>
-                    <span>·</span>
-                    <span>Queued</span>
-                    <ChevronRight className="w-2.5 h-2.5" />
-                    <span>Extracting</span>
-                    <ChevronRight className="w-2.5 h-2.5" />
-                    <span className={selectedJob.status === "needs_review" ? "text-amber-500" : ""}>Reviewing</span>
-                  </div>
+                  {/* Animated ingestion progress stepper */}
+                  {(() => {
+                    const status = selectedJob.status;
+                    const isFailed = status === "failed" || status === "cancelled";
+                    const currentStep = status === "queued" ? 0 : status === "processing" ? 1 : 2;
+                    const running = status === "queued" || status === "processing";
+                    const steps = ["Queued", "Extracting", "Reviewing"];
+                    return (
+                      <div className="flex items-center gap-1.5 mt-1 text-[10px] font-semibold">
+                        <span className={`uppercase ${isFailed ? "text-destructive" : "text-primary"}`}>
+                          {status.replace(/_/g, " ")}
+                        </span>
+                        <span className="text-muted-foreground">·</span>
+                        {steps.map((label, i) => {
+                          const done = i < currentStep || (!running && !isFailed);
+                          const isActive = running && i === currentStep;
+                          return (
+                            <span key={label} className="flex items-center gap-1.5">
+                              <span
+                                className={`flex items-center gap-1 ${
+                                  isFailed && i >= currentStep
+                                    ? "text-destructive"
+                                    : isActive
+                                      ? "text-primary"
+                                      : done
+                                        ? "text-emerald-500"
+                                        : "text-muted-foreground"
+                                }`}
+                              >
+                                {isActive ? (
+                                  <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                                ) : done ? (
+                                  <Check className="w-2.5 h-2.5" />
+                                ) : (
+                                  <Clock className="w-2.5 h-2.5 opacity-60" />
+                                )}
+                                {label}
+                              </span>
+                              {i < steps.length - 1 && (
+                                <ChevronRight className="w-2.5 h-2.5 text-muted-foreground" />
+                              )}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button 
-                  onClick={handleBulkApprove} 
-                  disabled={pending || questions.every(q => q.status === "accepted")}
+                <Button
+                  onClick={() => setShowFinishModal(true)}
+                  disabled={pending || questions.length === 0}
                   className="bg-primary hover:bg-primary/95 text-black font-bold h-9 rounded-xl gap-1.5"
                 >
-                  <CheckCircle className="w-4 h-4" /> Bulk Approve Ready
+                  <CheckCircle className="w-4 h-4" /> Approve…
                 </Button>
               </div>
             </div>
@@ -354,17 +450,18 @@ export function ImportJobsManager({ workspaceId, initialJobs, defaultJobId }: Pr
 
               {/* Right pane: ParsedQuestionsList / Corrective form */}
               <div className="lg:w-1/2 flex flex-col h-full overflow-hidden bg-card">
-                <div className="flex border-b shrink-0 bg-muted/5">
+                <div className="flex border-b shrink-0 bg-muted/5 overflow-x-auto custom-scrollbar whitespace-nowrap">
                   {questions.map((q, idx) => {
                     const isActive = activeQuestion?.id === q.id;
                     const isApproved = q.status === "accepted";
                     return (
                       <button
                         key={q.id}
+                        ref={isActive ? activeTabRef : null}
                         onClick={() => selectQuestion(q)}
-                        className={`flex-1 py-3 text-xs font-bold border-b-2 flex items-center justify-center gap-1.5 ${
-                          isActive 
-                            ? "border-primary text-primary" 
+                        className={`shrink-0 min-w-[108px] px-4 py-3 text-xs font-bold border-b-2 flex items-center justify-center gap-1.5 ${
+                          isActive
+                            ? "border-primary text-primary"
                             : "border-transparent text-muted-foreground hover:bg-muted/10"
                         }`}
                       >
@@ -491,6 +588,76 @@ export function ImportJobsManager({ workspaceId, initialJobs, defaultJobId }: Pr
                 </div>
               </div>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Approve flow — two options: add to Question Bag, or build a test */}
+      <AnimatePresence>
+        {showFinishModal && selectedJob && (
+          <motion.div
+            key="finish-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+            onClick={() => !pending && setShowFinishModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-lg rounded-2xl border bg-card shadow-2xl p-6 space-y-5"
+            >
+              <div className="space-y-1">
+                <h3 className="font-bold text-lg">Approve reviewed questions</h3>
+                <p className="text-xs text-muted-foreground">
+                  Rejected questions are skipped. Everything else is added to your Question Bag,
+                  structured by subject → topic → difficulty.
+                </p>
+              </div>
+
+              <div className="grid gap-3">
+                <button
+                  disabled={pending}
+                  onClick={handleBulkApprove}
+                  className="text-left rounded-xl border p-4 hover:border-primary/60 hover:bg-primary/[0.03] transition-colors disabled:opacity-60"
+                >
+                  <div className="flex items-center gap-2 font-bold text-sm">
+                    <FolderOpen className="w-4 h-4 text-primary" /> Add all to Question Bag
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Save the accepted questions to your private bank for reuse in any test or DPP.
+                  </p>
+                </button>
+
+                <button
+                  disabled={pending}
+                  onClick={handleCreateTest}
+                  className="text-left rounded-xl border p-4 hover:border-primary/60 hover:bg-primary/[0.03] transition-colors disabled:opacity-60"
+                >
+                  <div className="flex items-center gap-2 font-bold text-sm">
+                    <FileCheck className="w-4 h-4 text-primary" /> Create a test from these questions
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Saves them to the bag, then opens the test builder pre-filled — set title,
+                    batch &amp; schedule to publish.
+                  </p>
+                </button>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-1">
+                <Button variant="outline" onClick={() => setShowFinishModal(false)} disabled={pending} className="rounded-xl">
+                  Cancel
+                </Button>
+                {pending && (
+                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground px-2">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Working…
+                  </span>
+                )}
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

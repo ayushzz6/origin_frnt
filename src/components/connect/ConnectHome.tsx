@@ -233,9 +233,13 @@ function InstituteCard({ inst, index }: { inst: StudentInstitute; index: number 
         {inst.batches.length > 0 ? (
           <div className="flex flex-wrap gap-1.5">
             {inst.batches.map((b) => (
-              <span key={b.id} className="text-[10px] font-bold px-2.5 py-1 rounded-full neu-inset text-muted-foreground">
-                {b.name}{b.subject ? ` · ${b.subject}` : ''}
-              </span>
+              <a
+                key={b.id}
+                href={`/connect/batches/${b.id}`}
+                className="text-[10px] font-bold px-2.5 py-1 rounded-full neu-inset text-muted-foreground hover:text-primary transition-colors"
+              >
+                {b.name}{b.subject ? ` · ${b.subject}` : ''} →
+              </a>
             ))}
           </div>
         ) : (

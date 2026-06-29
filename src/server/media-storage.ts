@@ -59,6 +59,63 @@ export function isAllowedImportDocumentMimeType(mimeType: string): boolean {
   return ALLOWED_IMPORT_MIME_TYPES.has(mimeType.toLowerCase());
 }
 
+// Study materials accept the import set plus a few common doc/image/text types.
+const ALLOWED_STUDY_MATERIAL_MIME_TYPES = new Set([
+  ...ALLOWED_IMPORT_MIME_TYPES,
+  "image/gif",
+  "application/msword",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "text/plain",
+]);
+
+export function isAllowedStudyMaterialMimeType(mimeType: string): boolean {
+  return ALLOWED_STUDY_MATERIAL_MIME_TYPES.has(mimeType.toLowerCase());
+}
+
+function studyMaterialExtensionForMime(mimeType: string, fileName: string): string {
+  const map: Record<string, string> = {
+    "application/pdf": "pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+    "application/msword": "doc",
+    "application/vnd.ms-powerpoint": "ppt",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/gif": "gif",
+    "text/plain": "txt",
+  };
+  const fromMime = map[mimeType.toLowerCase()];
+  if (fromMime) return fromMime;
+  const ext = path.extname(fileName).replace(".", "").toLowerCase();
+  return ext || "bin";
+}
+
+/**
+ * Upload a study-material file's bytes to Cloudflare R2 (binary lives ONLY in
+ * R2; the caller persists just the returned metadata to Postgres). Returns the
+ * bucket/objectKey/publicUrl/sha256/sizeBytes for content.study_material_assets.
+ */
+export async function uploadStudyMaterialToR2(input: {
+  workspaceId: string;
+  batchId: string;
+  fileName: string;
+  mimeType: string;
+  body: Buffer;
+}): Promise<R2UploadResult> {
+  const mimeType = input.mimeType.toLowerCase();
+  if (!isAllowedStudyMaterialMimeType(mimeType)) {
+    throw new Error("Unsupported file type. Upload a PDF, DOCX, PPTX, image, or text file.");
+  }
+  const ext = studyMaterialExtensionForMime(mimeType, input.fileName);
+  const now = new Date();
+  const objectKey = `study_material/${input.workspaceId}/${input.batchId}/${now.getUTCFullYear()}/${String(
+    now.getUTCMonth() + 1,
+  ).padStart(2, "0")}/${randomUUID()}.${ext}`;
+  return uploadBytesToR2({ objectKey, mimeType, body: input.body });
+}
+
 export type R2BytesUploadInput = {
   objectKey: string;
   mimeType: string;

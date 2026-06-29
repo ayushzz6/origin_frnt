@@ -7,6 +7,7 @@ import { requireWorkspaceMember } from "@/server/workspaces/authz";
 import {
   bulkAcceptReviewQuestions,
   cancelJob,
+  createDraftTestFromImportJob,
   getJobPages,
   getJobQuestions,
   getJobWithProgress,
@@ -132,8 +133,21 @@ export async function POST(
         });
         return teacherJson({ acceptedCount: accepted });
       }
+      case "create-test": {
+        const ctx = await requireWorkspaceMember(request, workspaceId, ["owner", "admin", "teacher"]);
+        const result = await createDraftTestFromImportJob({
+          workspaceId,
+          jobId,
+          actorUserId: ctx.auth.userId,
+          requestId: requestIdOf(request),
+        });
+        return teacherJson(result);
+      }
       default:
-        return teacherJson({ detail: "Invalid action. Use: cancel, review-question, bulk-accept." }, { status: 400 });
+        return teacherJson(
+          { detail: "Invalid action. Use: cancel, review-question, bulk-accept, create-test." },
+          { status: 400 },
+        );
     }
   } catch (error) {
     return handleTeacherError(error);

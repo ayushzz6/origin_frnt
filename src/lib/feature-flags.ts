@@ -32,7 +32,10 @@ type FlagKey =
   | "teacherConnect"
   | "teacherOgcode"
   | "liveRooms"
-  | "studentSocial";
+  | "studentSocial"
+  | "dppQuestionBank"
+  | "batchSyllabus"
+  | "batchHub";
 
 type FlagSpec = {
   envSuffix: string;
@@ -79,6 +82,20 @@ const FLAG_SPECS: Record<FlagKey, FlagSpec> = {
   // Gates /u/[username], /social, and all /api/social/* routes. Ships dark in
   // prod (TEACHER_LAUNCH_STUDENT_SOCIAL=1 to enable); on by default in dev.
   studentSocial: { envSuffix: "STUDENT_SOCIAL", defaultDev: true, defaultProd: false },
+  // Question-Bag-aware DPP generation — after a teacher-assigned test, prefer the
+  // owning workspace's Question Bag for the relevant weak topics, fall back to OG
+  // Code with a provenance note, and tenant-isolate bag-sourced DPPs to students
+  // actively enrolled in that workspace. Gates the bag-preference override; when
+  // off, DPP generation behaves exactly as before (OG Code only). Live in prod.
+  dppQuestionBank: { envSuffix: "DPP_QUESTION_BANK", defaultDev: true, defaultProd: true },
+  // Batch Syllabus — real teacher-owned syllabus tree (chapter/topic CRUD) with
+  // progress derived from student mastery + manual override, replacing the mock
+  // syllabus on the batch-detail page. Gates the syllabus API + UI. Live in prod.
+  batchSyllabus: { envSuffix: "BATCH_SYLLABUS", defaultDev: true, defaultProd: true },
+  // Batch Hub — per-batch study-material sharing (R2 uploads + pasteable links)
+  // and a polling-based message feed visible to teacher and enrolled students
+  // (teacher batch detail + student /connect batch view). Live in prod.
+  batchHub: { envSuffix: "BATCH_HUB", defaultDev: true, defaultProd: true },
 };
 
 function parseFlag(raw: string | undefined): boolean | null {
