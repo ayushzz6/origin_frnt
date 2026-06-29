@@ -1,15 +1,17 @@
 /**
- * GET /api/connect/collaborators — list ACTIVE collaborator institutes.
+ * GET /api/connect/collaborators — browse institutes on ORIGIN.
  *
- * Student-facing browse for Flow 2 (and discovery). Filterable by subject + city.
- * Gated by teacherConnect; student-only.
+ * Lists ALL active institute-type workspaces for discovery (not only approved
+ * collaborators). Students join non-collaborator institutes via a join code;
+ * paid Flow-2 enrollment is still gated to active collaborations at checkout.
+ * Filterable by subject + city. Gated by teacherConnect; student-only.
  */
 
 import type { NextRequest } from "next/server";
 
 import { requireFeatureEnabled } from "@/lib/feature-flags";
 import { requireRole } from "@/server/authz";
-import { listActiveCollaborators } from "@/server/connect/connect-service";
+import { listBrowsableInstitutes } from "@/server/connect/connect-service";
 
 import { handleTeacherError, teacherJson } from "@/app/api/teacher/_utils";
 
@@ -22,7 +24,7 @@ export async function GET(request: NextRequest) {
     const city = url.searchParams.get("city") ?? undefined;
     const rawLimit = url.searchParams.get("limit");
     const limit = rawLimit ? Math.min(Math.max(Number(rawLimit) || 0, 1), 100) : undefined;
-    const collaborators = await listActiveCollaborators({ subject, city, limit });
+    const collaborators = await listBrowsableInstitutes({ subject, city, limit });
     return teacherJson({ collaborators });
   } catch (error) {
     return handleTeacherError(error);

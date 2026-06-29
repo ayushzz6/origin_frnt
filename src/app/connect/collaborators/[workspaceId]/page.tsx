@@ -13,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getCollaboratorProfile } from "@/server/connect/connect-service";
+import { getBrowsableInstituteProfile } from "@/server/connect/connect-service";
 import { listStudentBatches } from "@/server/workspaces/batches";
 
 import { gateConnectStudent } from "../../_gate";
@@ -30,7 +30,7 @@ export default async function CollaboratorProfilePage({
 }) {
   const user = await gateConnectStudent();
   const { workspaceId } = await params;
-  const profile = await getCollaboratorProfile(workspaceId);
+  const profile = await getBrowsableInstituteProfile(workspaceId);
   if (!profile) notFound();
 
   // The student's own batches at this institute — entry points to each batch's
