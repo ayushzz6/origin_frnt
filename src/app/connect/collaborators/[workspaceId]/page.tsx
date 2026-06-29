@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getCollaboratorProfile } from "@/server/connect/connect-service";
+import { listStudentBatches } from "@/server/workspaces/batches";
 
 import { gateConnectStudent } from "../../_gate";
 
@@ -27,10 +28,14 @@ export default async function CollaboratorProfilePage({
 }: {
   params: Promise<{ workspaceId: string }>;
 }) {
-  await gateConnectStudent();
+  const user = await gateConnectStudent();
   const { workspaceId } = await params;
   const profile = await getCollaboratorProfile(workspaceId);
   if (!profile) notFound();
+
+  // The student's own batches at this institute — entry points to each batch's
+  // study materials + chat feed.
+  const myBatches = await listStudentBatches(workspaceId, user.id).catch(() => []);
 
   return (
     <div className="container mx-auto space-y-6 py-6">
@@ -53,6 +58,27 @@ export default async function CollaboratorProfilePage({
               {s}
             </Badge>
           ))}
+        </div>
+      ) : null}
+
+      {myBatches.length > 0 ? (
+        <div>
+          <h2 className="mb-3 text-lg font-semibold">Your batches</h2>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {myBatches.map((b) => (
+              <Card key={b.id} className="transition hover:border-primary/40">
+                <CardHeader>
+                  <CardTitle className="text-base">{b.name}</CardTitle>
+                  {b.subject ? <CardDescription>{b.subject}</CardDescription> : null}
+                </CardHeader>
+                <CardFooter>
+                  <Button asChild variant="outline" className="w-full">
+                    <Link href={`/connect/batches/${b.id}`}>Materials &amp; chat →</Link>
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
         </div>
       ) : null}
 

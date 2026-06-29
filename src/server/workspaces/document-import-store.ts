@@ -216,9 +216,9 @@ export async function updateImportJobStatus(jobId: string, workspaceId: string, 
   startedAt?: string | null; completedAt?: string | null;
 }): Promise<DocumentImportJob | null> {
   await ensureDocumentImportSchema();
-  const fields = ["status = $3", "updated_at = NOW()"];
-  const params: unknown[] = [jobId, workspaceId, status];
-  let i = 4;
+  const fields = ["status = $1", "updated_at = NOW()"];
+  const params: unknown[] = [status];
+  let i = 2;
   if (extra?.totalPages !== undefined) { fields.push(`total_pages = $${i++}`); params.push(extra.totalPages); }
   if (extra?.processedPages !== undefined) { fields.push(`processed_pages = $${i++}`); params.push(extra.processedPages); }
   if (extra?.totalQuestions !== undefined) { fields.push(`total_questions = $${i++}`); params.push(extra.totalQuestions); }
@@ -227,9 +227,11 @@ export async function updateImportJobStatus(jobId: string, workspaceId: string, 
   if (extra?.errorMessage !== undefined) { fields.push(`error_message = $${i++}`); params.push(extra.errorMessage); }
   if (extra?.startedAt !== undefined) { fields.push(`started_at = $${i++}`); params.push(extra.startedAt); }
   if (extra?.completedAt !== undefined) { fields.push(`completed_at = $${i++}`); params.push(extra.completedAt); }
+  const idPlaceholder = i++;
+  const wsPlaceholder = i;
   params.push(jobId, workspaceId);
   const result = await pool().query(
-    `UPDATE import.document_import_jobs SET ${fields.join(", ")} WHERE id = $${i++} AND workspace_id = $${i} RETURNING *`,
+    `UPDATE import.document_import_jobs SET ${fields.join(", ")} WHERE id = $${idPlaceholder} AND workspace_id = $${wsPlaceholder} RETURNING *`,
     params,
   );
   return result.rows[0] ? rowToJob(result.rows[0]) : null;
@@ -280,15 +282,17 @@ export async function updateQuestionStatus(jobId: string, questionId: string, st
   reviewNotes?: string | null; rejectionReason?: string | null; questionBagQuestionId?: string | null;
 }): Promise<ImportJobQuestion | null> {
   await ensureDocumentImportSchema();
-  const fields = ["status = $3", "updated_at = NOW()"];
-  const params: unknown[] = [jobId, questionId, status];
-  let i = 4;
+  const fields = ["status = $1", "updated_at = NOW()"];
+  const params: unknown[] = [status];
+  let i = 2;
   if (extra?.reviewNotes !== undefined) { fields.push(`review_notes = $${i++}`); params.push(extra.reviewNotes); }
   if (extra?.rejectionReason !== undefined) { fields.push(`rejection_reason = $${i++}`); params.push(extra.rejectionReason); }
   if (extra?.questionBagQuestionId !== undefined) { fields.push(`question_bag_question_id = $${i++}`); params.push(extra.questionBagQuestionId); }
+  const idPlaceholder = i++;
+  const jobPlaceholder = i;
   params.push(questionId, jobId);
   const result = await pool().query(
-    `UPDATE import.import_job_questions SET ${fields.join(", ")} WHERE id = $${i++} AND job_id = $${i} RETURNING *`,
+    `UPDATE import.import_job_questions SET ${fields.join(", ")} WHERE id = $${idPlaceholder} AND job_id = $${jobPlaceholder} RETURNING *`,
     params,
   );
   return result.rows[0] ? rowToQuestion(result.rows[0]) : null;
