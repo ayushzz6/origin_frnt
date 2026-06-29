@@ -1,15 +1,17 @@
 /**
- * GET /api/connect/collaborators/[workspaceId] — one collaborator's public profile.
+ * GET /api/connect/collaborators/[workspaceId] — one institute's public profile.
  *
- * Returns the institute profile + its active offerings, but only when the workspace
- * is an ACTIVE collaborator (404 otherwise). Gated by teacherConnect; student-only.
+ * Returns the public profile + its active offerings for ANY active institute
+ * (not only approved collaborators) so Browse "View institute" works for all.
+ * Paid Flow-2 enrollment stays collaboration-gated at checkout. teacherConnect;
+ * student-only.
  */
 
 import type { NextRequest } from "next/server";
 
 import { requireFeatureEnabled } from "@/lib/feature-flags";
 import { requireRole } from "@/server/authz";
-import { getCollaboratorProfile } from "@/server/connect/connect-service";
+import { getBrowsableInstituteProfile } from "@/server/connect/connect-service";
 
 import { handleTeacherError, teacherJson } from "@/app/api/teacher/_utils";
 
@@ -21,9 +23,9 @@ export async function GET(
     requireFeatureEnabled("teacherConnect");
     await requireRole(request, ["student"]);
     const { workspaceId } = await context.params;
-    const profile = await getCollaboratorProfile(workspaceId);
+    const profile = await getBrowsableInstituteProfile(workspaceId);
     if (!profile) {
-      return teacherJson({ detail: "Collaborator not found." }, { status: 404 });
+      return teacherJson({ detail: "Institute not found." }, { status: 404 });
     }
     return teacherJson({ collaborator: profile });
   } catch (error) {

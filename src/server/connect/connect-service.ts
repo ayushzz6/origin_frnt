@@ -74,6 +74,32 @@ export async function getCollaboratorProfile(
   return getInstituteProfileService(workspaceId);
 }
 
+/**
+ * Browse directory: ALL active institute-type workspaces (not just approved
+ * collaborators). Discovery is open — students join non-collaborator institutes
+ * via a join code (Flow 1). Paid Flow-2 enrollment still requires an active
+ * collaboration, gated separately at checkout.
+ */
+export async function listBrowsableInstitutes(filter?: {
+  subject?: string;
+  city?: string;
+  limit?: number;
+}): Promise<InstitutePublicProfile[]> {
+  return listPublicInstitutesService({
+    subject: filter?.subject,
+    city: filter?.city,
+    limit: filter?.limit ?? 60,
+  });
+}
+
+/** Public profile for ANY active institute (no collaboration gate) — for the
+ * Browse "View institute" view. Checkout keeps using getCollaboratorProfile. */
+export async function getBrowsableInstituteProfile(
+  workspaceId: string,
+): Promise<InstitutePublicProfile | null> {
+  return getInstituteProfileService(workspaceId);
+}
+
 async function assertIsActiveOrNull(workspaceId: string): Promise<boolean> {
   try {
     await assertActiveCollaborator(workspaceId);
