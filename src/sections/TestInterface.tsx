@@ -354,6 +354,16 @@ export default function TestInterface({ test, onComplete, onExit, timerSource, s
 
   const currentQuestion = test.questions[currentQuestionIndex];
 
+  // Resolve the question type robustly: if the type is missing (e.g. an imported
+  // question that wasn't tagged), infer it from the data shape so a subjective
+  // question (no options) is never rendered as an empty/broken MCQ.
+  const currentOptions = Array.isArray(currentQuestion?.options) ? currentQuestion.options : [];
+  const currentHasOptions = currentOptions.length > 0;
+  const effectiveType: string | undefined = currentQuestion
+    ? currentQuestion.questionType ||
+      (currentHasOptions ? "mcq" : currentQuestion.matrixData ? "matrix_match" : "subjective")
+    : undefined;
+
   // Temp state for selection before saving
   const [tempSelection, setTempSelection] = useState<number | null>(null);
   const [tempSelections, setTempSelections] = useState<number[]>([]);
@@ -942,9 +952,9 @@ export default function TestInterface({ test, onComplete, onExit, timerSource, s
                 {renderQuestionText(currentQuestion?.text || '', 'test-question')}
               </div>
 
-              {(currentQuestion?.questionType === 'mcq' || !currentQuestion?.questionType) && (
+              {effectiveType === 'mcq' && (
                 <div className="space-y-4 font-serif text-base">
-                  {currentQuestion?.options.map((option, idx) => (
+                  {currentOptions.map((option, idx) => (
                     <button
                       key={idx}
                       onClick={() => handleOptionSelect(idx)}
@@ -971,10 +981,10 @@ export default function TestInterface({ test, onComplete, onExit, timerSource, s
                 </div>
               )}
 
-              {currentQuestion?.questionType === 'msq' && (
+              {effectiveType === 'msq' && (
                 <div className="space-y-4 font-serif text-base">
                   <p className="text-xs font-bold text-primary mb-2 uppercase tracking-tight">Multiple Correct Concept</p>
-                  {currentQuestion?.options.map((option, idx) => (
+                  {currentOptions.map((option, idx) => (
                     <label key={idx} className="flex items-start gap-4 cursor-pointer group">
                       <input
                         type="checkbox"
@@ -995,7 +1005,7 @@ export default function TestInterface({ test, onComplete, onExit, timerSource, s
                 </div>
               )}
 
-              {currentQuestion?.questionType === 'matrix_match' && currentQuestion.matrixData && (
+              {effectiveType === 'matrix_match' && currentQuestion.matrixData && (
                 <div className="space-y-6 font-serif text-base">
                   <p className="text-xs font-bold text-primary mb-4 uppercase tracking-tight">Matrix Matching</p>
                   
@@ -1053,7 +1063,7 @@ export default function TestInterface({ test, onComplete, onExit, timerSource, s
                 </div>
               )}
 
-              {currentQuestion?.questionType === 'numerical' && (
+              {effectiveType === 'numerical' && (
                 <div className="font-serif text-base">
                   <p className="text-xs font-bold text-primary mb-4 uppercase tracking-tight">Numerical Value Type</p>
                   <div className="flex flex-col gap-4">
@@ -1070,7 +1080,7 @@ export default function TestInterface({ test, onComplete, onExit, timerSource, s
                 </div>
               )}
 
-              {currentQuestion?.questionType === 'subjective' && (
+              {effectiveType === 'subjective' && (
                 <div className="font-serif text-base w-full">
                   <p className="text-sm font-bold text-slate-500 mb-2 uppercase">Write your answer:</p>
                   <textarea
