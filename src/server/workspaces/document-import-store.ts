@@ -298,6 +298,46 @@ export async function updateQuestionStatus(jobId: string, questionId: string, st
   return result.rows[0] ? rowToQuestion(result.rows[0]) : null;
 }
 
+/** Edit a single review question's content + classification (subject / chapter /
+ * concept / difficulty / stem / options / answer). Params start at $1. */
+export async function updateImportQuestionFields(jobId: string, questionId: string, fields: {
+  subject?: string | null; chapter?: string | null; concept?: string | null; difficulty?: string | null;
+  questionText?: string | null; options?: Record<string, unknown> | null;
+  correctOption?: number | null; answerText?: string | null;
+}): Promise<ImportJobQuestion | null> {
+  await ensureDocumentImportSchema();
+  const sets: string[] = ["updated_at = NOW()"];
+  const params: unknown[] = [];
+  let i = 1;
+  if (fields.subject !== undefined) { sets.push(`subject = $${i++}`); params.push(fields.subject); }
+  if (fields.chapter !== undefined) { sets.push(`chapter = $${i++}`); params.push(fields.chapter); }
+  if (fields.concept !== undefined) { sets.push(`concept = $${i++}`); params.push(fields.concept); }
+  if (fields.difficulty !== undefined) { sets.push(`difficulty = $${i++}`); params.push(fields.difficulty); }
+  if (fields.questionText !== undefined) { sets.push(`question_text = $${i++}`); params.push(fields.questionText); }
+  if (fields.options !== undefined) { sets.push(`options = $${i++}::jsonb`); params.push(fields.options ? JSON.stringify(fields.options) : null); }
+  if (fields.correctOption !== undefined) { sets.push(`correct_option = $${i++}`); params.push(fields.correctOption); }
+  if (fields.answerText !== undefined) { sets.push(`answer_text = $${i++}`); params.push(fields.answerText); }
+  if (sets.length === 1) return null;
+  const idPlaceholder = i++;
+  const jobPlaceholder = i;
+  params.push(questionId, jobId);
+  const result = await pool().query(
+    `UPDATE import.import_job_questions SET ${sets.join(", ")} WHERE id = $${idPlaceholder} AND job_id = $${jobPlaceholder} RETURNING *`,
+    params,
+  );
+  return result.rows[0] ? rowToQuestion(result.rows[0]) : null;
+}
+
+/** Bulk-set the subject on every question of a job (single-subject papers). */
+export async function applySubjectToAllJobQuestions(jobId: string, subject: string): Promise<number> {
+  await ensureDocumentImportSchema();
+  const result = await pool().query(
+    `UPDATE import.import_job_questions SET subject = $1, updated_at = NOW() WHERE job_id = $2`,
+    [subject, jobId],
+  );
+  return result.rowCount ?? 0;
+}
+
 export async function getJobWithProgress(workspaceId: string, jobId: string): Promise<ImportJobWithProgress | null> {
   await ensureDocumentImportSchema();
   const job = await getImportJob(workspaceId, jobId);

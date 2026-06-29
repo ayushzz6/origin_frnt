@@ -5,6 +5,7 @@ import { parseJsonBody } from "@/server/http";
 import { requireFeatureEnabled } from "@/lib/feature-flags";
 import { requireWorkspaceMember } from "@/server/workspaces/authz";
 import {
+  applyImportSubject,
   bulkAcceptReviewQuestions,
   cancelJob,
   createDraftTestFromImportJob,
@@ -12,6 +13,7 @@ import {
   getJobQuestions,
   getJobWithProgress,
   reviewQuestion,
+  updateImportQuestion,
 } from "@/server/workspaces/document-import-service";
 
 import {
@@ -30,6 +32,20 @@ const reviewQuestionSchema = z.object({
 const bulkAcceptSchema = z.object({
   questionIds: z.array(z.string()),
 });
+
+const updateQuestionSchema = z.object({
+  questionId: z.string(),
+  subject: z.string().max(80).nullable().optional(),
+  chapter: z.string().max(120).nullable().optional(),
+  concept: z.string().max(160).nullable().optional(),
+  difficulty: z.enum(["easy", "medium", "hard", "insane"]).nullable().optional(),
+  questionText: z.string().nullable().optional(),
+  options: z.record(z.string(), z.unknown()).nullable().optional(),
+  correctOption: z.number().int().nullable().optional(),
+  answerText: z.string().nullable().optional(),
+});
+
+const applySubjectSchema = z.object({ subject: z.string().min(1).max(80) });
 
 export async function GET(
   request: NextRequest,
@@ -143,9 +159,31 @@ export async function POST(
         });
         return teacherJson(result);
       }
+      case "update-question": {
+        const ctx = await requireWorkspaceMember(request, workspaceId, [
+          "owner", "admin", "teacher", "content_manager",
+        ]);
+        const { questionId, ...fields } = updateQuestionSchema.parse(body);
+        const question = await updateImportQuestion({
+          workspaceId, jobId, questionId, actorUserId: ctx.auth.userId, fields,
+          requestId: requestIdOf(request),
+        });
+        return teacherJson({ question });
+      }
+      case "apply-subject": {
+        const ctx = await requireWorkspaceMember(request, workspaceId, [
+          "owner", "admin", "teacher", "content_manager",
+        ]);
+        const { subject } = applySubjectSchema.parse(body);
+        const count = await applyImportSubject({
+          workspaceId, jobId, subject, actorUserId: ctx.auth.userId,
+          requestId: requestIdOf(request),
+        });
+        return teacherJson({ updatedCount: count });
+      }
       default:
         return teacherJson(
-          { detail: "Invalid action. Use: cancel, review-question, bulk-accept, create-test." },
+          { detail: "Invalid action. Use: cancel, review-question, bulk-accept, create-test, update-question, apply-subject." },
           { status: 400 },
         );
     }

@@ -62,6 +62,13 @@ export function ImportJobsManager({ workspaceId, initialJobs, defaultJobId }: Pr
   const [editAnswer, setEditAnswer] = useState("");
   const [editOptions, setEditOptions] = useState<string[]>([]);
   const [editCorrectOption, setEditCorrectOption] = useState<number>(0);
+  // Classification (subject / chapter / topic / difficulty) — editable so the
+  // teacher can segregate like OG Code before approving.
+  const [editSubject, setEditSubject] = useState("");
+  const [editChapter, setEditChapter] = useState("");
+  const [editConcept, setEditConcept] = useState("");
+  const [editDifficulty, setEditDifficulty] = useState<"easy" | "medium" | "hard" | "insane">("medium");
+  const [bulkSubject, setBulkSubject] = useState("");
 
   // Mirror the active question into a ref so the poller can decide whether to
   // re-seed the editor without clobbering the teacher's in-progress edits.
@@ -82,6 +89,11 @@ export function ImportJobsManager({ workspaceId, initialJobs, defaultJobId }: Pr
       setEditOptions([]);
     }
     setEditCorrectOption(q.correctOption ?? 0);
+    setEditSubject(q.subject || "");
+    setEditChapter(q.chapter || "");
+    setEditConcept(q.concept || "");
+    const diff = (q.difficulty || "medium") as "easy" | "medium" | "hard" | "insane";
+    setEditDifficulty(["easy", "medium", "hard", "insane"].includes(diff) ? diff : "medium");
   }, []);
 
   const loadQuestions = useCallback(
@@ -184,12 +196,73 @@ export function ImportJobsManager({ workspaceId, initialJobs, defaultJobId }: Pr
     });
   };
 
+  // Build the current editor's content+classification payload for a question.
+  function buildQuestionFields(questionId: string) {
+    const optionsPayload =
+      editOptions.length > 0
+        ? Object.fromEntries(editOptions.map((text, i) => [String.fromCharCode(97 + i), text]))
+        : null;
+    return {
+      questionId,
+      questionText: editStem,
+      options: optionsPayload,
+      correctOption: editCorrectOption,
+      answerText: editAnswer || null,
+      subject: editSubject.trim() || "general",
+      chapter: editChapter.trim() || "general",
+      concept: editConcept.trim() || editChapter.trim() || "general",
+      difficulty: editDifficulty,
+    };
+  }
+
+  // Persist the current editor (content + subject/chapter/topic/difficulty) without approving.
+  async function saveQuestionEdits(questionId: string): Promise<boolean> {
+    if (!selectedJob) return false;
+    const result = await apiJson<{ question: ImportJobQuestion }>(
+      `/api/teacher/workspaces/${workspaceId}/import-jobs/${selectedJob.id}?action=update-question`,
+      { method: "POST", json: buildQuestionFields(questionId) },
+    );
+    if (result.ok) {
+      setQuestions(prev => prev.map(q => q.id === questionId ? result.data.question : q));
+      setActiveQuestion(prev => prev && prev.id === questionId ? result.data.question : prev);
+      return true;
+    }
+    toast.error(result.detail || "Failed to save changes");
+    return false;
+  }
+
+  function handleSaveQuestion(questionId: string) {
+    startTransition(async () => {
+      if (await saveQuestionEdits(questionId)) toast.success("Saved.");
+    });
+  }
+
+  function handleApplySubjectToAll() {
+    if (!selectedJob) return;
+    const subject = bulkSubject.trim();
+    if (!subject) return;
+    startTransition(async () => {
+      const result = await apiJson<{ updatedCount?: number }>(
+        `/api/teacher/workspaces/${workspaceId}/import-jobs/${selectedJob.id}?action=apply-subject`,
+        { method: "POST", json: { subject } },
+      );
+      if (result.ok) {
+        toast.success(`Set subject "${subject}" on ${result.data.updatedCount ?? "all"} questions.`);
+        setBulkSubject("");
+        await loadQuestions(selectedJob.id);
+        if (activeQuestionRef.current) setEditSubject(subject);
+      } else {
+        toast.error(result.detail || "Failed to apply subject");
+      }
+    });
+  }
+
   // Actions
   async function handleApproveQuestion(questionId: string) {
     if (!selectedJob) return;
     startTransition(async () => {
-      // The route reads `action` from the query string; the body carries the
-      // accept/reject decision (reviewQuestionSchema) + questionId.
+      // Persist any edits (stem/options/subject/topic/difficulty) first, then accept.
+      await saveQuestionEdits(questionId);
       const result = await apiJson(
         `/api/teacher/workspaces/${workspaceId}/import-jobs/${selectedJob.id}?action=review-question`,
         {
@@ -395,7 +468,23 @@ export function ImportJobsManager({ workspaceId, initialJobs, defaultJobId }: Pr
                   })()}
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
+                {/* Single-subject paper: stamp the subject on every question at once */}
+                <Input
+                  value={bulkSubject}
+                  onChange={(e) => setBulkSubject(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleApplySubjectToAll()}
+                  placeholder="Subject for all…"
+                  className="h-9 w-36 rounded-lg text-xs"
+                />
+                <Button
+                  variant="outline"
+                  onClick={handleApplySubjectToAll}
+                  disabled={pending || !bulkSubject.trim() || questions.length === 0}
+                  className="h-9 rounded-xl text-xs"
+                >
+                  Apply to all
+                </Button>
                 <Button
                   onClick={() => setShowFinishModal(true)}
                   disabled={pending || questions.length === 0}
@@ -557,29 +646,61 @@ export function ImportJobsManager({ workspaceId, initialJobs, defaultJobId }: Pr
                         </div>
                       )}
 
-                      {/* Attribute attributes */}
+                      {/* Editable classification — segregate like OG Code before approving */}
                       <div className="pt-4 border-t space-y-2">
-                        <Label className="text-xs font-bold text-muted-foreground">Metadata Tags</Label>
-                        <div className="flex gap-2">
-                          <span className="text-[10px] px-2 py-0.5 bg-muted rounded border text-muted-foreground font-semibold">Subject: {activeQuestion.subject}</span>
-                          <span className="text-[10px] px-2 py-0.5 bg-muted rounded border text-muted-foreground font-semibold">Chapter: {activeQuestion.chapter}</span>
+                        <Label className="text-xs font-bold text-muted-foreground">Classification</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <span className="text-[10px] text-muted-foreground">Subject</span>
+                            <Input value={editSubject} onChange={(e) => setEditSubject(e.target.value)} placeholder="e.g. Chemistry" className="h-8 rounded-lg text-xs" />
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-[10px] text-muted-foreground">Chapter</span>
+                            <Input value={editChapter} onChange={(e) => setEditChapter(e.target.value)} placeholder="e.g. Chemical Kinetics" className="h-8 rounded-lg text-xs" />
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-[10px] text-muted-foreground">Topic</span>
+                            <Input value={editConcept} onChange={(e) => setEditConcept(e.target.value)} placeholder="e.g. Rate constant" className="h-8 rounded-lg text-xs" />
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-[10px] text-muted-foreground">Difficulty</span>
+                            <select
+                              value={editDifficulty}
+                              onChange={(e) => setEditDifficulty(e.target.value as "easy" | "medium" | "hard" | "insane")}
+                              className="w-full h-8 rounded-lg border bg-background px-2 text-xs"
+                            >
+                              <option value="easy">easy</option>
+                              <option value="medium">medium</option>
+                              <option value="hard">hard</option>
+                              <option value="insane">insane</option>
+                            </select>
+                          </div>
                         </div>
                       </div>
 
                       {/* Sticky Footer controls for single */}
                       <div className="pt-4 border-t flex justify-end gap-2">
-                        {activeQuestion.status === "accepted" ? (
+                        <Button
+                          variant="outline"
+                          onClick={() => handleSaveQuestion(activeQuestion.id)}
+                          disabled={pending}
+                          className="h-10 rounded-xl gap-1.5"
+                        >
+                          {pending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                          Save
+                        </Button>
+                        {activeQuestion.status === "accepted" || activeQuestion.status === "published" ? (
                           <div className="text-xs text-emerald-500 font-bold flex items-center gap-1 py-2">
                             <Check className="w-4 h-4" /> Ready for test creator
                           </div>
                         ) : (
-                          <Button 
-                            onClick={() => handleApproveQuestion(activeQuestion.id)} 
+                          <Button
+                            onClick={() => handleApproveQuestion(activeQuestion.id)}
                             disabled={pending}
                             className="bg-primary hover:bg-primary/95 text-black font-bold h-10 rounded-xl gap-1.5"
                           >
                             {pending ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileCheck className="w-4 h-4" />}
-                            Approve Question
+                            Save &amp; Approve
                           </Button>
                         )}
                       </div>

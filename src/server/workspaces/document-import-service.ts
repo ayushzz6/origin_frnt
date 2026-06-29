@@ -9,6 +9,7 @@ import { recordAuditEvent } from "./audit";
 import {
   addJobPage,
   addJobQuestion,
+  applySubjectToAllJobQuestions,
   countActiveImportJobs,
   createImportJob as storeCreateImportJob,
   getImportJob,
@@ -17,6 +18,7 @@ import {
   getJobWithProgress as storeGetJobWithProgress,
   listWorkspaceImportJobs as storeListWorkspaceImportJobs,
   updateImportJobStatus,
+  updateImportQuestionFields,
   updateQuestionStatus,
 } from "./document-import-store";
 import { createDocumentImportJobId } from "./ids";
@@ -316,6 +318,46 @@ export async function publishImportQuestionToBag(input: {
     questionBagQuestionId: created.id,
   });
   return created.id;
+}
+
+/** Edit a review question's classification/content before approval. */
+export async function updateImportQuestion(input: {
+  workspaceId: string; jobId: string; questionId: string; actorUserId: string;
+  fields: Parameters<typeof updateImportQuestionFields>[2];
+  requestId?: string | null;
+}): Promise<ImportJobQuestion | null> {
+  const membership = await getActiveMembership(input.workspaceId, input.actorUserId);
+  if (!membership || !["owner", "admin", "teacher", "content_manager"].includes(membership.role)) {
+    throw new AuthzError(403, "Insufficient permissions to edit import questions.");
+  }
+  const updated = await updateImportQuestionFields(input.jobId, input.questionId, input.fields);
+  if (updated) {
+    await recordAuditEvent({
+      actorUserId: input.actorUserId, workspaceId: input.workspaceId,
+      entityType: "import_question", entityId: input.questionId, action: "import_question.edited",
+      after: { id: updated.id, subject: updated.subject, chapter: updated.chapter, concept: updated.concept, difficulty: updated.difficulty },
+      requestId: input.requestId,
+    });
+  }
+  return updated;
+}
+
+/** Bulk-set the subject across a whole job (single-subject papers). */
+export async function applyImportSubject(input: {
+  workspaceId: string; jobId: string; subject: string; actorUserId: string; requestId?: string | null;
+}): Promise<number> {
+  const membership = await getActiveMembership(input.workspaceId, input.actorUserId);
+  if (!membership || !["owner", "admin", "teacher", "content_manager"].includes(membership.role)) {
+    throw new AuthzError(403, "Insufficient permissions to edit import questions.");
+  }
+  const count = await applySubjectToAllJobQuestions(input.jobId, input.subject);
+  await recordAuditEvent({
+    actorUserId: input.actorUserId, workspaceId: input.workspaceId,
+    entityType: "document_import_job", entityId: input.jobId, action: "import_job.subject_applied",
+    after: { subject: input.subject, count },
+    requestId: input.requestId,
+  });
+  return count;
 }
 
 export async function reviewQuestion(input: {
