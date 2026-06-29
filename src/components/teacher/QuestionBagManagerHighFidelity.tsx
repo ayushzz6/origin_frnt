@@ -116,6 +116,30 @@ export function QuestionBagManagerHighFidelity({ workspaceId, initialQuestions, 
     return true;
   });
 
+  // Group like the OG Code catalog: subject › chapter (topic), each group's
+  // questions ordered easy → insane so the bag reads difficulty-level-wise.
+  const DIFFICULTY_RANK: Record<string, number> = { easy: 0, medium: 1, hard: 2, insane: 3 };
+  const groupedQuestions = (() => {
+    const groups = new Map<string, { subject: string; chapter: string; items: QuestionWithVersion[] }>();
+    for (const q of filteredQuestions) {
+      const v = q.currentVersion;
+      if (!v) continue;
+      const key = `${v.subject}|||${v.chapter}`;
+      if (!groups.has(key)) groups.set(key, { subject: v.subject, chapter: v.chapter, items: [] });
+      groups.get(key)!.items.push(q);
+    }
+    const list = Array.from(groups.values());
+    list.sort((a, b) => a.subject.localeCompare(b.subject) || a.chapter.localeCompare(b.chapter));
+    for (const g of list) {
+      g.items.sort(
+        (a, b) =>
+          (DIFFICULTY_RANK[a.currentVersion?.difficulty ?? "medium"] ?? 1) -
+          (DIFFICULTY_RANK[b.currentVersion?.difficulty ?? "medium"] ?? 1),
+      );
+    }
+    return list;
+  })();
+
   const selectQuestion = (q: QuestionWithVersion) => {
     setActiveQuestion(q);
     setEditMode(false);
@@ -357,49 +381,61 @@ export function QuestionBagManagerHighFidelity({ workspaceId, initialQuestions, 
           </div>
         </div>
 
-        {/* LibraryQuestionCardList */}
-        <div className="flex-1 overflow-y-auto divide-y custom-scrollbar bg-muted/5">
+        {/* LibraryQuestionCardList — grouped subject › chapter, difficulty-ordered */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar bg-muted/5">
           {filteredQuestions.length === 0 ? (
             <div className="p-8 text-center text-xs text-muted-foreground">
               No questions found. Add one or modify filters.
             </div>
           ) : (
-            filteredQuestions.map(q => {
-              const isActive = activeQuestion?.id === q.id;
-              const v = q.currentVersion;
-              return (
-                <div 
-                  key={q.id}
-                  onClick={() => selectQuestion(q)}
-                  className={`p-4 cursor-pointer transition-all flex flex-col gap-2 relative ${
-                    isActive ? "bg-primary/[0.03] border-l-4 border-l-primary" : "hover:bg-muted/10 border-l-4 border-l-transparent"
-                  }`}
-                >
-                  <div className="flex justify-between items-start gap-3">
-                    <span className="text-[10px] px-2 py-0.5 rounded-md font-bold uppercase bg-muted border font-mono">
-                      {v?.questionType}
-                    </span>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider ${
-                      q.status === "published_ogcode" ? "text-emerald-500" : "text-muted-foreground"
-                    }`}>
-                      {q.status.replace(/_/g, " ")}
-                    </span>
-                  </div>
-
-                  <p className="text-xs line-clamp-2 select-none pr-2 font-medium">
-                    {v?.stem || "(no stem)"}
-                  </p>
-
-                  <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                    <span className="text-[9px] px-2 py-0.5 rounded-full border bg-background font-semibold">{v?.subject}</span>
-                    <span className="text-[9px] px-2 py-0.5 rounded-full border bg-background font-semibold">{v?.chapter}</span>
-                    <span className={`text-[9px] px-2 py-0.5 rounded-full border font-bold ${DIFFICULTY_COLORS[v?.difficulty || "medium"]}`}>
-                      {DIFFICULTY_LABELS[v?.difficulty || "medium"]}
-                    </span>
-                  </div>
+            groupedQuestions.map(group => (
+              <div key={`${group.subject}|||${group.chapter}`}>
+                <div className="sticky top-0 z-10 px-4 py-2 bg-muted/80 backdrop-blur border-b flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wide truncate">
+                    <span className="text-primary">{group.subject}</span>
+                    <span className="text-muted-foreground"> › {group.chapter}</span>
+                  </span>
+                  <span className="text-[10px] font-semibold text-muted-foreground shrink-0">{group.items.length}</span>
                 </div>
-              );
-            })
+                <div className="divide-y">
+                  {group.items.map(q => {
+                    const isActive = activeQuestion?.id === q.id;
+                    const v = q.currentVersion;
+                    return (
+                      <div
+                        key={q.id}
+                        onClick={() => selectQuestion(q)}
+                        className={`p-4 cursor-pointer transition-all flex flex-col gap-2 relative ${
+                          isActive ? "bg-primary/[0.03] border-l-4 border-l-primary" : "hover:bg-muted/10 border-l-4 border-l-transparent"
+                        }`}
+                      >
+                        <div className="flex justify-between items-start gap-3">
+                          <span className="text-[10px] px-2 py-0.5 rounded-md font-bold uppercase bg-muted border font-mono">
+                            {v?.questionType}
+                          </span>
+                          <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                            q.status === "published_ogcode" ? "text-emerald-500" : "text-muted-foreground"
+                          }`}>
+                            {q.status.replace(/_/g, " ")}
+                          </span>
+                        </div>
+
+                        <p className="text-xs line-clamp-2 select-none pr-2 font-medium">
+                          {v?.stem || "(no stem)"}
+                        </p>
+
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                          <span className="text-[9px] px-2 py-0.5 rounded-full border bg-background font-semibold">{v?.concept}</span>
+                          <span className={`text-[9px] px-2 py-0.5 rounded-full border font-bold ${DIFFICULTY_COLORS[v?.difficulty || "medium"]}`}>
+                            {DIFFICULTY_LABELS[v?.difficulty || "medium"]}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
           )}
         </div>
       </div>

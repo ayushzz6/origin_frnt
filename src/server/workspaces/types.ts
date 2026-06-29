@@ -589,7 +589,7 @@ export type ImportJobPage = {
 export type ImportJobQuestion = {
   id: string; jobId: string; pageId: string | null; questionNumber: number | null;
   questionType: string | null; subject: string | null; chapter: string | null;
-  concept: string | null; questionText: string | null; options: Record<string, unknown> | null;
+  concept: string | null; difficulty: string | null; questionText: string | null; options: Record<string, unknown> | null;
   correctOption: number | null; correctOptions: Record<string, unknown> | null;
   answerText: string | null; explanation: string | null; hint: string | null;
   hasDiagram: boolean; diagramDescription: string | null; status: ImportQuestionStatus;

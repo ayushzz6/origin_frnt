@@ -9,6 +9,7 @@ import { getBatch, listBatchMembers } from "@/server/workspaces/batches";
 import { listEnrollments } from "@/server/workspaces/enrollments";
 import { loadWorkspaceForRender } from "@/server/workspaces/server-loader";
 import { getMaterialsVisibleToBatch } from "@/server/workspaces/study-materials-service";
+import { getSyllabusTree } from "@/server/workspaces/syllabus-store";
 import { listTeacherTests } from "@/server/workspaces/tests-service";
 import { Calendar, Users, Target } from "lucide-react";
 
@@ -25,15 +26,17 @@ export default async function BatchDetailPage({ params }: Props) {
 
   // Parallel fetch: members, candidates, materials, tests
   const [
-    members, 
+    members,
     enrollments,
     materials,
-    tests
+    tests,
+    syllabus
   ] = await Promise.all([
     listBatchMembers(workspaceId, batchId),
     listEnrollments(workspaceId, { status: "all" }),
     getMaterialsVisibleToBatch(workspaceId, batchId),
-    listTeacherTests(workspaceId, { status: "all" })
+    listTeacherTests(workspaceId, { status: "all" }),
+    getSyllabusTree(workspaceId, batchId, batch.subject).catch(() => null)
   ]);
 
   const canManage =
@@ -136,6 +139,7 @@ export default async function BatchDetailPage({ params }: Props) {
             batch={batch}
             materials={materials}
             tests={tests}
+            syllabus={syllabus}
             canManage={canManage}
           />
         </div>

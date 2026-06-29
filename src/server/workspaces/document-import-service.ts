@@ -20,8 +20,11 @@ import {
   updateQuestionStatus,
 } from "./document-import-store";
 import { createDocumentImportJobId } from "./ids";
+import { updateQuestion } from "./questions";
+import { createTeacherQuestion } from "./questions-service";
 import { getActiveMembership } from "./store";
-import type { DocumentImportJob, ImportJobQuestion, ImportJobStatus, ImportJobWithProgress, ImportPageStatus, ImportQuestionStatus, ImportSourceType, ImportTargetSurface } from "./types";
+import { createTeacherTest } from "./tests-service";
+import type { DocumentImportJob, ImportJobQuestion, ImportJobStatus, ImportJobWithProgress, ImportPageStatus, ImportQuestionStatus, ImportSourceType, ImportTargetSurface, QuestionOption, QuestionType } from "./types";
 
 /** Cap on simultaneously queued+processing jobs per workspace. Phase 13
  * backpressure — protects the document-import worker from being swamped
@@ -213,6 +216,108 @@ export async function cancelJob(input: {
 }
 
 /** Accept a single review-required question (or reject it). */
+const VALID_QUESTION_TYPES: QuestionType[] = [
+  "mcq", "msq", "numerical", "numerical_with_units",
+  "symbolic_expression", "equation", "matrix_match", "subjective",
+];
+const VALID_DIFFICULTIES = ["easy", "medium", "hard", "insane"] as const;
+
+function normalizeImportOptions(raw: Record<string, unknown> | null): QuestionOption[] | null {
+  if (!raw) return null;
+  const arr: unknown[] = Array.isArray(raw) ? raw : Object.values(raw);
+  const opts = arr
+    .map((entry, idx): QuestionOption => {
+      const fallbackId = String.fromCharCode(97 + idx); // a, b, c, …
+      if (entry && typeof entry === "object") {
+        const rec = entry as Record<string, unknown>;
+        const text = "text" in rec ? String(rec.text ?? "") : String(entry);
+        const id = rec.id ? String(rec.id) : fallbackId;
+        return { id, text };
+      }
+      return { id: fallbackId, text: String(entry ?? "") };
+    })
+    .filter((o) => o.text.trim().length > 0);
+  return opts.length ? opts : null;
+}
+
+function normalizeDifficulty(raw: string | null): "easy" | "medium" | "hard" | "insane" {
+  const value = (raw ?? "").trim().toLowerCase();
+  return (VALID_DIFFICULTIES as readonly string[]).includes(value)
+    ? (value as "easy" | "medium" | "hard" | "insane")
+    : "medium";
+}
+
+/**
+ * Publish a single accepted import question into the workspace Question Bag
+ * (content.questions + content.question_versions) and mark the import row
+ * `published` with a back-reference. Idempotent: a question that already has a
+ * `questionBagQuestionId` is returned unchanged. Questions with an empty stem
+ * are skipped (can't satisfy the bag's required-field invariants).
+ *
+ * Returns the content question id, or null when nothing was published.
+ */
+export async function publishImportQuestionToBag(input: {
+  workspaceId: string;
+  jobId: string;
+  question: ImportJobQuestion;
+  actorUserId: string;
+  requestId?: string | null;
+}): Promise<string | null> {
+  const { question } = input;
+  if (question.questionBagQuestionId) {
+    // Already published in an earlier pass. Re-accepting flips the import row
+    // back to 'accepted'; restore the 'published' status so state stays honest.
+    if (question.status !== "published") {
+      await updateQuestionStatus(input.jobId, question.id, "published", {
+        questionBagQuestionId: question.questionBagQuestionId,
+      });
+    }
+    return question.questionBagQuestionId;
+  }
+  const stem = (question.questionText ?? "").trim();
+  if (!stem) return null;
+
+  const options = normalizeImportOptions(question.options);
+  const questionType: QuestionType =
+    question.questionType && VALID_QUESTION_TYPES.includes(question.questionType as QuestionType)
+      ? (question.questionType as QuestionType)
+      : options
+        ? "mcq"
+        : "subjective";
+  const correctOptions = Array.isArray(question.correctOptions)
+    ? (question.correctOptions as unknown[]).map((n) => Number(n)).filter((n) => Number.isFinite(n))
+    : null;
+
+  const created = await createTeacherQuestion({
+    workspaceId: input.workspaceId,
+    createdBy: input.actorUserId,
+    actorUserId: input.actorUserId,
+    sourceKind: "imported",
+    importedJobId: input.jobId,
+    questionType,
+    stem,
+    options,
+    correctOption: question.correctOption ?? null,
+    correctOptions: correctOptions && correctOptions.length ? correctOptions : null,
+    answerText: question.answerText ?? null,
+    hint: question.hint ?? null,
+    explanation: question.explanation ?? null,
+    subject: (question.subject ?? "general").trim() || "general",
+    chapter: (question.chapter ?? "general").trim() || "general",
+    concept: (question.concept ?? question.chapter ?? "general").trim() || "general",
+    difficulty: normalizeDifficulty(question.difficulty),
+    tags: [],
+    requestId: input.requestId,
+  });
+
+  // Mark it ready so it's usable in the test builder + DPP selection.
+  await updateQuestion(created.id, { status: "ready" });
+  await updateQuestionStatus(input.jobId, question.id, "published", {
+    questionBagQuestionId: created.id,
+  });
+  return created.id;
+}
+
 export async function reviewQuestion(input: {
   workspaceId: string; jobId: string; questionId: string;
   action: "accept" | "reject";
@@ -228,6 +333,7 @@ export async function reviewQuestion(input: {
     userId: input.actorUserId,
     status,
     rejectionReason: input.action === "reject" ? input.rejectionReason ?? null : null,
+    requestId: input.requestId,
   });
 }
 
@@ -255,20 +361,108 @@ export async function bulkAcceptReviewQuestions(input: {
         after: { id: updated.id, status: updated.status },
         requestId: input.requestId,
       });
+      try {
+        await publishImportQuestionToBag({
+          workspaceId: input.workspaceId,
+          jobId: input.jobId,
+          question: updated,
+          actorUserId: input.actorUserId,
+          requestId: input.requestId,
+        });
+      } catch (error) {
+        // One bad extraction shouldn't abort the whole batch — the row stays
+        // 'accepted' and can be retried; surface in logs only.
+        console.error("publishImportQuestionToBag failed (bulk)", { questionId, error });
+      }
     }
   }
   return accepted;
 }
 
+/**
+ * Build a DRAFT teacher test from an import job's questions. Publishes every
+ * non-rejected question into the Question Bag (idempotent), then creates a draft
+ * test referencing those bag questions in order with the dominant subject and a
+ * filename-derived title. The teacher is then sent into the normal test-builder
+ * (edit mode) to set description / batch / schedule and publish.
+ */
+export async function createDraftTestFromImportJob(input: {
+  workspaceId: string;
+  jobId: string;
+  actorUserId: string;
+  requestId?: string | null;
+}): Promise<{ testId: string; questionCount: number }> {
+  const membership = await getActiveMembership(input.workspaceId, input.actorUserId);
+  if (!membership || !["owner", "admin", "teacher"].includes(membership.role)) {
+    throw new AuthzError(403, "Insufficient permissions to create a test from this import.");
+  }
+  const job = await getImportJob(input.workspaceId, input.jobId);
+  if (!job) throw new AuthzError(404, "Import job not found.");
+
+  const all = await storeGetJobQuestions(input.jobId, { limit: 500 });
+  const eligible = all.filter((q) => q.status !== "rejected");
+
+  const contentIds: string[] = [];
+  const subjectCount = new Map<string, number>();
+  for (const question of eligible) {
+    let bagId: string | null = null;
+    try {
+      bagId = await publishImportQuestionToBag({
+        workspaceId: input.workspaceId,
+        jobId: input.jobId,
+        question,
+        actorUserId: input.actorUserId,
+        requestId: input.requestId,
+      });
+    } catch (error) {
+      console.error("publishImportQuestionToBag failed (create-test)", { questionId: question.id, error });
+    }
+    if (bagId) {
+      contentIds.push(bagId);
+      const subj = (question.subject ?? "").trim().toLowerCase();
+      if (subj && subj !== "general") subjectCount.set(subj, (subjectCount.get(subj) ?? 0) + 1);
+    }
+  }
+  if (contentIds.length === 0) {
+    throw new AuthzError(400, "Accept at least one question before creating a test.");
+  }
+
+  const dominantSubject = [...subjectCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "mixed";
+  const baseName = job.sourceFileName.replace(/\.[^.]+$/u, "").slice(0, 160).trim() || "Imported";
+
+  const test = await createTeacherTest({
+    workspaceId: input.workspaceId,
+    createdBy: input.actorUserId,
+    actorUserId: input.actorUserId,
+    title: `${baseName} — Imported`,
+    description: `Auto-created from document import (${job.sourceFileName}).`,
+    subject: dominantSubject,
+    difficulty: "medium",
+    durationMinutes: 60,
+    status: "draft",
+    questions: contentIds.map((id, idx) => ({
+      position: idx + 1,
+      sourceBank: "workspace_bag" as const,
+      contentQuestionId: id,
+      marks: 4,
+      negativeMarks: -1,
+    })),
+    requestId: input.requestId,
+  });
+
+  return { testId: test.id, questionCount: contentIds.length };
+}
+
 export async function reviewQuestionService(input: {
   workspaceId: string; jobId: string; questionId: string; userId: string;
   status: ImportQuestionStatus; reviewNotes?: string | null; rejectionReason?: string | null;
+  requestId?: string | null;
 }): Promise<ImportJobQuestion | null> {
   const membership = await getActiveMembership(input.workspaceId, input.userId);
   if (!membership || !["owner", "admin", "teacher"].includes(membership.role)) {
     throw new AuthzError(403, "Insufficient permissions to review questions.");
   }
-  const updated = await updateQuestionStatus(input.jobId, input.questionId, input.status, {
+  let updated = await updateQuestionStatus(input.jobId, input.questionId, input.status, {
     reviewNotes: input.reviewNotes, rejectionReason: input.rejectionReason,
   });
   if (updated) {
@@ -277,6 +471,24 @@ export async function reviewQuestionService(input: {
       entityType: "import_question", entityId: input.questionId, action: `import_question.${input.status}`,
       after: { id: updated.id, status: updated.status },
     });
+    if (input.status === "accepted") {
+      try {
+        const bagId = await publishImportQuestionToBag({
+          workspaceId: input.workspaceId,
+          jobId: input.jobId,
+          question: updated,
+          actorUserId: input.userId,
+          requestId: input.requestId,
+        });
+        if (bagId) {
+          updated = { ...updated, status: "published", questionBagQuestionId: bagId };
+        }
+      } catch (error) {
+        // Don't fail the accept if publishing hiccups; the row stays 'accepted'
+        // and can be retried. Surface in logs only.
+        console.error("publishImportQuestionToBag failed", { questionId: input.questionId, error });
+      }
+    }
   }
   return updated;
 }

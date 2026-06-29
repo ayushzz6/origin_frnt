@@ -8,6 +8,7 @@ import type {
   AnalyticsTestAnalysisResponse,
   AnalyticsTopicSignal,
 } from "@/server/analytics-client";
+import { selectDppQuestionsWithBagPreference, type DppBagOverride } from "@/server/dpp-question-bank";
 import { getOgcodePostgresPool } from "@/server/postgres";
 import { createId, type StoredUserAnswer } from "@/server/store";
 
@@ -115,6 +116,14 @@ CREATE TABLE IF NOT EXISTS analytics.dpp_plans (
   completed BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Question-Bag-aware DPPs: when a DPP draws on a teacher workspace's Question
+-- Bag, stamp the owning workspace (gates tenant-isolated visibility) and a
+-- human-readable provenance note. Null workspace_id = pure OG Code DPP.
+ALTER TABLE analytics.dpp_plans ADD COLUMN IF NOT EXISTS workspace_id TEXT;
+ALTER TABLE analytics.dpp_plans ADD COLUMN IF NOT EXISTS provenance_note TEXT;
+CREATE INDEX IF NOT EXISTS idx_analytics_dpp_plans_workspace
+  ON analytics.dpp_plans (user_id, workspace_id, completed, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS analytics.dpp_questions (
   dpp_id TEXT NOT NULL REFERENCES analytics.dpp_plans(id) ON DELETE CASCADE,
@@ -275,6 +284,10 @@ export interface PersistedDppPlanRecord {
   questionIds: string[];
   latestAttemptId: string | null;
   latestProgressScore: number | null;
+  /** Owning workspace when the DPP used Question-Bag questions (else null). */
+  workspaceId: string | null;
+  /** Human-readable note on where the DPP's questions came from. */
+  provenanceNote: string | null;
 }
 
 export interface PersistedDppAttemptRecord {
@@ -680,6 +693,33 @@ export async function persistTestAnalysisResult(input: PersistTestAnalysisInput)
     degraded_reason: input.degradedReason ?? input.aiAnalysis.degraded_reason ?? null,
   };
 
+  // Question-Bag-aware DPP selection for teacher-assigned tests. Computed on the
+  // USER pool BEFORE the analytics transaction (separate DB) so the tx stays
+  // short. Self-tests (no workspaceId) keep pure OG Code DPPs unchanged.
+  const attemptedIds = input.answers
+    .map((a) => a.questionId)
+    .filter((id): id is string => Boolean(id));
+  const dppOverrides = new Map<string, DppBagOverride>();
+  if (input.workspaceId) {
+    for (const plan of input.dppPlans) {
+      try {
+        dppOverrides.set(
+          plan.id,
+          await selectDppQuestionsWithBagPreference({
+            workspaceId: input.workspaceId,
+            subject: plan.subject,
+            weakTopics: plan.weak_topics,
+            ogcodeQuestionIds: plan.question_ids,
+            targetCount: plan.target_question_count,
+            excludeQuestionIds: attemptedIds,
+          }),
+        );
+      } catch (error) {
+        console.error("DPP bag override failed; using OG Code fallback", { planId: plan.id, error });
+      }
+    }
+  }
+
   try {
     await client.query("BEGIN");
     await ensureSchema(client);
@@ -789,11 +829,16 @@ export async function persistTestAnalysisResult(input: PersistTestAnalysisInput)
 
     for (const [planIndex, plan] of input.dppPlans.entries()) {
       const planId = `${resultId}_dpp_${plan.sequence || planIndex + 1}`;
+      const override = dppOverrides.get(plan.id);
+      const finalQuestionIds = override?.questionIds ?? plan.question_ids;
+      const planWorkspaceId = override?.workspaceId ?? null;
+      const provenanceNote = override?.provenanceNote ?? null;
       await client.query(
         `INSERT INTO analytics.dpp_plans (
            id, user_id, source_test_result_id, title, subject, summary,
-           weak_topics, generated_from, duration_minutes, target_question_count, sequence, completed
-         ) VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9,$10,$11,false)
+           weak_topics, generated_from, duration_minutes, target_question_count, sequence, completed,
+           workspace_id, provenance_note
+         ) VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9,$10,$11,false,$12,$13)
          ON CONFLICT (id) DO UPDATE SET
            title = EXCLUDED.title,
            subject = EXCLUDED.subject,
@@ -802,7 +847,9 @@ export async function persistTestAnalysisResult(input: PersistTestAnalysisInput)
            generated_from = EXCLUDED.generated_from,
            duration_minutes = EXCLUDED.duration_minutes,
            target_question_count = EXCLUDED.target_question_count,
-           sequence = EXCLUDED.sequence`,
+           sequence = EXCLUDED.sequence,
+           workspace_id = EXCLUDED.workspace_id,
+           provenance_note = EXCLUDED.provenance_note`,
         [
           planId,
           input.userId,
@@ -815,10 +862,12 @@ export async function persistTestAnalysisResult(input: PersistTestAnalysisInput)
           plan.duration_minutes,
           plan.target_question_count,
           plan.sequence,
+          planWorkspaceId,
+          provenanceNote,
         ],
       );
       await client.query(`DELETE FROM analytics.dpp_questions WHERE dpp_id = $1`, [planId]);
-      for (const [index, questionId] of plan.question_ids.entries()) {
+      for (const [index, questionId] of finalQuestionIds.entries()) {
         await client.query(
           `INSERT INTO analytics.dpp_questions (dpp_id, question_id, position) VALUES ($1, $2, $3)`,
           [planId, questionId, index],
@@ -935,6 +984,8 @@ function mapPersistedDppRow(row: Record<string, unknown>): PersistedDppPlanRecor
     questionIds: fromJsonArray<string>(row.question_ids),
     latestAttemptId: row.latest_attempt_id ? String(row.latest_attempt_id) : null,
     latestProgressScore: row.latest_progress_score === null || row.latest_progress_score === undefined ? null : Number(row.latest_progress_score),
+    workspaceId: row.workspace_id ? String(row.workspace_id) : null,
+    provenanceNote: row.provenance_note ? String(row.provenance_note) : null,
   };
 }
 

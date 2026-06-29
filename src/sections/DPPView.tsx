@@ -73,6 +73,8 @@ interface GeneratedDpp {
   weak_topics?: string[];
   generatedFrom?: string[];
   generated_from?: string[];
+  provenanceNote?: string | null;
+  provenance_note?: string | null;
   createdAt?: string;
   completed: boolean;
   duration?: number;
@@ -648,9 +650,15 @@ export default function DPPView({ onBack, initialDpps }: DPPViewProps) {
               <Card className="neu-raised border-0 shadow-none">
                 <CardContent className="p-4">
                   <h3 className="font-semibold text-slate-900 dark:text-white mb-3">{currentDpp.title}</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
                     {currentDpp.summary ?? 'Targeted practice generated from your latest weak-topic analytics.'}
                   </p>
+                  {(currentDpp.provenanceNote ?? currentDpp.provenance_note) ? (
+                    <p className="text-xs text-primary/80 font-medium mb-4 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      {currentDpp.provenanceNote ?? currentDpp.provenance_note}
+                    </p>
+                  ) : null}
                   <div className="grid grid-cols-5 gap-2">
                     {currentQuestions.map((question, index) => (
                       <button
