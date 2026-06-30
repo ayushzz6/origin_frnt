@@ -20,6 +20,7 @@ import { badRequest, created, noContent, notFound, ok, serviceUnavailable, unaut
 import { withEntitledSubjects } from "@/server/entitlements";
 import type { AppStore, StoredTask, StoredUser } from "@/server/store";
 import { createId, readStoreAsync, withStoreAsync, withStoredUserDefaults } from "@/server/store";
+import { persistUserCollections } from "@/server/store-postgres";
 
 type UserPayload = Record<string, unknown>;
 
@@ -442,6 +443,15 @@ export async function handleLoginWithOtp(payload: UserPayload) {
           studentCapacity: null,
         });
         store.users.push(user);
+        // Flush the new admin row to origin_users *before* creating the session.
+        // The legacy store otherwise only persists new users at the END of
+        // withStoreAsync (persistStoreToPostgres), but createAuthSessionAsync below
+        // writes the session straight to Postgres, and origin_auth_sessions.user_id is
+        // NOT NULL REFERENCES origin_users(id). Without this the session INSERT hits an
+        // FK violation against the not-yet-persisted admin row and the whole login throws
+        // ("Authentication is temporarily unavailable"). Idempotent — the final
+        // persistStoreToPostgres re-upserts the same row.
+        await persistUserCollections(store, user.id, [], { persistUser: true });
       } else {
         return notFound("User not found.");
       }
