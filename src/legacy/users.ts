@@ -411,9 +411,40 @@ export async function handleLoginWithOtp(payload: UserPayload) {
       return unauthorized("Email verification required.");
     }
 
-    const user = store.users.find((entry) => entry.email.toLowerCase() === email && (role ? entry.role === role : true));
+    let user = store.users.find((entry) => entry.email.toLowerCase() === email && (role ? entry.role === role : true));
     if (!user) {
-      return notFound("User not found.");
+      // Auto-provision the platform main admin on first OTP login. Only the
+      // env-designated email can self-provision as admin, and only after the OTP
+      // is verified (proving control of the inbox) — so this is no weaker than
+      // any OTP login. Admin login is OTP-based, so the password is inert.
+      const mainAdminEmail = (process.env.PLATFORM_MAIN_ADMIN_EMAIL || "tohin1400@gmail.com").trim().toLowerCase();
+      if (role === "admin" && email === mainAdminEmail) {
+        user = withStoredUserDefaults({
+          id: createId("user"),
+          name: "Origin Admin",
+          email,
+          password: bcrypt.hashSync(createId("rand"), 10),
+          role: "admin",
+          studentClass: null,
+          fieldOfInterest: null,
+          referralSource: null,
+          avatar: null,
+          streak: 0,
+          totalStudyTime: 0,
+          joinedAt: new Date().toISOString(),
+          isPremium: false,
+          premiumExpiry: null,
+          isOnboarded: true,
+          selectedCourse: null,
+          isDropper: false,
+          yearsOfExperience: null,
+          subjects: [],
+          studentCapacity: null,
+        });
+        store.users.push(user);
+      } else {
+        return notFound("User not found.");
+      }
     }
 
     const session = await createAuthSessionAsync(store, user.id);

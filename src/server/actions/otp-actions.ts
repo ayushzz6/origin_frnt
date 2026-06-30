@@ -26,8 +26,8 @@ export async function sendOtpAction(
   }
 
   const normalizedEmail = normalizeEmail(email);
-  const otp = generateOTP();
-  const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes from now
+  let otp = generateOTP();
+  let expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes from now
 
   try {
     const preflight = await withStoreAsync(async (store) => {
@@ -45,12 +45,24 @@ export async function sendOtpAction(
         return { ok: false as const, message: 'An account with this email already exists. Please login instead.' };
       }
 
-      // Audit fix R-1.2 (A-05): the prior `o.email !== email` filter was
-      // case-sensitive, so a previous send to "Foo@Bar.com" plus a new send
-      // to "foo@bar.com" left two rows. Normalise both sides to keep the
-      // dedup contract honest.
-      store.otps = store.otps.filter((o) => o.email.toLowerCase() !== normalizedEmail);
-      store.otps.push({ email: normalizedEmail, otp, expiresAt });
+      // Resend safety: if a still-valid, unverified code already exists for this
+      // email, REUSE it instead of minting a new one. Email delivery can lag, so
+      // a "Resend" otherwise mints a new code that silently invalidates the
+      // (slower) first email — the user types the first code and gets "invalid".
+      // Reusing keeps every delivered email's code valid until it expires.
+      const now = Date.now();
+      const existing = store.otps.find(
+        (o) => o.email.toLowerCase() === normalizedEmail && o.verified !== true && new Date(o.expiresAt).getTime() > now,
+      );
+      if (existing) {
+        otp = existing.otp;
+        expiresAt = existing.expiresAt;
+      } else {
+        // Normalise both sides (case-insensitive) so a previous send to
+        // "Foo@Bar.com" + a new send to "foo@bar.com" don't leave two rows.
+        store.otps = store.otps.filter((o) => o.email.toLowerCase() !== normalizedEmail);
+        store.otps.push({ email: normalizedEmail, otp, expiresAt });
+      }
       return { ok: true as const };
     });
 
